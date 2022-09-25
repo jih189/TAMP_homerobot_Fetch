@@ -372,8 +372,11 @@ int main(int argc, char** argv)
   // define the constraint on the object
   moveit_msgs::Constraints constraints;
   constraints.name = "horizontal_constraint";
+  constraints.in_hand_pose = current_in_hand_pose;
 
+  // define the orientation constraint on the object
   moveit_msgs::OrientationConstraint orientation_constraint;
+  orientation_constraint.parameterization = moveit_msgs::OrientationConstraint::ROTATION_VECTOR;
   orientation_constraint.header.frame_id = "base_link";
   orientation_constraint.header.stamp = ros::Time(0);
   orientation_constraint.link_name = "wrist_roll_link";
@@ -388,7 +391,25 @@ int main(int argc, char** argv)
   orientation_constraint.absolute_y_axis_tolerance = 0.1;
   orientation_constraint.absolute_z_axis_tolerance = 2 * 3.1415;
   constraints.orientation_constraints.push_back(orientation_constraint);
-  constraints.in_hand_pose = current_in_hand_pose;
+
+  // define the position constraint on the object
+  moveit_msgs::PositionConstraint position_constraint;
+  position_constraint.header.frame_id = "base_link";
+  position_constraint.header.stamp = ros::Time(0);
+  position_constraint.link_name = "wrist_roll_link";
+  position_constraint.weight = 1.0;
+
+  shape_msgs::SolidPrimitive bounding_region;
+  bounding_region.type = bounding_region.BOX;
+  bounding_region.dimensions.resize(3);
+  bounding_region.dimensions[bounding_region.BOX_X] = 2000; // for x
+  bounding_region.dimensions[bounding_region.BOX_Y] = 2000; // for y 
+  bounding_region.dimensions[bounding_region.BOX_Z] = 0.03; // for z
+
+  position_constraint.constraint_region.primitives.push_back(bounding_region);
+  position_constraint.constraint_region.primitive_poses.push_back(target_object_pose);
+  constraints.position_constraints.push_back(position_constraint);
+
 
   // set planner id
   move_group.setPlannerId("CBIRRTConfigDefault");
@@ -442,7 +463,7 @@ int main(int argc, char** argv)
     return 0;
   }
 
-  arm_visuals.prompt("ready to execute the plan");
+  //arm_visuals.prompt("ready to execute the plan");
 
   //grasp_visuals->publishEEMarkers(target_gripper_pose, grasp_visuals->getSharedRobotState()->getJointModelGroup(END_EFFECTOR_PLANNING_GROUP), std::vector<double>{0.04,0.04}, rviz_visual_tools::BLUE, "target_gripper_pose");
 
