@@ -114,7 +114,6 @@ int main(int argc, char** argv)
     ros::Duration(1.0).sleep();
   }
 
-  std::vector<moveit_msgs::CollisionObject> collision_objects;
   // add the object into the planning scene
   moveit_msgs::CollisionObject collision_object_;
   collision_object_.header.frame_id = move_group.getPlanningFrame();
@@ -132,10 +131,7 @@ int main(int argc, char** argv)
 
   collision_object_.meshes.push_back(object_mesh);
   collision_object_.pose = object_pose;
-  collision_object_.operation = collision_object_.ADD;
   
-  // collision_objects.push_back(collision_object_);
-
   // add the table into the planning scene
   moveit_msgs::CollisionObject collision_object_table;
   collision_object_table.header.frame_id = move_group.getPlanningFrame();
@@ -162,11 +158,9 @@ int main(int argc, char** argv)
 
   collision_object_table.primitives.push_back(table_primitive);
   collision_object_table.pose = table_pose;
-  collision_object_table.operation = collision_object_table.ADD;
-  collision_objects.push_back(collision_object_table);
 
-  planning_scene_interface.addCollisionObjects(collision_objects);
-  planning_scene_interface.applyCollisionObjects(collision_objects);
+  collision_object_table.operation = collision_object_table.ADD;
+  planning_scene_interface.applyCollisionObject(collision_object_table);
 
   // initialize the visualizer for grasps
   moveit_visual_tools::MoveItVisualToolsPtr grasp_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link", "/move_group/display_contacts");
@@ -252,12 +246,8 @@ int main(int argc, char** argv)
     // add the object into the the planning scene
     std::vector<std::string> current_object_ids = planning_scene_interface.getKnownObjectNames();
     if(std::find(current_object_ids.begin(), current_object_ids.end(), OBJECT_NAME) == current_object_ids.end()){
-      collision_objects.clear();
-      collision_objects.push_back(collision_object_);
-      planning_scene_interface.addCollisionObjects(collision_objects);
-      planning_scene_interface.applyCollisionObjects(collision_objects);
-      // need to wait for the collision object added into the planning scene
-      ros::Duration(0.3).sleep();
+      collision_object_.operation = collision_object_.ADD;
+      planning_scene_interface.applyCollisionObject(collision_object_);
     }
     current_object_ids.clear();
 
@@ -281,7 +271,9 @@ int main(int argc, char** argv)
     // need to remove the object from the planning scene to avoid the collision
     current_object_ids = planning_scene_interface.getKnownObjectNames();
     if(std::find(current_object_ids.begin(), current_object_ids.end(), OBJECT_NAME) != current_object_ids.end()){
-      planning_scene_interface.removeCollisionObjects(std::vector<std::string>{OBJECT_NAME});
+      collision_object_.operation = collision_object_.REMOVE;
+      planning_scene_interface.applyCollisionObject(collision_object_);
+      //planning_scene_interface.removeCollisionObjects(std::vector<std::string>{OBJECT_NAME});
     }
 
     // plan for the approach motion
@@ -408,7 +400,7 @@ int main(int argc, char** argv)
 
   position_constraint.constraint_region.primitives.push_back(bounding_region);
   position_constraint.constraint_region.primitive_poses.push_back(target_object_pose);
-  constraints.position_constraints.push_back(position_constraint);
+  //constraints.position_constraints.push_back(position_constraint);
 
 
   // set planner id
@@ -428,13 +420,14 @@ int main(int argc, char** argv)
   geometry_msgs::Pose current_object_pose;
   productBetweenGeoPose(move_group.getCurrentPose().pose, current_in_hand_pose, current_object_pose);
   collision_object_.pose = current_object_pose;
-  collision_objects.clear();
-  collision_objects.push_back(collision_object_);
-  planning_scene_interface.addCollisionObjects(collision_objects);
-  planning_scene_interface.applyCollisionObjects(collision_objects);
+  collision_object_.operation = collision_object_.ADD;
+
   // 2) attach the object to the end-effector
-  move_group.attachObject(collision_object_.id, std::string("wrist_roll_link"), std::vector<std::string>{"l_gripper_finger_link","r_gripper_finger_link"});
-  ros::Duration(0.3).sleep();
+  moveit_msgs::AttachedCollisionObject attached_collision_object_;
+  attached_collision_object_.object = collision_object_;
+  attached_collision_object_.link_name = std::string("wrist_roll_link");
+  attached_collision_object_.touch_links = std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link"};
+  planning_scene_interface.applyAttachedCollisionObject(attached_collision_object_);
 
   // set target gripper pose
   //move_group.setPoseTarget(target_gripper_pose);
@@ -445,7 +438,8 @@ int main(int argc, char** argv)
 
   // detach object
   move_group.detachObject(collision_object_.id);
-  planning_scene_interface.removeCollisionObjects(std::vector<std::string>{OBJECT_NAME});
+  collision_object_.operation = collision_object_.REMOVE;
+  planning_scene_interface.applyCollisionObject(collision_object_);
   
   if(success){
     std::cout << "find a solution to shift the object" << std::endl;
