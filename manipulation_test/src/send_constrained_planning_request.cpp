@@ -342,13 +342,13 @@ int main(int argc, char** argv)
   geometry_msgs::Pose rotateInZ;
   rotateInZ.orientation.x = 0; 
   rotateInZ.orientation.y = 0;
-  rotateInZ.orientation.z = 1;
-  rotateInZ.orientation.w = 0;
+  rotateInZ.orientation.z = 0;
+  rotateInZ.orientation.w = 1;
 
   geometry_msgs::Pose target_object_pose;
   productBetweenGeoPose(object_pose, rotateInZ, target_object_pose);
   target_object_pose.position.z += 0.1;
-  target_object_pose.position.y -= 0.5;
+  target_object_pose.position.y -= 0.05;
 
   // calculate the target gripper pose
   geometry_msgs::Pose target_gripper_pose;
@@ -363,7 +363,7 @@ int main(int argc, char** argv)
 
   // define the constraint on the object
   moveit_msgs::Constraints constraints;
-  constraints.name = "horizontal_constraint";
+  constraints.name = "use_equality_constraints";
   constraints.in_hand_pose = current_in_hand_pose;
 
   // define the orientation constraint on the object
@@ -396,15 +396,16 @@ int main(int argc, char** argv)
   bounding_region.dimensions.resize(3);
   bounding_region.dimensions[bounding_region.BOX_X] = 2000; // for x
   bounding_region.dimensions[bounding_region.BOX_Y] = 2000; // for y 
-  bounding_region.dimensions[bounding_region.BOX_Z] = 0.03; // for z
+  bounding_region.dimensions[bounding_region.BOX_Z] = 0.0005; // for z
+  // If you want to use plane constraint, you should set 0.0005 for it.
 
   position_constraint.constraint_region.primitives.push_back(bounding_region);
   position_constraint.constraint_region.primitive_poses.push_back(target_object_pose);
-  //constraints.position_constraints.push_back(position_constraint);
-
+  constraints.position_constraints.push_back(position_constraint);
 
   // set planner id
   move_group.setPlannerId("CBIRRTConfigDefault");
+  move_group.setPlanningTime(30.0);
 
   // set constraints
   move_group.setPathConstraints(constraints);

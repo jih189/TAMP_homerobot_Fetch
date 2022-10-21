@@ -23,11 +23,11 @@ controller_list:
       - forearm_roll_joint
       - wrist_flex_joint
       - wrist_roll_joint
-  - name: gripper_controller
-    type: GripperCommand
-    action_ns: gripper_action
-    default: true
-    parallel: true
-    joints:
-      - l_gripper_finger_joint
-      - r_gripper_finger_joint
+#  - name: gripper_controller
+#    type: GripperCommand
+#    action_ns: gripper_action
+#    default: true
+#    parallel: true
+#    joints:
+#      - l_gripper_finger_joint
+#      - r_gripper_finger_joint
