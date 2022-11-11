@@ -342,13 +342,13 @@ int main(int argc, char** argv)
   geometry_msgs::Pose rotateInZ;
   rotateInZ.orientation.x = 0; 
   rotateInZ.orientation.y = 0;
-  rotateInZ.orientation.z = 0;
-  rotateInZ.orientation.w = 1;
+  rotateInZ.orientation.z = 1;
+  rotateInZ.orientation.w = 0;
 
   geometry_msgs::Pose target_object_pose;
   productBetweenGeoPose(object_pose, rotateInZ, target_object_pose);
   target_object_pose.position.z += 0.1;
-  target_object_pose.position.y -= 0.05;
+  target_object_pose.position.y -= 0.35;
 
   // calculate the target gripper pose
   geometry_msgs::Pose target_gripper_pose;
@@ -364,6 +364,7 @@ int main(int argc, char** argv)
   // define the constraint on the object
   moveit_msgs::Constraints constraints;
   constraints.name = "use_equality_constraints";
+  //constraints.name = "horizontal_constraints";
   constraints.in_hand_pose = current_in_hand_pose;
 
   // define the orientation constraint on the object
@@ -404,8 +405,9 @@ int main(int argc, char** argv)
   constraints.position_constraints.push_back(position_constraint);
 
   // set planner id
-  move_group.setPlannerId("CBIRRTConfigDefault");
-  move_group.setPlanningTime(30.0);
+  //move_group.setPlannerId("CBIRRTConfigDefault");
+  move_group.setPlannerId("CLazyPRMConfigDefault");
+  move_group.setPlanningTime(1.0);
 
   // set constraints
   move_group.setPathConstraints(constraints);
