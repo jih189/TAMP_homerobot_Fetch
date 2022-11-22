@@ -29,6 +29,7 @@ planner_configs:
     store_planner_data: false
     load_planner_data: false
     termination_condition: ExactSolution
+    include_experience: true
 
 arm:
   planner_configs:

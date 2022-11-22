@@ -407,9 +407,14 @@ int main(int argc, char** argv)
   // set planner id
   //move_group.setPlannerId("CBIRRTConfigDefault");
   move_group.setPlannerId("CLazyPRMConfigDefault");
-  move_group.setPlanningTime(1.0);
+  move_group.setPlanningTime(3.0);
+  // set action and its id
+  move_group.setActionWithId("move", 1);
 
-  // set constraints
+  // set experience waypoints sequence
+
+
+  // set object constraints
   move_group.setPathConstraints(constraints);
 
   // set the in hand pose
@@ -437,7 +442,13 @@ int main(int argc, char** argv)
   move_group.setPoseTarget(target_object_pose);
 
   moveit::planning_interface::MoveGroupInterface::Plan constrained_plan;
-  bool success = (move_group.plan(constrained_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+  std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+  bool success = (move_group.plan(constrained_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+
+  // show the experience edge 0
+  std::cout << "edge " << experience[0].verified_vertex_id_1_ << " - " << experience[0].verified_vertex_id_2_ << std::endl;
+  std::cout << experience[0].verified_vertex_1_ << std::endl;
+  std::cout << experience[0].verified_vertex_2_ << std::endl;
 
   // detach object
   move_group.detachObject(collision_object_.id);
