@@ -413,9 +413,6 @@ int main(int argc, char** argv)
   // set action and its id
   move_group.setActionWithId("move", 1);
 
-  // set experience waypoints sequence
-
-
   // set object constraints
   move_group.setPathConstraints(constraints);
 
@@ -513,58 +510,70 @@ int main(int argc, char** argv)
     arm_visuals->deleteAllMarkers();
     arm_visuals->publishTrajectoryPath(total_trajectory);
 
-    // // find the shortest path
-    // // find the start state and end state
-    // std::vector<double> start_robot_state;
-    // shift_trajectory.getWayPoint(0).copyJointGroupPositions(joint_model_group, start_robot_state);
+    // find the shortest path
+    // find the start state and end state
+    std::vector<double> start_robot_state;
+    shift_trajectory.getWayPoint(0).copyJointGroupPositions(joint_model_group, start_robot_state);
 
-    // std::cout << "start state: ";
-    // for(double value : start_robot_state)
-    // {
-    //   std::cout << value << " ";
-    // }
-    // std::cout << std::endl;
+    std::cout << "start state: ";
+    for(double value : start_robot_state)
+    {
+      std::cout << value << " ";
+    }
+    std::cout << std::endl;
 
-    // ExperienceGraph::Vertex startVertex = experiencegraph.addVertex(start_robot_state, 1, 0);
+    ExperienceGraph::Vertex startVertex = experiencegraph.addVertex(start_robot_state, 1, 0);
 
-    // std::vector<double> end_robot_state;
-    // shift_trajectory.getLastWayPoint().copyJointGroupPositions(joint_model_group, end_robot_state);
+    std::vector<double> end_robot_state;
+    shift_trajectory.getLastWayPoint().copyJointGroupPositions(joint_model_group, end_robot_state);
 
-    // ExperienceGraph::Vertex endVertex = experiencegraph.addVertex(end_robot_state, 1, 1);
+    ExperienceGraph::Vertex endVertex = experiencegraph.addVertex(end_robot_state, 1, 1);
 
-    // // find the neighbors of the start and end state
-    // std::vector<ExperienceGraph::Vertex> start_neighbors = experiencegraph.getNeighbors(startVertex);
+    // find the neighbors of the start and end state
+    std::vector<ExperienceGraph::Vertex> start_neighbors = experiencegraph.getNeighbors(startVertex);
 
-    // // connect the start vertex to all start neighbors
-    // for(ExperienceGraph::Vertex v : start_neighbors)
-    // {
-    //   if(experiencegraph.vertex_constraint_id_map[startVertex] !=  experiencegraph.vertex_constraint_id_map[v] || experiencegraph.vertex_node_id_map[startVertex] != experiencegraph.vertex_node_id_map[v])
-    //   {
-    //     experiencegraph.addEdge(startVertex, v);
-    //   }
-    // }
+    // connect the start vertex to all start neighbors
+    for(ExperienceGraph::Vertex v : start_neighbors)
+    {
+      if(experiencegraph.vertex_constraint_id_map[startVertex] !=  experiencegraph.vertex_constraint_id_map[v] || experiencegraph.vertex_node_id_map[startVertex] != experiencegraph.vertex_node_id_map[v])
+      {
+        experiencegraph.addEdge(startVertex, v);
+      }
+    }
 
-    // // find the neighbors of the end state
-    // std::vector<ExperienceGraph::Vertex> end_neighbors = experiencegraph.getNeighbors(endVertex);
+    // find the neighbors of the end state
+    std::vector<ExperienceGraph::Vertex> end_neighbors = experiencegraph.getNeighbors(endVertex);
 
-    // // connect the end vertex to all end neighbors
-    // for(ExperienceGraph::Vertex v : end_neighbors)
-    // {
-    //   if(experiencegraph.vertex_constraint_id_map[endVertex] !=  experiencegraph.vertex_constraint_id_map[v] || experiencegraph.vertex_node_id_map[endVertex] != experiencegraph.vertex_node_id_map[v])
-    //   {
-    //     experiencegraph.addEdge(endVertex, v);
-    //   }
-    // }
+    // connect the end vertex to all end neighbors
+    for(ExperienceGraph::Vertex v : end_neighbors)
+    {
+      if(experiencegraph.vertex_constraint_id_map[endVertex] !=  experiencegraph.vertex_constraint_id_map[v] || experiencegraph.vertex_node_id_map[endVertex] != experiencegraph.vertex_node_id_map[v])
+      {
+        experiencegraph.addEdge(endVertex, v);
+      }
+    }
 
-    // std::vector<ExperienceGraph::Vertex> solution = experiencegraph.findSolution(startVertex, endVertex);
+    std::vector<ExperienceGraph::Vertex> solution = experiencegraph.findSolution(startVertex, endVertex);
 
-    // std::cout << " solution size: " << solution.size() << std::endl;
+    std::cout << " solution size: " << solution.size() << std::endl;
 
-    // for(auto& v : solution)
-    // {
-    //   std::cout << experiencegraph.vertex_index_map[v] << std::endl;
-    // }
+    std::vector<trajectory_msgs::JointTrajectoryPoint> experience_waypoints;
+    experience_waypoints.resize(solution.size());
+    for(int i = 0; i < solution.size(); i++)
+    {
+      std::cout << experiencegraph.vertex_index_map[solution[i]] << std::endl;
+      for(int j = 0; j < 7; j++)
+      {
+        experience_waypoints[i].positions[j] = experiencegraph.vertex_state_map[solution[i]][j];
+      }
+    }
 
+    // set experience waypoints
+    move_group.setExperience(experience_waypoints);
+
+    move_group.setActionWithId("move", 2);
+
+    bool success = (move_group.plan(constrained_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 
   }
   else{
