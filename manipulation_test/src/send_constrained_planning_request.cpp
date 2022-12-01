@@ -17,6 +17,8 @@
 #include <visualization_msgs/Marker.h>
 #include <rviz_visual_tools/rviz_visual_tools.h>
 
+#include "manipulation_test/experience_graph.hpp"
+
 
 void geoPoseToTransformTF(const geometry_msgs::Pose &p, tf::Transform &t){
   t.setOrigin(tf::Vector3(p.position.x, p.position.y, p.position.z));
@@ -445,10 +447,55 @@ int main(int argc, char** argv)
   std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
   bool success = (move_group.plan(constrained_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 
-  // show the experience edge 0
-  std::cout << "edge " << experience[0].verified_vertex_id_1_ << " - " << experience[0].verified_vertex_id_2_ << std::endl;
-  std::cout << experience[0].verified_vertex_1_ << std::endl;
-  std::cout << experience[0].verified_vertex_2_ << std::endl;
+  // initialize experience graph
+  ExperienceGraph experiencegraph(7);
+
+  int current_constraint_id = 0;
+
+  // add returned experience to the experience graph
+  for(moveit::planning_interface::MoveGroupInterface::MotionEdge edge : experience)
+  {
+    ExperienceGraph::Vertex v1;
+    ExperienceGraph::Vertex v2;
+    // add the edge to the experience graph
+    if(experiencegraph.hasVertex(current_constraint_id, edge.verified_vertex_id_1_))
+    {
+      v1 = experiencegraph.getVertex(current_constraint_id, edge.verified_vertex_id_1_);
+    }
+    else
+    {
+      std::vector<double> joint_values{edge.verified_vertex_1_.position[0], 
+                                      edge.verified_vertex_1_.position[1], 
+                                      edge.verified_vertex_1_.position[2], 
+                                      edge.verified_vertex_1_.position[3], 
+                                      edge.verified_vertex_1_.position[4], 
+                                      edge.verified_vertex_1_.position[5], 
+                                      edge.verified_vertex_1_.position[6]};
+      v1 = experiencegraph.addVertex(joint_values, current_constraint_id, edge.verified_vertex_id_1_);
+    }
+
+    if(experiencegraph.hasVertex(current_constraint_id, edge.verified_vertex_id_2_))
+    {
+      v2 = experiencegraph.getVertex(current_constraint_id, edge.verified_vertex_id_2_);
+    }
+    else
+    {
+      std::vector<double> joint_values{edge.verified_vertex_2_.position[0], 
+                                      edge.verified_vertex_2_.position[1], 
+                                      edge.verified_vertex_2_.position[2], 
+                                      edge.verified_vertex_2_.position[3], 
+                                      edge.verified_vertex_2_.position[4], 
+                                      edge.verified_vertex_2_.position[5], 
+                                      edge.verified_vertex_2_.position[6]};
+      v2 = experiencegraph.addVertex(joint_values, current_constraint_id, edge.verified_vertex_id_2_);
+    }
+
+    if(!experiencegraph.hasEdge(v1, v2)) // if the edge does not exist, then add it.
+    {
+      experiencegraph.addEdge(v1, v2);
+    }
+    
+  }
 
   // detach object
   move_group.detachObject(collision_object_.id);
@@ -465,11 +512,67 @@ int main(int argc, char** argv)
 
     arm_visuals->deleteAllMarkers();
     arm_visuals->publishTrajectoryPath(total_trajectory);
+
+    // // find the shortest path
+    // // find the start state and end state
+    // std::vector<double> start_robot_state;
+    // shift_trajectory.getWayPoint(0).copyJointGroupPositions(joint_model_group, start_robot_state);
+
+    // std::cout << "start state: ";
+    // for(double value : start_robot_state)
+    // {
+    //   std::cout << value << " ";
+    // }
+    // std::cout << std::endl;
+
+    // ExperienceGraph::Vertex startVertex = experiencegraph.addVertex(start_robot_state, 1, 0);
+
+    // std::vector<double> end_robot_state;
+    // shift_trajectory.getLastWayPoint().copyJointGroupPositions(joint_model_group, end_robot_state);
+
+    // ExperienceGraph::Vertex endVertex = experiencegraph.addVertex(end_robot_state, 1, 1);
+
+    // // find the neighbors of the start and end state
+    // std::vector<ExperienceGraph::Vertex> start_neighbors = experiencegraph.getNeighbors(startVertex);
+
+    // // connect the start vertex to all start neighbors
+    // for(ExperienceGraph::Vertex v : start_neighbors)
+    // {
+    //   if(experiencegraph.vertex_constraint_id_map[startVertex] !=  experiencegraph.vertex_constraint_id_map[v] || experiencegraph.vertex_node_id_map[startVertex] != experiencegraph.vertex_node_id_map[v])
+    //   {
+    //     experiencegraph.addEdge(startVertex, v);
+    //   }
+    // }
+
+    // // find the neighbors of the end state
+    // std::vector<ExperienceGraph::Vertex> end_neighbors = experiencegraph.getNeighbors(endVertex);
+
+    // // connect the end vertex to all end neighbors
+    // for(ExperienceGraph::Vertex v : end_neighbors)
+    // {
+    //   if(experiencegraph.vertex_constraint_id_map[endVertex] !=  experiencegraph.vertex_constraint_id_map[v] || experiencegraph.vertex_node_id_map[endVertex] != experiencegraph.vertex_node_id_map[v])
+    //   {
+    //     experiencegraph.addEdge(endVertex, v);
+    //   }
+    // }
+
+    // std::vector<ExperienceGraph::Vertex> solution = experiencegraph.findSolution(startVertex, endVertex);
+
+    // std::cout << " solution size: " << solution.size() << std::endl;
+
+    // for(auto& v : solution)
+    // {
+    //   std::cout << experiencegraph.vertex_index_map[v] << std::endl;
+    // }
+
+
   }
   else{
     std::cout << "can't find a solution to shift the object" << std::endl;
     return 0;
   }
+
+
 
   //arm_visuals.prompt("ready to execute the plan");
 
