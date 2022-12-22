@@ -93,7 +93,7 @@ public:
     /*! The minimum cluster size. */
     static constexpr int DEFAULT_MIN_CLUSTER_SIZE = 200;
     /*! The maximum cluster size. */
-    static constexpr int DEFAULT_MAX_CLUSTER_SIZE = 10000;
+    static constexpr int DEFAULT_MAX_CLUSTER_SIZE = 25000;
     /*! The cluster tolerance level. */
     static constexpr double CLUSTER_TOLERANCE = 0.02;
     /*! The color tolerance level, only for RGB segmentation */
@@ -118,7 +118,7 @@ public:
   /*! The minimum cluster size. */
   static const int DEFAULT_MIN_CLUSTER_SIZE = 200;
   /*! The maximum cluster size. */
-  static const int DEFAULT_MAX_CLUSTER_SIZE = 10000;
+  static const int DEFAULT_MAX_CLUSTER_SIZE = 25000;
   /*! The cluster tolerance level. */
   static const double CLUSTER_TOLERANCE = 0.02;
   /*! The color tolerance level, only for RGB segmentation */

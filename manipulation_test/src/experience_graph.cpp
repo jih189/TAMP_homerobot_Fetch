@@ -1,7 +1,10 @@
 #include "manipulation_test/experience_graph.hpp"
+#include <boost/foreach.hpp>
+
+#define foreach BOOST_FOREACH
 
 
-ExperienceGraph::ExperienceGraph(int numOfJoints)
+ExperienceGraph::ExperienceGraph(int numOfJoints, double maxDistance)
 {
     numOfJoints_ = numOfJoints;
     numOfCurrentNode = 0;
@@ -9,7 +12,6 @@ ExperienceGraph::ExperienceGraph(int numOfJoints)
     vertex_index_map = boost::get(boost::vertex_index, g_);
     vertex_state_map = boost::get(vertex_state_t(), g_);
     vertex_constraint_id_map = boost::get(vertex_constraint_id_t(), g_);
-    vertex_node_id_map = boost::get(vertex_node_id_t(), g_);
     edge_weight_map = boost::get(boost::edge_weight, g_);
 
     nn_ = std::make_shared<ompl::NearestNeighborsSqrtApprox<Vertex>>();
@@ -18,19 +20,15 @@ ExperienceGraph::ExperienceGraph(int numOfJoints)
         std::vector<double> joint2 = vertex_state_map[b];
         double diff = 0;
         for(int i = 0; i < numOfJoints_; i++)
-        {
-            diff += (abs(joint1[i] - joint2[i]) * abs(joint1[i] - joint2[i]));
-        }
+            diff += pow(abs(joint1[i] - joint2[i]), 2);
         return diff;
     });
-    connectionStrategy_ = ompl::geometric::KBoundedStrategy<Vertex>(5, 0.3, nn_);
-
-    connectionFilter_ = [](const Vertex &, const Vertex &) {
-        return true;
-    };
+    connectionStrategy_ = ompl::geometric::KBoundedStrategy<Vertex>(5, maxDistance, nn_);
 }
 
-ExperienceGraph::Vertex ExperienceGraph::addVertex(const std::vector<double>& jointstate, const int& constraint_id, const int& node_id)
+// add a vertex to the graph
+// if the vertex already exists, return the vertex.
+ExperienceGraph::Vertex ExperienceGraph::addVertex(const std::vector<double>& jointstate, const int& constraint_id)
 {
     // check the joint state size
     if(jointstate.size() > numOfJoints_)
@@ -38,29 +36,57 @@ ExperienceGraph::Vertex ExperienceGraph::addVertex(const std::vector<double>& jo
         std::cout << "The joint state size is larger than the number of joints" << std::endl;
         return NULL;
     }
-    Vertex m = boost::add_vertex(g_);
-    vertex_index_map[m] = numOfCurrentNode;
-    vertex_state_map[m] = jointstate;
-    vertex_constraint_id_map[m] = constraint_id;
-    vertex_node_id_map[m] = node_id;
 
-    vertex_map[{constraint_id, node_id}] = m;
+    // check if the vertex already exists
+    Vertex result = getVertex(jointstate);
+    if(result)
+    {
+        // if exists, then add the constraint id to the vertex
+        if(std::count(vertex_constraint_id_map[result].begin(), vertex_constraint_id_map[result].end(), constraint_id) == 0)
+        {
+            // add the constraint id to the vertex if it does not exist
+            vertex_constraint_id_map[result].push_back(constraint_id);
+        }
+        return result;
+    }
+    else
+    {
+        // if not exists, then add the vertex to the graph
+        Vertex m = boost::add_vertex(g_);
+        vertex_state_map[m] = jointstate;
+        vertex_index_map[m] = numOfCurrentNode;
+        vertex_constraint_id_map[m].push_back(constraint_id);
 
-    nn_->add(m);
+        nn_->add(m);
 
-    numOfCurrentNode++;
-
-    return m;
+        numOfCurrentNode++;
+        return m;
+    }
 }
 
-bool ExperienceGraph::hasVertex(const int& constraint_id, const int& node_id)
+// get the vertex from the graph
+// if the vertex does not exist, return NULL
+ExperienceGraph::Vertex ExperienceGraph::getVertex(const std::vector<double>& jointstate)
 {
-    return vertex_map.find({constraint_id, node_id}) != vertex_map.end();
-}
+    if(jointstate.size() > numOfJoints_)
+    {
+        std::cout << "The joint state size is larger than the number of joints" << std::endl;
+        return NULL;
+    }
 
-ExperienceGraph::Vertex ExperienceGraph::getVertex(const int& constraint_id, const int& node_id)
-{
-    return vertex_map[{constraint_id, node_id}];
+    foreach (Vertex n, boost::vertices(g_))
+    {
+        std::vector<double> currentjoint = vertex_state_map[n];
+
+        for(int i = 0; i < numOfJoints_; i++)
+        {
+            if(currentjoint[i] != jointstate[i])
+                break;
+            else if(i == numOfJoints_ - 1)
+                return n;
+        }
+    }
+    return NULL;
 }
 
 bool ExperienceGraph::hasEdge(const ExperienceGraph::Vertex& v1, const ExperienceGraph::Vertex& v2)
@@ -83,16 +109,9 @@ ExperienceGraph::Edge ExperienceGraph::addEdge(const ExperienceGraph::Vertex& v1
     // calculate the difference between two vectors
     double diff = 0;
     for(int i = 0; i < numOfJoints_; i++)
-    {
-        diff += (abs(joint1[i] - joint2[i]) * abs(joint1[i] - joint2[i]));
-    }
+        diff += pow(abs(joint1[i] - joint2[i]), 2);
     edge_weight_map[e] = std::sqrt(diff);
     return e;
-}
-
-void ExperienceGraph::printGraph()
-{
-    write_graphviz(std::cout, g_);
 }
 
 std::vector<ExperienceGraph::Vertex> ExperienceGraph::findSolution(const ExperienceGraph::Vertex& start, const ExperienceGraph::Vertex& goal)
@@ -129,4 +148,9 @@ std::vector<ExperienceGraph::Vertex> ExperienceGraph::findSolution(const Experie
 std::vector<ExperienceGraph::Vertex> ExperienceGraph::getNeighbors(const ExperienceGraph::Vertex& v)
 {
     return connectionStrategy_(v);
+}
+
+void ExperienceGraph::printGraph()
+{
+    write_graphviz(std::cout, g_);
 }

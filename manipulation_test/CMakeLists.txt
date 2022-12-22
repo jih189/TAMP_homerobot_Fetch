@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  geometry_msgs
   interactive_markers
   moveit_core
   moveit_visual_tools
@@ -27,12 +28,21 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   tf_conversions
   trac_ik_lib
+  message_generation
+  rail_segmentation
+  rail_manipulation_msgs
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(ompl REQUIRED)
 
+#######
+# FCL #
+#######
+find_package(fcl REQUIRED)
+include_directories(${FCL_INCLUDE_DIRS})
+link_directories(${FCL_LIBRARY_DIRS})
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -71,11 +81,7 @@ find_package(ompl REQUIRED)
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(DIRECTORY srv FILES VisualizeGrasp.srv VisualizeTable.srv VisualizeObstacle.srv VisualizeIntermediatePlacements.srv)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -85,10 +91,12 @@ find_package(ompl REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+   DEPENDENCIES
+   std_msgs
+   geometry_msgs
+   rail_manipulation_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -126,6 +134,7 @@ catkin_package(
    roscpp
    rospy
    std_msgs
+   geometry_msgs
    moveit_core
    moveit_visual_tools
    moveit_ros_planning_interface
@@ -135,6 +144,9 @@ catkin_package(
    tf2_eigen
    tf_conversions
    trac_ik_lib
+   message_runtime
+   rail_segmentation
+   rail_manipulation_msgs
  DEPENDS
    EIGEN3
 #  DEPENDS system_lib
@@ -167,8 +179,10 @@ add_library(${PROJECT_NAME}
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/manipulation_test_node.cpp)
 add_executable(send_constrained_planning_request src/send_constrained_planning_request.cpp)
+add_executable(main_pipeline src/main_pipeline.cpp)
 add_executable(constrained_test src/constrained_test.cpp)
 add_executable(graph_test src/graph_test.cpp)
+add_executable(grasp_visualizer src/grasp_visualizer.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -188,11 +202,23 @@ target_link_libraries(send_constrained_planning_request
   ${catkin_LIBRARIES}
   ${PROJECT_NAME}
 )
+
+target_link_libraries(main_pipeline
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
+  ${FCL_LIBRARIES}
+)
+
 target_link_libraries(constrained_test
   ${catkin_LIBRARIES}
 )
 
 target_link_libraries(graph_test
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
+)
+
+target_link_libraries(grasp_visualizer
   ${catkin_LIBRARIES}
   ${PROJECT_NAME}
 )
