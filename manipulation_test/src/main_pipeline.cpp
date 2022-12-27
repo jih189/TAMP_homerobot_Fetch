@@ -7,11 +7,15 @@
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/DisplayTrajectory.h>
 
+#include <trac_ik/trac_ik.hpp>
+#include <kdl/chainiksolverpos_nr_jl.hpp>
+
 #include <rviz_visual_tools/rviz_visual_tools.h>
 #include "manipulation_test/VisualizeGrasp.h"
 #include "manipulation_test/VisualizeTable.h"
 #include "manipulation_test/VisualizeObstacle.h"
 #include "manipulation_test/VisualizeIntermediatePlacements.h"
+#include "manipulation_test/VisualizeRegrasp.h"
 
 #include <rail_segmentation/SearchTable.h>
 #include <rail_manipulation_msgs/SegmentObjects.h>
@@ -32,60 +36,67 @@ bool is_number(const std::string& s)
         s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
 
+void transformTFToKDL(const tf::Transform &t, KDL::Frame &k){
+  for(uint i = 0; i < 3; ++i)
+    k.p[i] = t.getOrigin()[i];
+  for(uint i = 0; i < 9; ++i)
+    k.M.data[i] = t.getBasis()[i/3][i%3]; 
+}
+
+void transformTFToGeoPose(const tf::Transform &t, geometry_msgs::Pose &p){
+  p.orientation.x = t.getRotation().x();
+  p.orientation.y = t.getRotation().y();
+  p.orientation.z = t.getRotation().z();
+  p.orientation.w = t.getRotation().w();
+  p.position.x = t.getOrigin().x();
+  p.position.y = t.getOrigin().y();
+  p.position.z = t.getOrigin().z();
+}
+
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "main_pipeline");
+    static const std::string OBJECT_NAME = "hammer";
 
+    ros::init(argc, argv, "main_pipeline");
     ros::NodeHandle node_handle;
+    ros::AsyncSpinner spinner(1);
+    spinner.start();
 
     // visualize the grasp poses over the current object
     ros::ServiceClient client = node_handle.serviceClient<manipulation_test::VisualizeGrasp>("visualize_grasp");
     client.waitForExistence();
 
     manipulation_test::VisualizeGrasp srv;
-    srv.request.grasped_object_name = "hammer";
+    srv.request.grasped_object_name = OBJECT_NAME;
 
-    // set the lifting grasp pose
-    geometry_msgs::PoseStamped grasp_pose1;
-    grasp_pose1.pose.position.x = 0;
-    grasp_pose1.pose.position.y = 0;
-    grasp_pose1.pose.position.z = 0.2;
-    grasp_pose1.pose.orientation.x = -0.5;
-    grasp_pose1.pose.orientation.y = -0.5;
-    grasp_pose1.pose.orientation.z = 0.5;
-    grasp_pose1.pose.orientation.w = -0.5;
+    std::vector<tf::Transform> grasp_transforms(3);
+    std::vector<float> grasp_jawwidths(3);
+    std::vector<int> grasp_types(3);
 
-    srv.request.grasp_poses.push_back(grasp_pose1);
-    srv.request.grasp_jawwidths.push_back(0.08);
-    srv.request.grasp_types.push_back(0);
+    grasp_transforms[0].setOrigin(tf::Vector3(0, 0, 0.2));
+    grasp_transforms[0].setRotation(tf::Quaternion(-0.5, -0.5, 0.5, -0.5));
+    grasp_jawwidths[0] = 0.08;
+    grasp_types[0] = 0; // [0: lifting, 1: sliding
 
-    // set the sliding grasp pose
-    geometry_msgs::PoseStamped grasp_pose2;
-    grasp_pose2.pose.position.x = 0;
-    grasp_pose2.pose.position.y = 0.12;
-    grasp_pose2.pose.position.z = 0.2;
-    grasp_pose2.pose.orientation.x = -0.5;
-    grasp_pose2.pose.orientation.y = -0.5;
-    grasp_pose2.pose.orientation.z = 0.5;
-    grasp_pose2.pose.orientation.w = -0.5;
+    grasp_transforms[1].setOrigin(tf::Vector3(0, 0.12, 0.2));
+    grasp_transforms[1].setRotation(tf::Quaternion(-0.5, -0.5, 0.5, -0.5));
+    grasp_jawwidths[1] = 0.08;
+    grasp_types[1] = 1; // [0: lifting, 1: sliding
 
-    srv.request.grasp_poses.push_back(grasp_pose2);
-    srv.request.grasp_jawwidths.push_back(0.08);
-    srv.request.grasp_types.push_back(1);
+    grasp_transforms[2].setOrigin(tf::Vector3(0, 0.25, 0.2));
+    grasp_transforms[2].setRotation(tf::Quaternion(-0.5, -0.5, 0.5, -0.5));
+    grasp_jawwidths[2] = 0.08;
+    grasp_types[2] = 1; // [0: lifting, 1: sliding
 
-    // set another sliding grasp pose
-    geometry_msgs::PoseStamped grasp_pose3;
-    grasp_pose3.pose.position.x = 0;
-    grasp_pose3.pose.position.y = 0.25;
-    grasp_pose3.pose.position.z = 0.2;
-    grasp_pose3.pose.orientation.x = -0.5;
-    grasp_pose3.pose.orientation.y = -0.5;
-    grasp_pose3.pose.orientation.z = 0.5;
-    grasp_pose3.pose.orientation.w = -0.5;
+    for(int i = 0; i < grasp_transforms.size(); i++)
+    {
+        geometry_msgs::PoseStamped grasp_pose;
+        transformTFToGeoPose(grasp_transforms[i], grasp_pose.pose);
 
-    srv.request.grasp_poses.push_back(grasp_pose3);
-    srv.request.grasp_jawwidths.push_back(0.08);
-    srv.request.grasp_types.push_back(1);
+        srv.request.grasp_poses.push_back(grasp_pose);
+        srv.request.grasp_jawwidths.push_back(grasp_jawwidths[i]);
+        srv.request.grasp_types.push_back(grasp_types[i]);
+    }
 
     if (not client.call(srv))
     {
@@ -242,12 +253,25 @@ int main(int argc, char** argv)
                                                       obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.y, 
                                                       obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.z));
 
+    std::vector<tf::Transform> actual_grasp_transforms;
+    for(int i = 0; i < srv.response.actual_grasp_poses.size(); i++)
+    {
+        tf::Transform actual_grasp_transform = target_object_transform.inverse() * tf::Transform(tf::Quaternion(srv.response.actual_grasp_poses[i].pose.orientation.x, 
+                                                                                                                srv.response.actual_grasp_poses[i].pose.orientation.y, 
+                                                                                                                srv.response.actual_grasp_poses[i].pose.orientation.z, 
+                                                                                                                srv.response.actual_grasp_poses[i].pose.orientation.w), 
+                                                                                                tf::Vector3(srv.response.actual_grasp_poses[i].pose.position.x, 
+                                                                                                            srv.response.actual_grasp_poses[i].pose.position.y, 
+                                                                                                            srv.response.actual_grasp_poses[i].pose.position.z));
+        actual_grasp_transforms.push_back(actual_grasp_transform);
+    }
+
     // get the target object transform in the table frame
     tf::Transform target_object_transform_in_table_frame = table_transform.inverse() * target_object_transform;
 
-    // get 20 random target object pose in the table frame.
+    // get a set of random target object poses in the table frame.
     std::vector<tf::Transform> random_target_object_transforms;
-    for(int i = 0; i < 20; i++)
+    for(int i = 0; i < 30; i++)
     {
         int index = rand() % table_point_cloud.size();
         tf::Vector3 random_point(table_point_cloud.points[index].x, table_point_cloud.points[index].y, table_point_cloud.points[index].z);
@@ -295,21 +319,177 @@ int main(int argc, char** argv)
         random_target_object_transforms.push_back(random_target_object_transform);
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // At this point, we have both grasp poses over the object and a set of possible intermediate object placements for re-grasping on the table. //
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+    // based on the above information, we use them to initialize the task planner.
+
+    // initialize the moveit interfaces
+
+    static const std::string PLANNING_GROUP = "arm";
+    static const std::string END_EFFECTOR_PLANNING_GROUP = "gripper";
+    moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
+    moveit::planning_interface::MoveGroupInterface end_effector_move_group(END_EFFECTOR_PLANNING_GROUP);
+
+    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+    const robot_state::JointModelGroup* joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
+
+    robot_model_loader::RobotModelLoaderConstPtr robot_model_loader = std::make_shared<robot_model_loader::RobotModelLoader>("robot_description");
+    // get the robot kinematic model
+    robot_model::RobotModelConstPtr kinematic_model = robot_model_loader->getModel();
+
+    // initialize the trac ik solver
+    TRAC_IK::TRAC_IK tracik_solver(std::string("torso_lift_link"), std::string("wrist_roll_link"));
+    KDL::Chain chain;
+    KDL::JntArray ll, ul;
+
+    bool valid_trac_ik = tracik_solver.getKDLChain(chain);
+    if(!valid_trac_ik){
+        ROS_ERROR("There was no valid KDL chain found");
+        return 0;
+    }
+
+    valid_trac_ik = tracik_solver.getKDLLimits(ll, ul);
+    if(!valid_trac_ik){
+        ROS_ERROR("There were no valid KDL joint limits found");
+        return 0;
+    }
+
+    KDL::ChainFkSolverPos_recursive fk_solver(chain);
+    KDL::ChainIkSolverVel_pinv vik_solver(chain);
+    KDL::ChainIkSolverPos_NR_JL kdl_solver(chain, ll, ul, fk_solver, vik_solver);
+
+    KDL::JntArray nominal(chain.getNrOfJoints());
+    for(uint j = 0; j < nominal.data.size(); j++){
+        nominal(j) = (ll(j) + ul(j)) / 2.0;
+    }
+
+    // initialize varaibles to find all feasible re-grasp poses and intermedaite placements
+    std::vector<tf::Transform> feasible_intermediate_placement_transforms;
+    std::vector<tf::Transform> feasible_regrasp_transforms;
+    std::vector<int> regrasp_types;
+    srand(time(0));
+    KDL::JntArray random_joint_array(chain.getNrOfJoints());
+    moveit::core::RobotState currentState = *(move_group.getCurrentState());
+    std::vector<std::string> joint_names = move_group.getActiveJoints();
+    
+    // find all feasible re-grasp poses
+    for(tf::Transform intermedaite_placement_transform: random_target_object_transforms)
+    {
+        int number_of_feable_grasp_poses = 0;
+        for(tf::Transform grasp_transform_object_frame: actual_grasp_transforms)
+        {
+            // check whether the grasp pose is feasible
+            KDL::Frame end_effector_pose;
+            KDL::JntArray result = nominal;
+            transformTFToKDL(intermedaite_placement_transform * grasp_transform_object_frame, end_effector_pose);
+            if(kdl_solver.CartToJnt(result, end_effector_pose, result) >= 0)
+                number_of_feable_grasp_poses++;
+            if(number_of_feable_grasp_poses > 1)
+                break;
+        }
+        if(number_of_feable_grasp_poses > 1) // current intermediate placement is feasible with two grasp poses
+        {
+            number_of_feable_grasp_poses = 0;
+            std::vector<tf::Transform> feasible_regrasp_transforms_temp;
+            std::vector<int> regrasp_types_temp;
+            
+            // search all state in this intermediate placement
+            for(int g = 0; g < actual_grasp_transforms.size(); g++)
+            {
+                bool hasFeasibleGrasp = false;
+                for(int k = 0; k < 5; k++) // try 5 different arm configurations
+                {
+                    // generate random joint array
+                    for(uint j = 0; j < random_joint_array.data.size(); j++){
+                        random_joint_array(j) = ll(j) +  (ul(j) - ll(j)) * ( (double)rand() / RAND_MAX);
+                        if(random_joint_array(j) > 100 or random_joint_array(j) < -100)
+                            random_joint_array(j) = 0.0;
+                    }
+                    
+                    KDL::Frame end_effector_pose;
+                    transformTFToKDL(intermedaite_placement_transform * actual_grasp_transforms[g], end_effector_pose);
+                    if(kdl_solver.CartToJnt(random_joint_array, end_effector_pose, random_joint_array) >= 0)
+                    {
+
+                        for(int j = 0; j < joint_names.size(); j++)
+                        {
+                            currentState.setJointPositions(joint_names[j], &random_joint_array(j));
+                        }
+
+                        move_group.setStartState(currentState);
+                        moveit_msgs::RobotTrajectory approach_trajectory_msg;
+
+                        tf::Transform pre_grasp_pose_in_world_frame = intermedaite_placement_transform * actual_grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.04, 0, 0));
+                        geometry_msgs::Pose pre_grasp_pose;
+                        transformTFToGeoPose(pre_grasp_pose_in_world_frame, pre_grasp_pose);
+
+                        double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.03, 5.0, approach_trajectory_msg, false);
+
+                        if(fraction >= 0.95){
+                            if(!hasFeasibleGrasp)
+                            {
+                                number_of_feable_grasp_poses++;
+                                hasFeasibleGrasp = true;
+                                feasible_regrasp_transforms_temp.push_back(intermedaite_placement_transform * actual_grasp_transforms[g]);
+                                regrasp_types_temp.push_back(grasp_types[g]);
+                            }
+                        }
+                        move_group.clearPoseTargets();
+                    }
+                }
+            }
+            if(number_of_feable_grasp_poses > 1)
+            {
+                feasible_intermediate_placement_transforms.push_back(intermedaite_placement_transform);
+                for(int g = 0; g < feasible_regrasp_transforms_temp.size(); g++)
+                {
+                    feasible_regrasp_transforms.push_back(feasible_regrasp_transforms_temp[g]);
+                    regrasp_types.push_back(regrasp_types_temp[g]);
+                }
+            }
+                
+        }
+    }
+
+    // visualize the regrasp poses
+    ros::ServiceClient regrasp_poses_visualizer = node_handle.serviceClient<manipulation_test::VisualizeRegrasp>("visualize_regrasp");
+    regrasp_poses_visualizer.waitForExistence();
+
+    manipulation_test::VisualizeRegrasp regrasp_poses_visualize_srv;
+    for(int i = 0; i < feasible_regrasp_transforms.size(); i++)
+    {
+        geometry_msgs::PoseStamped grasp_pose;
+        transformTFToGeoPose(feasible_regrasp_transforms[i], grasp_pose.pose);
+        regrasp_poses_visualize_srv.request.grasp_poses.push_back(grasp_pose);
+        regrasp_poses_visualize_srv.request.grasp_jawwidths.push_back(0.08);
+        regrasp_poses_visualize_srv.request.grasp_types.push_back(regrasp_types[i]);
+    }
+
+    if (!regrasp_poses_visualizer.call(regrasp_poses_visualize_srv))
+    {
+        ROS_ERROR("Failed to call service visualize_regrasp");
+        return 1;
+    }
+
+
     // visualize the random target object poses
     ros::ServiceClient intermediate_placements_visualizer = node_handle.serviceClient<manipulation_test::VisualizeIntermediatePlacements>("visualize_intermediate_placements");
     intermediate_placements_visualizer.waitForExistence();
 
     manipulation_test::VisualizeIntermediatePlacements intermediate_placements_visualize_srv;
-    for(int i = 0; i < random_target_object_transforms.size(); i++)
+    for(int i = 0; i < feasible_intermediate_placement_transforms.size(); i++)
     {
         geometry_msgs::PoseStamped pose_stamped;
-        pose_stamped.pose.position.x = random_target_object_transforms[i].getOrigin().x();
-        pose_stamped.pose.position.y = random_target_object_transforms[i].getOrigin().y();
-        pose_stamped.pose.position.z = random_target_object_transforms[i].getOrigin().z();
-        pose_stamped.pose.orientation.x = random_target_object_transforms[i].getRotation().x();
-        pose_stamped.pose.orientation.y = random_target_object_transforms[i].getRotation().y();
-        pose_stamped.pose.orientation.z = random_target_object_transforms[i].getRotation().z();
-        pose_stamped.pose.orientation.w = random_target_object_transforms[i].getRotation().w();
+        pose_stamped.pose.position.x = feasible_intermediate_placement_transforms[i].getOrigin().x();
+        pose_stamped.pose.position.y = feasible_intermediate_placement_transforms[i].getOrigin().y();
+        pose_stamped.pose.position.z = feasible_intermediate_placement_transforms[i].getOrigin().z();
+        pose_stamped.pose.orientation.x = feasible_intermediate_placement_transforms[i].getRotation().x();
+        pose_stamped.pose.orientation.y = feasible_intermediate_placement_transforms[i].getRotation().y();
+        pose_stamped.pose.orientation.z = feasible_intermediate_placement_transforms[i].getRotation().z();
+        pose_stamped.pose.orientation.w = feasible_intermediate_placement_transforms[i].getRotation().w();
         intermediate_placements_visualize_srv.request.intermediate_placement_poses.push_back(pose_stamped);
 
         intermediate_placements_visualize_srv.request.intermediate_placement_depths.push_back(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.x);

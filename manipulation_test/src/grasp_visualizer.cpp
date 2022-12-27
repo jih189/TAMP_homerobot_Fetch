@@ -3,6 +3,7 @@
 #include "manipulation_test/VisualizeTable.h"
 #include "manipulation_test/VisualizeObstacle.h"
 #include "manipulation_test/VisualizeIntermediatePlacements.h"
+#include "manipulation_test/VisualizeRegrasp.h"
 #include <tf/transform_listener.h>
 #include <rviz_visual_tools/rviz_visual_tools.h>
 
@@ -47,6 +48,58 @@ class GraspVisualizer
         grasp_data_list.push_back(grasp_data);
       }
       has_init = true;
+
+      tf::StampedTransform object_transform;
+      res.actual_grasp_poses.clear();
+      // get the object pose.
+      try{
+        ros::Time now = ros::Time::now();
+        listener.waitForTransform("/" + OBJECT_NAME, "/base_link", now, ros::Duration(1.0));
+        listener.lookupTransform("/base_link","/" + OBJECT_NAME, now, object_transform);
+      }
+      catch(tf::TransformException ex){
+        ROS_ERROR("%s", ex.what());
+        ros::Duration(1.0).sleep();
+      }
+
+      // find the actual grasp poses in the world frame
+      for(int i = 0; i < grasp_data_list.size(); i++)
+      {
+        tf::Transform actual_grasp_transform = object_transform * grasp_data_list[i].grasp_transform;
+        geometry_msgs::PoseStamped actual_grasp_pose;
+        actual_grasp_pose.pose.position.x = actual_grasp_transform.getOrigin().x();
+        actual_grasp_pose.pose.position.y = actual_grasp_transform.getOrigin().y();
+        actual_grasp_pose.pose.position.z = actual_grasp_transform.getOrigin().z();
+        actual_grasp_pose.pose.orientation.x = actual_grasp_transform.getRotation().x();
+        actual_grasp_pose.pose.orientation.y = actual_grasp_transform.getRotation().y();
+        actual_grasp_pose.pose.orientation.z = actual_grasp_transform.getRotation().z();
+        actual_grasp_pose.pose.orientation.w = actual_grasp_transform.getRotation().w();
+
+        res.actual_grasp_poses.push_back(actual_grasp_pose);
+      }
+      return true;
+    }
+
+    // the regrasp pose for visualize
+    bool setRegrasp(manipulation_test::VisualizeRegrasp::Request &req,
+                    manipulation_test::VisualizeRegrasp::Response &res)
+    {
+      ROS_INFO("Receive set regrasp request");
+      regrasp_data_list.clear();
+      for(int i = 0; i < req.grasp_poses.size(); i++)
+      {
+        GraspData regrasp_data;
+        regrasp_data.grasp_transform.setOrigin(tf::Vector3(req.grasp_poses[i].pose.position.x,
+                                                         req.grasp_poses[i].pose.position.y,
+                                                         req.grasp_poses[i].pose.position.z));
+        regrasp_data.grasp_transform.setRotation(tf::Quaternion(req.grasp_poses[i].pose.orientation.x,
+                                                              req.grasp_poses[i].pose.orientation.y,
+                                                              req.grasp_poses[i].pose.orientation.z,
+                                                              req.grasp_poses[i].pose.orientation.w));
+        regrasp_data.gripper_width = req.grasp_jawwidths[i];
+        regrasp_data.grasp_type = req.grasp_types[i];
+        regrasp_data_list.push_back(regrasp_data);
+      }
       return true;
     }
 
@@ -170,6 +223,11 @@ class GraspVisualizer
         visualizeGrasp(gripper_transform, grasp_data_list[i].gripper_width, grasp_data_list[i].grasp_type == 0 ? rviz_visual_tools::GREEN : rviz_visual_tools::RED);
       }
 
+      for(int i = 0; i < regrasp_data_list.size(); i++)
+      {
+        visualizeGrasp(regrasp_data_list[i].grasp_transform, regrasp_data_list[i].gripper_width, regrasp_data_list[i].grasp_type == 0 ? rviz_visual_tools::GREEN : rviz_visual_tools::RED);
+      }
+
       visualizeTable();
 
       visualizeObstacles();
@@ -261,6 +319,7 @@ class GraspVisualizer
     rviz_visual_tools::RvizVisualToolsPtr visual_tools_;
     std::string OBJECT_NAME;
     std::vector<GraspData> grasp_data_list;
+    std::vector<GraspData> regrasp_data_list;
     geometry_msgs::Pose table_pose;
     float table_depth, table_width, table_height;
     std::vector<geometry_msgs::Pose> obstacle_poses;
@@ -283,6 +342,8 @@ int main(int argc, char **argv)
   GraspVisualizer graspvis;
 
   ros::ServiceServer visualize_grasp_service = n.advertiseService("visualize_grasp", &GraspVisualizer::setGrasp, &graspvis);
+
+  ros::ServiceServer visualize_regrasp_service = n.advertiseService("visualize_regrasp", &GraspVisualizer::setRegrasp, &graspvis);
 
   ros::ServiceServer visualize_table_service = n.advertiseService("visualize_table", &GraspVisualizer::setTable, &graspvis);
 

@@ -171,7 +171,7 @@ int main(int argc, char** argv)
   moveit_visual_tools::MoveItVisualToolsPtr arm_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link");
 
   // initialize the trac ik solver
-  TRAC_IK::TRAC_IK tracik_solver(std::string("shoulder_pan_link"), std::string("wrist_roll_link"));
+  TRAC_IK::TRAC_IK tracik_solver(std::string("torso_lift_link"), std::string("wrist_roll_link"));
   KDL::Chain chain;
   KDL::JntArray ll, ul;
 

@@ -10,3 +10,5 @@ float32[] grasp_jawwidths
 uint8[] grasp_types
 
 ---
+
+geometry_msgs/PoseStamped[] actual_grasp_poses
