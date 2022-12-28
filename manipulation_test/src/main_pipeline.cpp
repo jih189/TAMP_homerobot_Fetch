@@ -53,6 +53,23 @@ void transformTFToGeoPose(const tf::Transform &t, geometry_msgs::Pose &p){
   p.position.z = t.getOrigin().z();
 }
 
+void randomJointArray(KDL::JntArray &joint_array, const KDL::JntArray &lower_limits, const KDL::JntArray &upper_limits)
+{
+    for(uint j = 0; j < joint_array.data.size(); j++){
+        joint_array(j) = lower_limits(j) +  (upper_limits(j) - lower_limits(j)) * ( (double)rand() / RAND_MAX);
+        if(joint_array(j) > 100 or joint_array(j) < -100)
+            joint_array(j) = 0.0;
+    }
+}
+
+void setRobotState(moveit::core::RobotState &currentState, KDL::JntArray &random_joint_array, const std::vector<std::string> &joint_names)
+{
+    for(int j = 0; j < joint_names.size(); j++)
+    {
+        currentState.setJointPositions(joint_names[j], &random_joint_array(j));
+    }
+}
+
 int main(int argc, char** argv)
 {
     static const std::string OBJECT_NAME = "hammer";
@@ -271,7 +288,7 @@ int main(int argc, char** argv)
 
     // get a set of random target object poses in the table frame.
     std::vector<tf::Transform> random_target_object_transforms;
-    for(int i = 0; i < 30; i++)
+    for(int i = 0; i < 50; i++)
     {
         int index = rand() % table_point_cloud.size();
         tf::Vector3 random_point(table_point_cloud.points[index].x, table_point_cloud.points[index].y, table_point_cloud.points[index].z);
@@ -367,92 +384,183 @@ int main(int argc, char** argv)
     }
 
     // initialize varaibles to find all feasible re-grasp poses and intermedaite placements
+    // the following information will be used to initialize the task planner
     std::vector<tf::Transform> feasible_intermediate_placement_transforms;
-    std::vector<tf::Transform> feasible_regrasp_transforms;
-    std::vector<int> regrasp_types;
+    std::vector<std::vector<tf::Transform>> feasible_regrasp_transforms;
+    std::vector<std::vector<int>> regrasp_types;
+    std::vector<std::vector<std::vector<moveit_msgs::RobotTrajectory>>> lifting_motions;
+
     srand(time(0));
     KDL::JntArray random_joint_array(chain.getNrOfJoints());
     moveit::core::RobotState currentState = *(move_group.getCurrentState());
     std::vector<std::string> joint_names = move_group.getActiveJoints();
-    
+
     // find all feasible re-grasp poses
     for(tf::Transform intermedaite_placement_transform: random_target_object_transforms)
     {
         int number_of_feable_grasp_poses = 0;
-        for(tf::Transform grasp_transform_object_frame: actual_grasp_transforms)
+        std::vector<bool> is_feasible_grasp_poses(actual_grasp_transforms.size(), false);
+        for(int i = 0; i < actual_grasp_transforms.size(); i++)
         {
             // check whether the grasp pose is feasible
             KDL::Frame end_effector_pose;
             KDL::JntArray result = nominal;
-            transformTFToKDL(intermedaite_placement_transform * grasp_transform_object_frame, end_effector_pose);
+            transformTFToKDL(intermedaite_placement_transform * actual_grasp_transforms[i], end_effector_pose);
             if(kdl_solver.CartToJnt(result, end_effector_pose, result) >= 0)
+            {
+                is_feasible_grasp_poses[i] = true;
                 number_of_feable_grasp_poses++;
-            if(number_of_feable_grasp_poses > 1)
-                break;
+            }
         }
-        if(number_of_feable_grasp_poses > 1) // current intermediate placement is feasible with two grasp poses
+
+        if(number_of_feable_grasp_poses < 2) // there are less than two feasible grasp poses in this intermediate placement for re-grasping.
         {
-            number_of_feable_grasp_poses = 0;
-            std::vector<tf::Transform> feasible_regrasp_transforms_temp;
-            std::vector<int> regrasp_types_temp;
-            
-            // search all state in this intermediate placement
-            for(int g = 0; g < actual_grasp_transforms.size(); g++)
+            continue;
+        }
+
+        // find all feasible re-grasp poses with its lifting motion in this intermediate placement
+        std::vector<tf::Transform> feasible_regrasp_transforms_temp;  // feasible re-grasp poses in this intermediate placement
+        std::vector<int> regrasp_types_temp; // the type of re-grasp poses in this intermediate placement
+        std::vector<std::vector<moveit_msgs::RobotTrajectory>> lifting_motions_temp; // the lifting motions of feasible re-grasp poses in this intermediate placement
+        
+        // search all state in this intermediate placement
+        for(int g = 0; g < actual_grasp_transforms.size(); g++)
+        {
+            if(!is_feasible_grasp_poses[g]) // this grasp pose is not feasible so skip it.
+                continue;
+
+            // find pre-grasp pose and transform of current grasp pose.
+            tf::Transform pre_grasp_pose_in_world_frame = intermedaite_placement_transform * actual_grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.04, 0, 0));
+            geometry_msgs::Pose pre_grasp_pose;
+            transformTFToGeoPose(pre_grasp_pose_in_world_frame, pre_grasp_pose);
+
+            std::vector<moveit_msgs::RobotTrajectory> current_lifting_motions; // the lifting motions of current grasp pose
+            // desired end-effector pose
+            KDL::Frame end_effector_pose;
+            transformTFToKDL(intermedaite_placement_transform * actual_grasp_transforms[g], end_effector_pose);
+
+            for(int k = 0; k < 10; k++)
             {
-                bool hasFeasibleGrasp = false;
-                for(int k = 0; k < 5; k++) // try 5 different arm configurations
-                {
-                    // generate random joint array
-                    for(uint j = 0; j < random_joint_array.data.size(); j++){
-                        random_joint_array(j) = ll(j) +  (ul(j) - ll(j)) * ( (double)rand() / RAND_MAX);
-                        if(random_joint_array(j) > 100 or random_joint_array(j) < -100)
-                            random_joint_array(j) = 0.0;
-                    }
-                    
-                    KDL::Frame end_effector_pose;
-                    transformTFToKDL(intermedaite_placement_transform * actual_grasp_transforms[g], end_effector_pose);
-                    if(kdl_solver.CartToJnt(random_joint_array, end_effector_pose, random_joint_array) >= 0)
-                    {
 
-                        for(int j = 0; j < joint_names.size(); j++)
-                        {
-                            currentState.setJointPositions(joint_names[j], &random_joint_array(j));
-                        }
-
-                        move_group.setStartState(currentState);
-                        moveit_msgs::RobotTrajectory approach_trajectory_msg;
-
-                        tf::Transform pre_grasp_pose_in_world_frame = intermedaite_placement_transform * actual_grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.04, 0, 0));
-                        geometry_msgs::Pose pre_grasp_pose;
-                        transformTFToGeoPose(pre_grasp_pose_in_world_frame, pre_grasp_pose);
-
-                        double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.03, 5.0, approach_trajectory_msg, false);
-
-                        if(fraction >= 0.95){
-                            if(!hasFeasibleGrasp)
-                            {
-                                number_of_feable_grasp_poses++;
-                                hasFeasibleGrasp = true;
-                                feasible_regrasp_transforms_temp.push_back(intermedaite_placement_transform * actual_grasp_transforms[g]);
-                                regrasp_types_temp.push_back(grasp_types[g]);
-                            }
-                        }
-                        move_group.clearPoseTargets();
-                    }
-                }
-            }
-            if(number_of_feable_grasp_poses > 1)
-            {
-                feasible_intermediate_placement_transforms.push_back(intermedaite_placement_transform);
-                for(int g = 0; g < feasible_regrasp_transforms_temp.size(); g++)
-                {
-                    feasible_regrasp_transforms.push_back(feasible_regrasp_transforms_temp[g]);
-                    regrasp_types.push_back(regrasp_types_temp[g]);
-                }
-            }
+                if(k == 0)
+                    random_joint_array = nominal;
+                else
+                    randomJointArray(random_joint_array, ll, ul);
                 
+                // check whether the arm configuration is feasible
+                if(kdl_solver.CartToJnt(random_joint_array, end_effector_pose, random_joint_array) >= 0)
+                {
+                    // check whether this arm configuration can be used to lift the object.
+                    setRobotState(currentState, random_joint_array, joint_names);
+
+                    move_group.setStartState(currentState);
+                    moveit_msgs::RobotTrajectory approach_trajectory_msg;
+
+                    double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.03, 5.0, approach_trajectory_msg, false);
+
+                    if(fraction >= 0.95)
+                        current_lifting_motions.push_back(approach_trajectory_msg);
+                    move_group.clearPoseTargets();
+                }
+
+                if(current_lifting_motions.size() > 2) // no need to find more lifting motions
+                    break;
+            }
+
+            if(current_lifting_motions.size() > 0) // has a way to lift up the object with current grasp pose 
+            {
+                lifting_motions_temp.push_back(current_lifting_motions);
+                feasible_regrasp_transforms_temp.push_back(pre_grasp_pose_in_world_frame);
+                regrasp_types_temp.push_back(grasp_types[g]);
+            }
+        }
+        if(feasible_regrasp_transforms_temp.size() > 1) // has at least two feasible re-grasp poses in this intermediate placement
+        {
+            feasible_intermediate_placement_transforms.push_back(intermedaite_placement_transform);
+            feasible_regrasp_transforms.push_back(feasible_regrasp_transforms_temp);
+            regrasp_types.push_back(regrasp_types_temp);
+            lifting_motions.push_back(lifting_motions_temp);
         }
     }
+
+    // try to add the current object pose as one of the intermediate placement
+    std::vector<tf::Transform> feasible_regrasp_transforms_for_init;  // feasible re-grasp poses in this intermediate placement
+    std::vector<int> regrasp_types_for_init; // the type of re-grasp poses in this intermediate placement
+    std::vector<std::vector<moveit_msgs::RobotTrajectory>> lifting_motions_for_init; // the lifting motions of feasible re-grasp poses in this intermediate placement
+
+    for(int g = 0; g < actual_grasp_transforms.size(); g++)
+    {
+        tf::Transform pre_grasp_pose_in_world_frame = target_object_transform * actual_grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.04, 0, 0));
+        geometry_msgs::Pose pre_grasp_pose;
+        transformTFToGeoPose(pre_grasp_pose_in_world_frame, pre_grasp_pose);
+
+        std::vector<moveit_msgs::RobotTrajectory> current_lifting_motions; // the lifting motions of current grasp pose
+        // desired end-effector pose
+        KDL::Frame end_effector_pose;
+        transformTFToKDL(target_object_transform * actual_grasp_transforms[g], end_effector_pose);
+
+        for(int k = 0; k < 10; k++)
+        {
+
+            if(k == 0)
+                random_joint_array = nominal;
+            else
+                randomJointArray(random_joint_array, ll, ul);
+            
+            // check whether the arm configuration is feasible
+            if(kdl_solver.CartToJnt(random_joint_array, end_effector_pose, random_joint_array) >= 0)
+            {
+                // check whether this arm configuration can be used to lift the object.
+                setRobotState(currentState, random_joint_array, joint_names);
+
+                move_group.setStartState(currentState);
+                moveit_msgs::RobotTrajectory approach_trajectory_msg;
+
+                double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.03, 5.0, approach_trajectory_msg, false);
+
+                if(fraction >= 0.95)
+                    current_lifting_motions.push_back(approach_trajectory_msg);
+                move_group.clearPoseTargets();
+            }
+
+            if(current_lifting_motions.size() > 2) // no need to find more lifting motions
+                break;
+        }
+
+        if(current_lifting_motions.size() > 0)
+        { // this grasp pose can be used to lift the object.
+            lifting_motions_for_init.push_back(current_lifting_motions);
+            feasible_regrasp_transforms_for_init.push_back(pre_grasp_pose_in_world_frame);
+            regrasp_types_for_init.push_back(grasp_types[g]);
+        }
+    }
+
+    if(feasible_regrasp_transforms_for_init.size() > 0)
+    {
+        feasible_intermediate_placement_transforms.push_back(target_object_transform);
+        feasible_regrasp_transforms.push_back(feasible_regrasp_transforms_for_init);
+        regrasp_types.push_back(regrasp_types_for_init);
+        lifting_motions.push_back(lifting_motions_for_init);
+    }
+    else
+    {
+        std::cout << "no way to grasp the object" << std::endl;
+        return 0;
+    }
+
+
+    // print the analysis result
+    std::cout << "number of feasible intermediate placements: " << feasible_intermediate_placement_transforms.size() << std::endl;
+    for(int p = 0; p < feasible_intermediate_placement_transforms.size(); p++)
+    {
+        std::cout << "number of feasible regrasp poses at intermediate placement " << p << ": " << feasible_regrasp_transforms[p].size() << std::endl;
+        for(int g = 0; g < feasible_regrasp_transforms[p].size(); g++)
+        {
+            std::cout << "number of feasible lifting motions: " << lifting_motions[p][g].size() << std::endl;
+        }
+    }
+    
+
 
     // visualize the regrasp poses
     ros::ServiceClient regrasp_poses_visualizer = node_handle.serviceClient<manipulation_test::VisualizeRegrasp>("visualize_regrasp");
@@ -461,11 +569,14 @@ int main(int argc, char** argv)
     manipulation_test::VisualizeRegrasp regrasp_poses_visualize_srv;
     for(int i = 0; i < feasible_regrasp_transforms.size(); i++)
     {
-        geometry_msgs::PoseStamped grasp_pose;
-        transformTFToGeoPose(feasible_regrasp_transforms[i], grasp_pose.pose);
-        regrasp_poses_visualize_srv.request.grasp_poses.push_back(grasp_pose);
-        regrasp_poses_visualize_srv.request.grasp_jawwidths.push_back(0.08);
-        regrasp_poses_visualize_srv.request.grasp_types.push_back(regrasp_types[i]);
+        for(int j = 0; j < feasible_regrasp_transforms[i].size(); j++)
+        {
+            geometry_msgs::PoseStamped grasp_pose;
+            transformTFToGeoPose(feasible_regrasp_transforms[i][j], grasp_pose.pose);
+            regrasp_poses_visualize_srv.request.grasp_poses.push_back(grasp_pose);
+            regrasp_poses_visualize_srv.request.grasp_jawwidths.push_back(0.08);
+            regrasp_poses_visualize_srv.request.grasp_types.push_back(regrasp_types[i][j]);
+        }
     }
 
     if (!regrasp_poses_visualizer.call(regrasp_poses_visualize_srv))
