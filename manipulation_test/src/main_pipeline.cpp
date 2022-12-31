@@ -30,6 +30,8 @@
 #include <pcl/conversions.h>
 #include <pcl_ros/transforms.h>
 
+#include "manipulation_test/task_planner.hpp"
+
 bool is_number(const std::string& s)
 {
     return !s.empty() && std::find_if(s.begin(), 
@@ -387,6 +389,7 @@ int main(int argc, char** argv)
     // the following information will be used to initialize the task planner
     std::vector<tf::Transform> feasible_intermediate_placement_transforms;
     std::vector<std::vector<tf::Transform>> feasible_regrasp_transforms;
+    std::vector<std::vector<int>> regrasp_ids;
     std::vector<std::vector<int>> regrasp_types;
     std::vector<std::vector<std::vector<moveit_msgs::RobotTrajectory>>> lifting_motions;
 
@@ -420,6 +423,7 @@ int main(int argc, char** argv)
 
         // find all feasible re-grasp poses with its lifting motion in this intermediate placement
         std::vector<tf::Transform> feasible_regrasp_transforms_temp;  // feasible re-grasp poses in this intermediate placement
+        std::vector<int> regrasp_ids_temp; // the id of re-grasp poses in this intermediate placement
         std::vector<int> regrasp_types_temp; // the type of re-grasp poses in this intermediate placement
         std::vector<std::vector<moveit_msgs::RobotTrajectory>> lifting_motions_temp; // the lifting motions of feasible re-grasp poses in this intermediate placement
         
@@ -471,6 +475,7 @@ int main(int argc, char** argv)
             {
                 lifting_motions_temp.push_back(current_lifting_motions);
                 feasible_regrasp_transforms_temp.push_back(pre_grasp_pose_in_world_frame);
+                regrasp_ids_temp.push_back(g);
                 regrasp_types_temp.push_back(grasp_types[g]);
             }
         }
@@ -478,6 +483,7 @@ int main(int argc, char** argv)
         {
             feasible_intermediate_placement_transforms.push_back(intermedaite_placement_transform);
             feasible_regrasp_transforms.push_back(feasible_regrasp_transforms_temp);
+            regrasp_ids.push_back(regrasp_ids_temp);
             regrasp_types.push_back(regrasp_types_temp);
             lifting_motions.push_back(lifting_motions_temp);
         }
@@ -485,6 +491,7 @@ int main(int argc, char** argv)
 
     // try to add the current object pose as one of the intermediate placement
     std::vector<tf::Transform> feasible_regrasp_transforms_for_init;  // feasible re-grasp poses in this intermediate placement
+    std::vector<int> regrasp_ids_for_init; // the id of re-grasp poses in this intermediate placement
     std::vector<int> regrasp_types_for_init; // the type of re-grasp poses in this intermediate placement
     std::vector<std::vector<moveit_msgs::RobotTrajectory>> lifting_motions_for_init; // the lifting motions of feasible re-grasp poses in this intermediate placement
 
@@ -531,6 +538,7 @@ int main(int argc, char** argv)
         { // this grasp pose can be used to lift the object.
             lifting_motions_for_init.push_back(current_lifting_motions);
             feasible_regrasp_transforms_for_init.push_back(pre_grasp_pose_in_world_frame);
+            regrasp_ids_for_init.push_back(g);
             regrasp_types_for_init.push_back(grasp_types[g]);
         }
     }
@@ -539,6 +547,7 @@ int main(int argc, char** argv)
     {
         feasible_intermediate_placement_transforms.push_back(target_object_transform);
         feasible_regrasp_transforms.push_back(feasible_regrasp_transforms_for_init);
+        regrasp_ids.push_back(regrasp_ids_for_init);
         regrasp_types.push_back(regrasp_types_for_init);
         lifting_motions.push_back(lifting_motions_for_init);
     }
@@ -550,17 +559,44 @@ int main(int argc, char** argv)
 
 
     // print the analysis result
-    std::cout << "number of feasible intermediate placements: " << feasible_intermediate_placement_transforms.size() << std::endl;
-    for(int p = 0; p < feasible_intermediate_placement_transforms.size(); p++)
+    // std::cout << "number of feasible intermediate placements: " << feasible_intermediate_placement_transforms.size() << std::endl;
+    // for(int p = 0; p < feasible_intermediate_placement_transforms.size(); p++)
+    // {
+    //     std::cout << "number of feasible regrasp poses at intermediate placement " << p << ": " << feasible_regrasp_transforms[p].size() << std::endl;
+    //     for(int g = 0; g < feasible_regrasp_transforms[p].size(); g++)
+    //     {
+    //         std::cout << "number of feasible lifting motions: " << lifting_motions[p][g].size() << std::endl;
+    //     }
+    // }
+
+    moveit::core::RobotState current_state = *(move_group.getCurrentState());
+
+    //init the task planner.
+    TaskPlanner task_planner(std::vector<unsigned int>{feasible_intermediate_placement_transforms.size()}, std::vector<unsigned int>{actual_grasp_transforms.size()});
+
+    // add all action motions into the task planner.
+    for(int f = 0; f < 1; f++)
     {
-        std::cout << "number of feasible regrasp poses at intermediate placement " << p << ": " << feasible_regrasp_transforms[p].size() << std::endl;
-        for(int g = 0; g < feasible_regrasp_transforms[p].size(); g++)
+        for(int p = 0; p < feasible_intermediate_placement_transforms.size(); p++)
         {
-            std::cout << "number of feasible lifting motions: " << lifting_motions[p][g].size() << std::endl;
+            for(int g = 0; g < regrasp_ids[p].size(); g++)
+            {
+                if(regrasp_types[p][g] == 0) // this grasp pose can be used to lift the object.
+                {
+                    for(int k = 0; k < lifting_motions[p][g].size(); k++)
+                    {
+                        task_planner.addActionBetweenFoliations(lifting_motions[p][g][k], f, regrasp_ids[p][g], f+1, 0, 1.0);
+                    }
+                }
+                for(int k = 0; k < lifting_motions[p][g].size(); k++)
+                {
+                    task_planner.addActionBetweenManifolds(lifting_motions[p][g][k], p, regrasp_ids[p][g], f, 0.0);
+                }
+            }
         }
     }
-    
 
+    task_planner.constructMDPGraph();
 
     // visualize the regrasp poses
     ros::ServiceClient regrasp_poses_visualizer = node_handle.serviceClient<manipulation_test::VisualizeRegrasp>("visualize_regrasp");
