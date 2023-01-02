@@ -506,7 +506,7 @@ int main(int argc, char** argv)
         KDL::Frame end_effector_pose;
         transformTFToKDL(target_object_transform * actual_grasp_transforms[g], end_effector_pose);
 
-        for(int k = 0; k < 10; k++)
+        for(int k = 0; k < 30; k++)
         {
 
             if(k == 0)
@@ -557,19 +557,9 @@ int main(int argc, char** argv)
         return 0;
     }
 
-
-    // print the analysis result
-    // std::cout << "number of feasible intermediate placements: " << feasible_intermediate_placement_transforms.size() << std::endl;
-    // for(int p = 0; p < feasible_intermediate_placement_transforms.size(); p++)
-    // {
-    //     std::cout << "number of feasible regrasp poses at intermediate placement " << p << ": " << feasible_regrasp_transforms[p].size() << std::endl;
-    //     for(int g = 0; g < feasible_regrasp_transforms[p].size(); g++)
-    //     {
-    //         std::cout << "number of feasible lifting motions: " << lifting_motions[p][g].size() << std::endl;
-    //     }
-    // }
-
     moveit::core::RobotState current_state = *(move_group.getCurrentState());
+
+    int num_of_lifting_grasps = 0;
 
     //init the task planner.
     TaskPlanner task_planner(std::vector<unsigned int>{feasible_intermediate_placement_transforms.size()}, std::vector<unsigned int>{actual_grasp_transforms.size()});
@@ -583,6 +573,7 @@ int main(int argc, char** argv)
             {
                 if(regrasp_types[p][g] == 0) // this grasp pose can be used to lift the object.
                 {
+                    num_of_lifting_grasps++;
                     for(int k = 0; k < lifting_motions[p][g].size(); k++)
                     {
                         task_planner.addActionBetweenFoliations(lifting_motions[p][g][k], f, regrasp_ids[p][g], f+1, 0, 1.0);
@@ -596,7 +587,15 @@ int main(int argc, char** argv)
         }
     }
 
+    if(num_of_lifting_grasps == 0)
+    {
+        std::cout << "no way to lift the object" << std::endl;
+        return 0;
+    }
+
     task_planner.constructMDPGraph();
+
+    task_planner.policyIteration();
 
     // visualize the regrasp poses
     ros::ServiceClient regrasp_poses_visualizer = node_handle.serviceClient<manipulation_test::VisualizeRegrasp>("visualize_regrasp");

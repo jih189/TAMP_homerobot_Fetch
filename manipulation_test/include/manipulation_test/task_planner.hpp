@@ -29,6 +29,7 @@ class TaskPlanner
         bool isBetweenFoliations;
         moveit_msgs::RobotTrajectory motion_trajectory;
         std::vector<unsigned int> next_action_node_ids;
+        std::vector<float> next_action_success_probabilities;
         unsigned int policy;
     };
     
@@ -61,4 +62,6 @@ class TaskPlanner
     std::vector<std::vector<std::vector<unsigned int>>> intermediate_manifold_in_nodes;
 
     std::vector<ActionNode> action_nodes;
+    float discount_factor;
+    float max_error;
 };

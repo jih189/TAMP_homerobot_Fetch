@@ -2,6 +2,10 @@
 
 TaskPlanner::TaskPlanner(std::vector<unsigned int> number_of_intermediate_manifolds_, std::vector<unsigned int> number_of_manipulation_manifolds_)
 {
+
+    discount_factor = 0.8;
+    max_error = 0.0001;
+
     if(number_of_intermediate_manifolds_.size() != number_of_manipulation_manifolds_.size())
     {
         std::cout << "The number_of_intermediate_manifolds size should be equal to number_of_manipulation_manifolds size" << std::endl;
@@ -42,15 +46,21 @@ void TaskPlanner::addActionBetweenFoliations(moveit_msgs::RobotTrajectory motion
     action_node.in_state.manifold_id = last_manipulation_id;
     action_node.in_state.is_in_manipulation_manifold = true;
     action_node.in_state.joint_values.clear();
-    for(int i = 0; i < motion_trajectory.joint_trajectory.points[0].positions.size(); i++)
-        action_node.in_state.joint_values.push_back(motion_trajectory.joint_trajectory.points[0].positions[i]);
+    if(motion_trajectory.joint_trajectory.points.size() > 0)
+    {
+        for(int i = 0; i < motion_trajectory.joint_trajectory.points[0].positions.size(); i++)
+            action_node.in_state.joint_values.push_back(motion_trajectory.joint_trajectory.points[0].positions[i]);
+    }    
 
     action_node.out_state.foliation_id = next_foliation_id;
     action_node.out_state.manifold_id = next_manipulation_id;
     action_node.out_state.is_in_manipulation_manifold = true;
     action_node.out_state.joint_values.clear();
-    for(int i = 0; i < motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1].positions.size(); i++)
-        action_node.out_state.joint_values.push_back(motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1].positions[i]);
+    if(motion_trajectory.joint_trajectory.points.size() > 0)
+    {
+        for(int i = 0; i < motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1].positions.size(); i++)
+            action_node.out_state.joint_values.push_back(motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1].positions[i]);
+    }
 
     action_node.in_state.value = 0.0;
     action_node.out_state.value = 0.0;
@@ -85,15 +95,21 @@ void TaskPlanner::addActionBetweenManifolds(moveit_msgs::RobotTrajectory motion_
     action_node1.in_state.manifold_id = manipulation_manifold_id;
     action_node1.in_state.is_in_manipulation_manifold = true;
     action_node1.in_state.joint_values.clear();
-    for(int i = 0; i < motion_trajectory.joint_trajectory.points[0].positions.size(); i++)
-        action_node1.in_state.joint_values.push_back(motion_trajectory.joint_trajectory.points[0].positions[i]);
+    if(motion_trajectory.joint_trajectory.points.size() > 0)
+    {
+        for(int i = 0; i < motion_trajectory.joint_trajectory.points[0].positions.size(); i++)
+            action_node1.in_state.joint_values.push_back(motion_trajectory.joint_trajectory.points[0].positions[i]);
+    }   
 
     action_node1.out_state.foliation_id = foliation_id;
     action_node1.out_state.manifold_id = intermedaite_manifold_id;
     action_node1.out_state.is_in_manipulation_manifold = false;
     action_node1.out_state.joint_values.clear();
-    for(int i = 0; i < motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1].positions.size(); i++)
-        action_node1.out_state.joint_values.push_back(motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1].positions[i]);
+    if(motion_trajectory.joint_trajectory.points.size() > 0)
+    {
+        for(int i = 0; i < motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1].positions.size(); i++)
+            action_node1.out_state.joint_values.push_back(motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1].positions[i]);
+    }
 
     action_node1.in_state.value = 0.0;
     action_node1.out_state.value = 0.0;
@@ -120,15 +136,21 @@ void TaskPlanner::addActionBetweenManifolds(moveit_msgs::RobotTrajectory motion_
     action_node2.in_state.manifold_id = intermedaite_manifold_id;
     action_node2.in_state.is_in_manipulation_manifold = false;
     action_node2.in_state.joint_values.clear();
-    for(int i = 0; i < motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1].positions.size(); i++)
-        action_node2.in_state.joint_values.push_back(motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1].positions[i]);
+    if(motion_trajectory.joint_trajectory.points.size() > 0)
+    {
+        for(int i = 0; i < motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1].positions.size(); i++)
+            action_node2.in_state.joint_values.push_back(motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1].positions[i]);
+    }
 
     action_node2.out_state.foliation_id = foliation_id;
     action_node2.out_state.manifold_id = manipulation_manifold_id;
     action_node2.out_state.is_in_manipulation_manifold = true;
     action_node2.out_state.joint_values.clear();
-    for(int i = 0; i < motion_trajectory.joint_trajectory.points[0].positions.size(); i++)
-        action_node2.out_state.joint_values.push_back(motion_trajectory.joint_trajectory.points[0].positions[i]);
+    if(motion_trajectory.joint_trajectory.points.size() > 0)
+    {
+        for(int i = 0; i < motion_trajectory.joint_trajectory.points[0].positions.size(); i++)
+            action_node2.out_state.joint_values.push_back(motion_trajectory.joint_trajectory.points[0].positions[i]);
+    }
 
     action_node2.in_state.value = 0.0;
     action_node2.out_state.value = 0.0;
@@ -168,10 +190,15 @@ void TaskPlanner::constructMDPGraph()
             for(unsigned int possible_action_node_id: intermediate_manifold_in_nodes[action_nodes[i].out_state.foliation_id][action_nodes[i].out_state.manifold_id])
             {
                 if(action_nodes[possible_action_node_id].configuration_id != action_nodes[i].configuration_id)
+                {
                     action_nodes[i].next_action_node_ids.push_back(possible_action_node_id);
+                    action_nodes[i].next_action_success_probabilities.push_back(0.5);
+                }
             }
             if(action_nodes[i].next_action_node_ids.size() > 0)
-                action_nodes[i].policy = action_nodes[i].next_action_node_ids[0];
+                action_nodes[i].policy = 0;
+            else
+                action_nodes[i].policy = -1;
         } 
         else if(action_nodes[i].isBetweenFoliations == false && action_nodes[i].in_state.is_in_manipulation_manifold == false) // if the action node is from intermediate manifold to manipulation manifold
         {
@@ -179,26 +206,60 @@ void TaskPlanner::constructMDPGraph()
             for(unsigned int possible_action_node_id: manipulation_manifold_in_nodes[action_nodes[i].out_state.foliation_id][action_nodes[i].out_state.manifold_id])
             {
                 if(action_nodes[possible_action_node_id].configuration_id != action_nodes[i].configuration_id)
+                {
                     action_nodes[i].next_action_node_ids.push_back(possible_action_node_id);
+                    action_nodes[i].next_action_success_probabilities.push_back(0.5);
+                }
             }
             if(action_nodes[i].next_action_node_ids.size() > 0)
-                action_nodes[i].policy = action_nodes[i].next_action_node_ids[0];
+                action_nodes[i].policy = 0;
+            else
+                action_nodes[i].policy = -1;
         }
         else if(action_nodes[i].isBetweenFoliations == true) // if the action node is between foliations
         {
-            // for now, we ignore the action nodes between foliations
-            continue;
+            action_nodes[i].next_action_node_ids.clear();
+            action_nodes[i].policy = -1;
         }
     }
 }
 
 void TaskPlanner::policyIteration()
 {
-
-
+    policyEvaluation();
 }
 
 void TaskPlanner::policyEvaluation()
 {
+    std::cout << "policy evaluation" << std::endl;
+    float error = 0.0;
+    int count = 0;
+    do
+    {
+        error = 0.0;
+        for(int i = 0; i < action_nodes.size(); i++)
+        {
+            // if there is no policy, or when the policy is -1.
+            if(action_nodes[i].reward > 0.0 || action_nodes[i].policy == -1)
+            {
+                action_nodes[i].out_state.value = action_nodes[i].reward;
+            }
+            else
+            {
+                int policyIndex = action_nodes[i].policy;
+                action_nodes[i].out_state.value = action_nodes[i].next_action_success_probabilities[policyIndex] * (action_nodes[action_nodes[i].next_action_node_ids[policyIndex]].reward + discount_factor * action_nodes[action_nodes[i].next_action_node_ids[policyIndex]].in_state.value);
+            }
+        }
 
+        for(int i = 0; i < action_nodes.size(); i++)
+        {
+            error = std::max(error, fabs(action_nodes[i].out_state.value - action_nodes[i].in_state.value));
+            action_nodes[i].in_state.value = action_nodes[i].out_state.value;
+        }
+        std::cout << "error: " << error << std::endl;
+        count++;
+        if(count > 30)
+            break;
+    }while(error > max_error * (1 - discount_factor) / discount_factor);
 }
+    
