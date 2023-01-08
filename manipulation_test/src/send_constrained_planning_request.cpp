@@ -468,7 +468,7 @@ int main(int argc, char** argv)
                               << edge.verified_vertex_2_.position[4] << " "
                               << edge.verified_vertex_2_.position[5] << " "
                               << edge.verified_vertex_2_.position[6] << " " << std::endl;
-    std::cout << "edge weight " << edge.weight_ << std::endl;
+    // std::cout << "edge weight " << edge.weight_ << std::endl;
     // add the edge to the experience graph
 
     // v1 = experiencegraph.addVertex(joint_values, current_constraint_id);

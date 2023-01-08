@@ -8,12 +8,82 @@
 
 #include <moveit/robot_trajectory/robot_trajectory.h>
 
+struct MotionTask
+    {
+        std::vector<float> start_joint_values;
+        std::vector<float> target_joint_values;
+        long unsigned int foliation_id;
+        long unsigned int manifold_id;
+        bool is_in_manipulation_manifold;
+        moveit_msgs::RobotTrajectory solution_trajectory;
+    };
+
+/**
+Class action sequence is generate by the task planner initially, then it will be passed to motion planner
+to generate the motion trajectory by filling the missing information.
+*/
+class ActionSequence
+{
+    
+
+    public:
+    ActionSequence()
+    {
+        motion_tasks.clear();
+        cartesian_motions.clear();
+    }
+
+    void addActionTask(const std::vector<float> &start_joint_values,
+                       const std::vector<float> &target_joint_values,
+                       long unsigned int foliation_id,
+                       long unsigned int manifold_id,
+                       bool is_in_manipulation_manifold,
+                       const moveit_msgs::RobotTrajectory &cartesian_motion)
+    {
+        MotionTask motion_task;
+        for(int i = 0; i < start_joint_values.size(); i++)
+            motion_task.start_joint_values.push_back(start_joint_values[i]);
+        for(int i = 0; i < target_joint_values.size(); i++)
+            motion_task.target_joint_values.push_back(target_joint_values[i]);
+
+        motion_task.foliation_id = foliation_id;
+        motion_task.manifold_id = manifold_id;
+        motion_task.is_in_manipulation_manifold = is_in_manipulation_manifold;
+
+        motion_tasks.push_back(motion_task);
+
+        cartesian_motions.push_back(cartesian_motion);
+    }
+
+    int getActionSize()
+    {
+        return motion_tasks.size();
+    }
+
+    MotionTask getActionTaskAt(int task_index){
+        return motion_tasks[task_index];
+    }
+
+    void setActionTaskAt(int task_index, const MotionTask &motion_task){
+        motion_tasks[task_index].solution_trajectory = motion_task.solution_trajectory;
+    }
+
+    moveit_msgs::RobotTrajectory getCartesianMotionAt(int task_index){
+        return cartesian_motions[task_index];
+    }
+
+    private:
+
+    std::vector<MotionTask> motion_tasks;
+    std::vector<moveit_msgs::RobotTrajectory> cartesian_motions;
+};
+
 class TaskPlanner
 {
     struct ActionState
     {
-        unsigned int foliation_id;
-        unsigned int manifold_id;
+        long unsigned int foliation_id;
+        long unsigned int manifold_id;
         bool is_in_manipulation_manifold;
         std::vector<float> joint_values;
         float value;
@@ -21,45 +91,54 @@ class TaskPlanner
 
     struct ActionNode
     {
-        unsigned int action_node_id;
-        unsigned int configuration_id;
+        long unsigned int action_node_id;
+        long unsigned int configuration_id;
         ActionState in_state;
         ActionState out_state;
         float reward;
         bool isBetweenFoliations;
         moveit_msgs::RobotTrajectory motion_trajectory;
-        std::vector<unsigned int> next_action_node_ids;
+        std::vector<long unsigned int> next_action_node_ids;
         std::vector<float> next_action_success_probabilities;
-        unsigned int policy;
+        long unsigned int policy;
     };
     
     public:
-    TaskPlanner(std::vector<unsigned int> number_of_intermediate_manifolds_, std::vector<unsigned int> number_of_manipulation_manifolds_);
+    TaskPlanner(std::vector<long unsigned int> number_of_intermediate_manifolds_, std::vector<long unsigned int> number_of_manipulation_manifolds_);
 
     // if the action is between two foliation, the motion trajectory should be start from last foliation and end at the next foliation.    
-    void addActionBetweenFoliations(moveit_msgs::RobotTrajectory motion_trajectory, unsigned int last_foliation_id, unsigned int last_manipulation_id, unsigned int next_foliation_id, unsigned int next_manipulation_id, float reward);
+    void addActionBetweenFoliations(moveit_msgs::RobotTrajectory motion_trajectory, long unsigned int last_foliation_id, long unsigned int last_manipulation_id, long unsigned int next_foliation_id, long unsigned int next_manipulation_id, float reward);
 
     // if the action is between two manifolds, the motion trajectory should be start from intermediate manifold and end at the next manipulation manifold.
-    void addActionBetweenManifolds(moveit_msgs::RobotTrajectory motion_trajectory, unsigned int intermedaite_manifold_id, unsigned int manipulation_manifold_id, unsigned int foliation_id, float reward);
+    void addActionBetweenManifolds(moveit_msgs::RobotTrajectory motion_trajectory, long unsigned int intermedaite_manifold_id, long unsigned int manipulation_manifold_id, long unsigned int foliation_id, bool is_init_action, float reward);
     
     void policyIteration();
 
     void policyEvaluation();
 
+    bool planActions(ActionSequence &action_sequence, const std::vector<float> &current_joint_value);
+
+    // based on the solution in the action sequence, update the task planner
+    void updateTaskPlanner(const ActionSequence &action_sequence);
+
     void constructMDPGraph();
 
+    int getFoliationSize();
+
     private:
-    unsigned int current_configuration_id;
-    unsigned int current_action_node_id;
-    std::vector<unsigned int> number_of_intermediate_manifolds;
-    std::vector<unsigned int> number_of_manipulation_manifolds;
-    unsigned int number_of_foliations;
+    long unsigned int current_configuration_id;
+    long unsigned int current_action_node_id;
+    std::vector<long unsigned int> number_of_intermediate_manifolds;
+    std::vector<long unsigned int> number_of_manipulation_manifolds;
+    long unsigned int number_of_foliations;
 
-    std::vector<std::vector<std::vector<unsigned int>>> manipulation_manifold_out_nodes;
-    std::vector<std::vector<std::vector<unsigned int>>> manipulation_manifold_in_nodes;
+    std::vector<std::vector<std::vector<long unsigned int>>> manipulation_manifold_out_nodes;
+    std::vector<std::vector<std::vector<long unsigned int>>> manipulation_manifold_in_nodes;
 
-    std::vector<std::vector<std::vector<unsigned int>>> intermediate_manifold_out_nodes;
-    std::vector<std::vector<std::vector<unsigned int>>> intermediate_manifold_in_nodes;
+    std::vector<std::vector<std::vector<long unsigned int>>> intermediate_manifold_out_nodes;
+    std::vector<std::vector<std::vector<long unsigned int>>> intermediate_manifold_in_nodes;
+
+    std::vector<long unsigned int> init_action_node_ids;
 
     std::vector<ActionNode> action_nodes;
     float discount_factor;

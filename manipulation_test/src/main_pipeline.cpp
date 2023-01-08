@@ -1,9 +1,11 @@
 #include <tf/transform_listener.h>
+#include <tf_conversions/tf_eigen.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_trajectory/robot_trajectory.h>
 
+#include <moveit_visual_tools/moveit_visual_tools.h>
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/DisplayTrajectory.h>
 
@@ -80,6 +82,19 @@ int main(int argc, char** argv)
     ros::NodeHandle node_handle;
     ros::AsyncSpinner spinner(1);
     spinner.start();
+
+    // initialize the moveit interfaces
+    static const std::string PLANNING_GROUP = "arm";
+    static const std::string END_EFFECTOR_PLANNING_GROUP = "gripper";
+    moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
+    moveit::planning_interface::MoveGroupInterface end_effector_move_group(END_EFFECTOR_PLANNING_GROUP);
+
+    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+    const robot_state::JointModelGroup* joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
+
+    robot_model_loader::RobotModelLoaderConstPtr robot_model_loader = std::make_shared<robot_model_loader::RobotModelLoader>("robot_description");
+    // get the robot kinematic model
+    robot_model::RobotModelConstPtr kinematic_model = robot_model_loader->getModel();
 
     // visualize the grasp poses over the current object
     ros::ServiceClient client = node_handle.serviceClient<manipulation_test::VisualizeGrasp>("visualize_grasp");
@@ -236,6 +251,36 @@ int main(int argc, char** argv)
             
             // add the collision object to the collision environment
             collision_objects.push_back(collision_object);
+
+            // add the obstacle into the planning scene
+            moveit_msgs::CollisionObject collision_object_obstacle;
+            collision_object_obstacle.header.frame_id = move_group.getPlanningFrame();
+
+            collision_object_obstacle.id = "obstacle_" + std::to_string(i);
+
+            shape_msgs::SolidPrimitive obstacle_primitive;
+            obstacle_primitive.type = obstacle_primitive.BOX;
+            obstacle_primitive.dimensions.resize(3);
+            obstacle_primitive.dimensions[0] = obstacle_srv.response.segmented_objects.objects[i].bounding_volume.dimensions.x;
+            obstacle_primitive.dimensions[1] = obstacle_srv.response.segmented_objects.objects[i].bounding_volume.dimensions.y;
+            obstacle_primitive.dimensions[2] = obstacle_srv.response.segmented_objects.objects[i].bounding_volume.dimensions.z;
+
+            geometry_msgs::Pose obstacle_pose;
+            obstacle_pose.position.x = obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.position.x;
+            obstacle_pose.position.y = obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.position.y;
+            obstacle_pose.position.z = obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.position.z;
+
+            obstacle_pose.orientation.x = obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.orientation.x;
+            obstacle_pose.orientation.y = obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.orientation.y;
+            obstacle_pose.orientation.z = obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.orientation.z;
+            obstacle_pose.orientation.w = obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.orientation.w;
+
+
+            collision_object_obstacle.primitives.push_back(obstacle_primitive);
+            collision_object_obstacle.pose = obstacle_pose;
+
+            collision_object_obstacle.operation = collision_object_obstacle.ADD;
+            planning_scene_interface.applyCollisionObject(collision_object_obstacle);
         }
         else
         {
@@ -272,6 +317,7 @@ int main(int argc, char** argv)
                                                       obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.y, 
                                                       obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.z));
 
+
     std::vector<tf::Transform> actual_grasp_transforms;
     for(int i = 0; i < srv.response.actual_grasp_poses.size(); i++)
     {
@@ -290,7 +336,7 @@ int main(int argc, char** argv)
 
     // get a set of random target object poses in the table frame.
     std::vector<tf::Transform> random_target_object_transforms;
-    for(int i = 0; i < 50; i++)
+    for(int i = 0; i < 8; i++)
     {
         int index = rand() % table_point_cloud.size();
         tf::Vector3 random_point(table_point_cloud.points[index].x, table_point_cloud.points[index].y, table_point_cloud.points[index].z);
@@ -345,19 +391,18 @@ int main(int argc, char** argv)
 
     // based on the above information, we use them to initialize the task planner.
 
-    // initialize the moveit interfaces
-
-    static const std::string PLANNING_GROUP = "arm";
-    static const std::string END_EFFECTOR_PLANNING_GROUP = "gripper";
-    moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
-    moveit::planning_interface::MoveGroupInterface end_effector_move_group(END_EFFECTOR_PLANNING_GROUP);
-
-    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-    const robot_state::JointModelGroup* joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
-
-    robot_model_loader::RobotModelLoaderConstPtr robot_model_loader = std::make_shared<robot_model_loader::RobotModelLoader>("robot_description");
-    // get the robot kinematic model
-    robot_model::RobotModelConstPtr kinematic_model = robot_model_loader->getModel();
+    // need to get the should transform for ik solver
+    tf::TransformListener listener;
+    tf::StampedTransform torso_transform;
+    try{
+        ros::Time now = ros::Time::now();
+        listener.waitForTransform("/base_link", "/torso_lift_link", ros::Time(0), ros::Duration(1.0));
+        listener.lookupTransform("/base_link","/torso_lift_link", ros::Time(0), torso_transform);
+    }
+    catch(tf::TransformException ex){
+        ROS_ERROR("%s", ex.what());
+        ros::Duration(1.0).sleep();
+    }
 
     // initialize the trac ik solver
     TRAC_IK::TRAC_IK tracik_solver(std::string("torso_lift_link"), std::string("wrist_roll_link"));
@@ -408,7 +453,7 @@ int main(int argc, char** argv)
             // check whether the grasp pose is feasible
             KDL::Frame end_effector_pose;
             KDL::JntArray result = nominal;
-            transformTFToKDL(intermedaite_placement_transform * actual_grasp_transforms[i], end_effector_pose);
+            transformTFToKDL(torso_transform.inverse() * intermedaite_placement_transform * actual_grasp_transforms[i], end_effector_pose);
             if(kdl_solver.CartToJnt(result, end_effector_pose, result) >= 0)
             {
                 is_feasible_grasp_poses[i] = true;
@@ -434,14 +479,14 @@ int main(int argc, char** argv)
                 continue;
 
             // find pre-grasp pose and transform of current grasp pose.
-            tf::Transform pre_grasp_pose_in_world_frame = intermedaite_placement_transform * actual_grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.04, 0, 0));
+            tf::Transform pre_grasp_pose_in_world_frame = intermedaite_placement_transform * actual_grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.1, 0, 0));
             geometry_msgs::Pose pre_grasp_pose;
             transformTFToGeoPose(pre_grasp_pose_in_world_frame, pre_grasp_pose);
 
             std::vector<moveit_msgs::RobotTrajectory> current_lifting_motions; // the lifting motions of current grasp pose
             // desired end-effector pose
             KDL::Frame end_effector_pose;
-            transformTFToKDL(intermedaite_placement_transform * actual_grasp_transforms[g], end_effector_pose);
+            transformTFToKDL(torso_transform.inverse() * intermedaite_placement_transform * actual_grasp_transforms[g], end_effector_pose);
 
             for(int k = 0; k < 10; k++)
             {
@@ -460,7 +505,7 @@ int main(int argc, char** argv)
                     move_group.setStartState(currentState);
                     moveit_msgs::RobotTrajectory approach_trajectory_msg;
 
-                    double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.03, 5.0, approach_trajectory_msg, false);
+                    double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.005, 5.0, approach_trajectory_msg, false);
 
                     if(fraction >= 0.95)
                         current_lifting_motions.push_back(approach_trajectory_msg);
@@ -497,14 +542,14 @@ int main(int argc, char** argv)
 
     for(int g = 0; g < actual_grasp_transforms.size(); g++)
     {
-        tf::Transform pre_grasp_pose_in_world_frame = target_object_transform * actual_grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.04, 0, 0));
+        tf::Transform pre_grasp_pose_in_world_frame = target_object_transform * actual_grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.1, 0, 0));
         geometry_msgs::Pose pre_grasp_pose;
         transformTFToGeoPose(pre_grasp_pose_in_world_frame, pre_grasp_pose);
 
         std::vector<moveit_msgs::RobotTrajectory> current_lifting_motions; // the lifting motions of current grasp pose
         // desired end-effector pose
         KDL::Frame end_effector_pose;
-        transformTFToKDL(target_object_transform * actual_grasp_transforms[g], end_effector_pose);
+        transformTFToKDL(torso_transform.inverse() * target_object_transform * actual_grasp_transforms[g], end_effector_pose);
 
         for(int k = 0; k < 30; k++)
         {
@@ -523,7 +568,7 @@ int main(int argc, char** argv)
                 move_group.setStartState(currentState);
                 moveit_msgs::RobotTrajectory approach_trajectory_msg;
 
-                double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.03, 5.0, approach_trajectory_msg, false);
+                double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.005, 5.0, approach_trajectory_msg, false);
 
                 if(fraction >= 0.95)
                     current_lifting_motions.push_back(approach_trajectory_msg);
@@ -562,13 +607,19 @@ int main(int argc, char** argv)
     int num_of_lifting_grasps = 0;
 
     //init the task planner.
-    TaskPlanner task_planner(std::vector<unsigned int>{feasible_intermediate_placement_transforms.size()}, std::vector<unsigned int>{actual_grasp_transforms.size()});
+    TaskPlanner task_planner(std::vector<long unsigned int>{feasible_intermediate_placement_transforms.size(), 0}, std::vector<long unsigned int>{actual_grasp_transforms.size(), actual_grasp_transforms.size()});
+    // in the second foliation, there is no intermediate placement, so we set it to be zero.
 
     // add all action motions into the task planner.
     for(int f = 0; f < 1; f++)
     {
         for(int p = 0; p < feasible_intermediate_placement_transforms.size(); p++)
         {
+            bool is_init_action = false;
+            // the last placmeent should always be the current object pose.
+            if(p == feasible_intermediate_placement_transforms.size()-1)
+                is_init_action = true;
+
             for(int g = 0; g < regrasp_ids[p].size(); g++)
             {
                 if(regrasp_types[p][g] == 0) // this grasp pose can be used to lift the object.
@@ -576,12 +627,12 @@ int main(int argc, char** argv)
                     num_of_lifting_grasps++;
                     for(int k = 0; k < lifting_motions[p][g].size(); k++)
                     {
-                        task_planner.addActionBetweenFoliations(lifting_motions[p][g][k], f, regrasp_ids[p][g], f+1, 0, 1.0);
+                        task_planner.addActionBetweenFoliations(lifting_motions[p][g][k], f, regrasp_ids[p][g], f+1, regrasp_ids[p][g], 1.0);
                     }
                 }
                 for(int k = 0; k < lifting_motions[p][g].size(); k++)
                 {
-                    task_planner.addActionBetweenManifolds(lifting_motions[p][g][k], p, regrasp_ids[p][g], f, 0.0);
+                    task_planner.addActionBetweenManifolds(lifting_motions[p][g][k], p, regrasp_ids[p][g], f, is_init_action, -0.005);
                 }
             }
         }
@@ -592,10 +643,6 @@ int main(int argc, char** argv)
         std::cout << "no way to lift the object" << std::endl;
         return 0;
     }
-
-    task_planner.constructMDPGraph();
-
-    task_planner.policyIteration();
 
     // visualize the regrasp poses
     ros::ServiceClient regrasp_poses_visualizer = node_handle.serviceClient<manipulation_test::VisualizeRegrasp>("visualize_regrasp");
@@ -648,6 +695,376 @@ int main(int argc, char** argv)
         ROS_ERROR("Failed to call service visualize_intermediate_placements");
         return 1;
     }
+
+    //------------------------------------------------------------------------------------------
+    // initialize the constraint for each manifold
+    std::cout << "number of manipulation manifolds: " << actual_grasp_transforms.size() << std::endl;
+    std::cout << "number of intermediate manifolds: " << feasible_intermediate_placement_transforms.size() << std::endl;
+    std::vector<moveit_msgs::Constraints> manipulation_manifold_constraints;
+    std::vector<moveit_msgs::Constraints> intermediate_manifold_constraints;
+    for(int i = 0; i < actual_grasp_transforms.size(); i++)
+    {
+        moveit_msgs::Constraints constraints;
+        constraints.name = "use_equality_constraints";
+
+        geometry_msgs::Pose in_hand_pose;
+        transformTFToGeoPose(actual_grasp_transforms[i].inverse(), in_hand_pose);
+        constraints.in_hand_pose = in_hand_pose;
+
+        // define the orientation constraint on the object
+        moveit_msgs::OrientationConstraint orientation_constraint;
+        orientation_constraint.parameterization = moveit_msgs::OrientationConstraint::ROTATION_VECTOR;
+        orientation_constraint.header.frame_id = "base_link";
+        orientation_constraint.header.stamp = ros::Time(0);
+        orientation_constraint.link_name = "wrist_roll_link";
+        geometry_msgs::Quaternion constrained_quaternion;
+        constrained_quaternion.x = target_object_transform.getRotation().x();
+        constrained_quaternion.y = target_object_transform.getRotation().y();
+        constrained_quaternion.z = target_object_transform.getRotation().z();
+        constrained_quaternion.w = target_object_transform.getRotation().w();
+        orientation_constraint.orientation = constrained_quaternion;
+        orientation_constraint.weight = 1.0;
+        orientation_constraint.absolute_x_axis_tolerance = 2 * 3.1415;
+        orientation_constraint.absolute_y_axis_tolerance = 0.1;
+        orientation_constraint.absolute_z_axis_tolerance = 0.1;
+        constraints.orientation_constraints.push_back(orientation_constraint);
+
+        // define the position constraint on the object
+        moveit_msgs::PositionConstraint position_constraint;
+        position_constraint.header.frame_id = "base_link";
+        position_constraint.header.stamp = ros::Time(0);
+        position_constraint.link_name = "wrist_roll_link";
+        position_constraint.weight = 1.0;
+
+        shape_msgs::SolidPrimitive bounding_region;
+        bounding_region.type = bounding_region.BOX;
+        bounding_region.dimensions.resize(3);
+        bounding_region.dimensions[bounding_region.BOX_X] = 0.0005; // for x
+        bounding_region.dimensions[bounding_region.BOX_Y] = 2000; // for y 
+        bounding_region.dimensions[bounding_region.BOX_Z] = 2000; // for z
+        // If you want to use plane constraint, you should set 0.0005 for it.
+
+        geometry_msgs::Pose target_object_pose;
+        transformTFToGeoPose(target_object_transform, target_object_pose);
+
+        position_constraint.constraint_region.primitives.push_back(bounding_region);
+        position_constraint.constraint_region.primitive_poses.push_back(target_object_pose);
+        constraints.position_constraints.push_back(position_constraint);
+        manipulation_manifold_constraints.push_back(constraints);
+    }
+
+    for(int i = 0; i < feasible_intermediate_placement_transforms.size(); i++)
+    {
+        // in the intermediate manifold, there should be no constraint.
+        moveit_msgs::Constraints constraints;
+        constraints.name = "no_constraints";
+
+        // set in hand pose to be identity
+        geometry_msgs::Pose in_hand_pose;
+        in_hand_pose.position.x = 0;
+        in_hand_pose.position.y = 0;
+        in_hand_pose.position.z = 0;
+
+        in_hand_pose.orientation.x = 0;
+        in_hand_pose.orientation.y = 0;
+        in_hand_pose.orientation.z = 0;
+        in_hand_pose.orientation.w = 1;
+        
+        constraints.in_hand_pose = in_hand_pose;
+
+        // define the position constraint on the object
+        moveit_msgs::PositionConstraint position_constraint;
+        position_constraint.header.frame_id = "base_link";
+        position_constraint.header.stamp = ros::Time(0);
+        position_constraint.link_name = "wrist_roll_link";
+        position_constraint.weight = 1.0;
+
+        shape_msgs::SolidPrimitive bounding_region;
+        bounding_region.type = bounding_region.BOX;
+        bounding_region.dimensions.resize(3);
+        bounding_region.dimensions[bounding_region.BOX_X] = 2000; // for x
+        bounding_region.dimensions[bounding_region.BOX_Y] = 2000; // for y 
+        bounding_region.dimensions[bounding_region.BOX_Z] = 2000; // for z
+        // If you want to use plane constraint, you should set 0.0005 for it.
+
+        geometry_msgs::Pose target_object_pose;
+        transformTFToGeoPose(target_object_transform, target_object_pose);
+
+        position_constraint.constraint_region.primitives.push_back(bounding_region);
+        position_constraint.constraint_region.primitive_poses.push_back(target_object_pose);
+        constraints.position_constraints.push_back(position_constraint);
+
+      
+        intermediate_manifold_constraints.push_back(constraints);
+    }
+    std::cout << "init constraints done" << std::endl;
+
+    // ------------------
+    ActionSequence action_sequence;
+
+    task_planner.constructMDPGraph();
+
+    task_planner.policyIteration();
+
+    // get the current joint positions
+    std::vector<double> current_joint_positions_double;
+    std::vector<float> current_joint_positions_float;
+    current_state.copyJointGroupPositions(joint_model_group, current_joint_positions_double);
+    for(int i = 0; i < current_joint_positions_double.size(); i++)
+        current_joint_positions_float.push_back((float)current_joint_positions_double[i]);
+
+
+    if(not task_planner.planActions(action_sequence, current_joint_positions_float))
+    {
+        std::cout << "no plan found" << std::endl;
+        return 0;
+    }
+
+    // add the table into the planning scene
+    moveit_msgs::CollisionObject collision_object_table;
+    collision_object_table.header.frame_id = move_group.getPlanningFrame();
+
+    collision_object_table.id = "table";
+
+    shape_msgs::SolidPrimitive table_primitive;
+    table_primitive.type = table_primitive.BOX;
+    table_primitive.dimensions.resize(3);
+    table_primitive.dimensions[0] = table_srv.response.depth;
+    table_primitive.dimensions[1] = table_srv.response.width;
+    table_primitive.dimensions[2] =  0.005;
+
+    geometry_msgs::Pose table_pose;
+    table_pose.position.x = table_srv.response.center.x;
+    table_pose.position.y = table_srv.response.center.y;
+    table_pose.position.z = table_srv.response.center.z;
+
+    table_pose.orientation.x = table_srv.response.orientation.x;
+    table_pose.orientation.y = table_srv.response.orientation.y;
+    table_pose.orientation.z = table_srv.response.orientation.z;
+    table_pose.orientation.w = table_srv.response.orientation.w;
+
+
+    collision_object_table.primitives.push_back(table_primitive);
+    collision_object_table.pose = table_pose;
+
+    collision_object_table.operation = collision_object_table.ADD;
+    planning_scene_interface.applyCollisionObject(collision_object_table);
+
+    std::cout << "ready to run action sequence" << std::endl;
+
+    move_group.setPlannerId("CLazyPRMConfigDefault");
+    move_group.setPlanningTime(5.0);
+
+    robot_trajectory::RobotTrajectory total_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+    // init the current state of the robot
+    current_state = *(move_group.getCurrentState());
+    total_trajectory.clear();
+
+    // initialize the target object as the attached object.
+    shapes::Shape* target_object_shape = new shapes::Box(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.x,
+                                                         obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.y,
+                                                         obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.z);
+    std::vector<shapes::ShapeConstPtr> target_object_shapes;
+    target_object_shapes.push_back(shapes::ShapeConstPtr(target_object_shape));
+    EigenSTL::vector_Isometry3d shape_poses{Eigen::Isometry3d::Identity()};
+
+    moveit_visual_tools::MoveItVisualToolsPtr trajectory_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link");
+    moveit_visual_tools::MoveItVisualToolsPtr robot_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link", "/moveit_visual_tools");
+    robot_visuals->loadPlanningSceneMonitor();
+    robot_visuals->loadMarkerPub(true);
+    robot_visuals->loadRobotStatePub("joint_states");
+    robot_visuals->setManualSceneUpdating();
+
+    // check the action sequence
+    for(int i = 0; i < action_sequence.getActionSize(); i++)
+    {
+        MotionTask m = action_sequence.getActionTaskAt(i);
+        std::cout << "--------------------------motion task " << i << std::endl;
+        std::cout << "start joint values: " << std::endl;
+        for(int j = 0; j < m.start_joint_values.size(); j++)
+            std::cout << m.start_joint_values[j] << " ";
+        std::cout << std::endl;
+        std::cout << "end joint values: " << std::endl;
+        for(int j = 0; j < m.target_joint_values.size(); j++)
+            std::cout << m.target_joint_values[j] << " ";
+        std::cout << std::endl;
+        std::cout << "foliation id " << m.foliation_id << std::endl;
+        if(m.is_in_manipulation_manifold)
+            std::cout << "in manipulation manipulation manifold with id " << m.manifold_id << std::endl;
+        else
+            std::cout << "in intermediate placement manifold with id " << m.manifold_id << std::endl;
+    
+        if(m.is_in_manipulation_manifold)
+        {
+            // execute the sliding task
+            std::cout << "execute the sliding task" << std::endl;
+
+            // calculate current target object pose.
+            Eigen::Isometry3d current_in_hand_pose;
+            tf::transformTFToEigen(actual_grasp_transforms[m.manifold_id].inverse(), current_in_hand_pose);
+
+            // 1. attach the object to the end effector and remove the table from the planning scene.
+            collision_object_table.operation = collision_object_table.REMOVE;
+            planning_scene_interface.applyCollisionObject(collision_object_table);
+
+            // current_state.attachBody("target_object", current_in_hand_pose, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link"}, "wrist_roll_link");
+
+            moveit::core::RobotState next_target_state = current_state;
+            for(int j = 0; j < joint_names.size(); j++)
+            {
+                double v = (double)m.target_joint_values[j];
+                next_target_state.setJointPositions(joint_names[j], &v);
+            }
+            
+            // visualize the start robot state
+            robot_visuals->publishRobotState(next_target_state, rviz_visual_tools::ORANGE);
+            robot_visuals->trigger();
+
+            // 2. set the proper planner in the move group
+            move_group.setActionWithId("slide", m.manifold_id);
+
+            // 3. set the constraint in this manifold
+            move_group.setPathConstraints(manipulation_manifold_constraints[m.manifold_id]);
+            move_group.setInHandPose(manipulation_manifold_constraints[m.manifold_id].in_hand_pose);
+
+            // 4. set the start and target joint values
+            move_group.setStartState(current_state);
+
+            std::vector<double> target_joint_positions_double;
+            for(int j = 0; j < m.target_joint_values.size(); j++)
+                target_joint_positions_double.push_back((double)m.target_joint_values[j]);
+            move_group.setJointValueTarget(target_joint_positions_double);
+
+            // 5. plan and execute the motion
+            robot_trajectory::RobotTrajectory slide_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+            
+            moveit::planning_interface::MoveGroupInterface::Plan slide_plan;
+            std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+            bool success = (move_group.plan(slide_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+            if(success)
+            {
+                std::cout << "slide plan success" << std::endl;
+                slide_trajectory.setRobotTrajectoryMsg(current_state, slide_plan.trajectory_);
+                current_state = slide_trajectory.getLastWayPoint();
+            }
+            else
+            {
+                std::cout << "slide plan failed" << std::endl;
+                break;
+            }
+
+            move_group.clearPathConstraints();
+            move_group.clearAction();
+            move_group.clearExperience();
+            move_group.clearPoseTargets();
+            move_group.clearInHandPose();
+
+            // 6. execute the cartesian motion
+            robot_trajectory::RobotTrajectory cartesian_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+            cartesian_trajectory.setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
+
+            // 7. add the re-grasp trajectory into the total trajectory.
+            total_trajectory.append(slide_trajectory, 0.01);
+            total_trajectory.append(cartesian_trajectory, 0.01);
+
+            // current_state = total_trajectory.getLastWayPoint();
+
+            // 8. detach the object from the end effector and add the table back to the planning scene.
+        }
+        else
+        {
+            // execute the re-grasping task
+            // 1. add the object into the planning scene
+            moveit_msgs::CollisionObject collision_object_target;
+            collision_object_target.header.frame_id = move_group.getPlanningFrame();
+
+            collision_object_target.id =  "target_object";
+
+            shape_msgs::SolidPrimitive target_primitive;
+            target_primitive.type = target_primitive.BOX;
+            target_primitive.dimensions.resize(3);
+            target_primitive.dimensions[0] = obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.x;
+            target_primitive.dimensions[1] = obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.y;
+            target_primitive.dimensions[2] = obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.z;
+
+            geometry_msgs::Pose target_object_pose;
+            target_object_pose.position.x = feasible_intermediate_placement_transforms[m.manifold_id].getOrigin().x();
+            target_object_pose.position.y = feasible_intermediate_placement_transforms[m.manifold_id].getOrigin().y();
+            target_object_pose.position.z = feasible_intermediate_placement_transforms[m.manifold_id].getOrigin().z();
+
+            target_object_pose.orientation.x = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().x();
+            target_object_pose.orientation.y = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().y();
+            target_object_pose.orientation.z = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().z();
+            target_object_pose.orientation.w = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().w();
+
+            collision_object_target.primitives.push_back(target_primitive);
+            collision_object_target.pose = target_object_pose;
+
+            collision_object_target.operation = collision_object_target.ADD;
+            planning_scene_interface.applyCollisionObject(collision_object_target);
+
+            // 2. set the proper planner in the move group
+            move_group.setActionWithId("regrasp", m.manifold_id);
+
+            // 3. set the constraint in this manifold
+            move_group.setPathConstraints(intermediate_manifold_constraints[m.manifold_id]);
+            move_group.setInHandPose(intermediate_manifold_constraints[m.manifold_id].in_hand_pose);
+
+            // 4. set the start and target joint values
+            move_group.setStartState(current_state);
+
+            std::vector<double> target_joint_positions_double;
+            for(int j = 0; j < m.target_joint_values.size(); j++)
+                target_joint_positions_double.push_back((double)m.target_joint_values[j]);
+            move_group.setJointValueTarget(target_joint_positions_double);
+
+            // 5. plan and execute the motion
+            robot_trajectory::RobotTrajectory regrasp_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+            
+            moveit::planning_interface::MoveGroupInterface::Plan regrasp_plan;
+            std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+            bool success = (move_group.plan(regrasp_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+            if(success)
+            {
+                std::cout << "regrasp plan success" << std::endl;
+                regrasp_trajectory.setRobotTrajectoryMsg(current_state, regrasp_plan.trajectory_);
+                current_state = regrasp_trajectory.getLastWayPoint();
+            }
+            else
+            {
+                std::cout << "regrasp plan failed" << std::endl;
+                break;
+            }
+
+            move_group.clearPathConstraints();
+            move_group.clearInHandPose();
+            move_group.clearAction();
+            move_group.clearExperience();
+            move_group.clearPoseTargets();
+            move_group.clearInHandPose();
+
+
+            // 6. execute the cartesian motion
+            robot_trajectory::RobotTrajectory cartesian_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+            cartesian_trajectory.setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
+
+            // 7. add the re-grasp trajectory into the total trajectory.
+            total_trajectory.append(regrasp_trajectory, 0.01);
+            total_trajectory.append(cartesian_trajectory, 0.01);
+
+            current_state = total_trajectory.getLastWayPoint();
+
+            // 8. remove the object from the planning scene
+            collision_object_target.operation = collision_object_target.REMOVE;
+            planning_scene_interface.applyCollisionObject(collision_object_target);
+        }
+        if(i == 1) // debug break
+            break;
+    }
+
+    // visualize the trajectory
+    
+    trajectory_visuals->publishTrajectoryPath(total_trajectory);
 
     return 0;
 }
