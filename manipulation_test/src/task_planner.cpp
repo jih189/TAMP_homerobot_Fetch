@@ -221,7 +221,9 @@ bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector
                                  action_nodes[current_action_node_id].in_state.foliation_id,
                                  action_nodes[current_action_node_id].in_state.manifold_id,
                                  action_nodes[current_action_node_id].in_state.is_in_manipulation_manifold,
-                                 action_nodes[current_action_node_id].motion_trajectory);
+                                 action_nodes[current_action_node_id].motion_trajectory,
+                                 -1,
+                                 current_action_node_id);
 
     // generate the action sequence
     int policy = action_nodes[current_action_node_id].policy;
@@ -236,14 +238,54 @@ bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector
                                      action_nodes[current_action_node_id].in_state.foliation_id,
                                      action_nodes[current_action_node_id].in_state.manifold_id,
                                      action_nodes[current_action_node_id].in_state.is_in_manipulation_manifold,
-                                     action_nodes[current_action_node_id].motion_trajectory);
+                                     action_nodes[current_action_node_id].motion_trajectory,
+                                     last_action_node_id,
+                                     current_action_node_id);
     }
     return true;
 }
 
 void TaskPlanner::updateTaskPlanner(const ActionSequence &action_sequence)
 {
+    for(int i = 0; i < action_sequence.getActionSize(); i++)
+    {
+        if(action_sequence.getPreviousIdAt(i) == -1)
+            continue;
 
+        if(action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points.size() == 0)
+        {
+            // update the success rate of current edge in task graph.
+            int previous_node_id = action_sequence.getPreviousIdAt(i);
+            int next_node_id = action_sequence.getNextIdAt(i);
+            std::vector<long unsigned int>::iterator itr = std::find(action_nodes[previous_node_id].next_action_node_ids.begin(), action_nodes[previous_node_id].next_action_node_ids.end(), next_node_id);
+            int policyIndexForNextNode = std::distance(action_nodes[previous_node_id].next_action_node_ids.begin(), itr);
+            action_nodes[previous_node_id].next_action_success_probabilities[policyIndexForNextNode] *= 0.7;
+
+            // update the success rate in opposte edge too
+            itr = std::find(action_nodes[next_node_id].next_action_node_ids.begin(), action_nodes[next_node_id].next_action_node_ids.end(), previous_node_id);
+            policyIndexForNextNode = std::distance(action_nodes[next_node_id].next_action_node_ids.begin(), itr);
+            action_nodes[next_node_id].next_action_success_probabilities[policyIndexForNextNode] *= 0.7;
+
+            // only update the first failure task.
+            break;
+        }
+        else{
+
+            int previous_node_id = action_sequence.getPreviousIdAt(i);
+            int next_node_id = action_sequence.getNextIdAt(i);
+            std::vector<long unsigned int>::iterator itr = std::find(action_nodes[previous_node_id].next_action_node_ids.begin(), action_nodes[previous_node_id].next_action_node_ids.end(), next_node_id);
+            int policyIndexForNextNode = std::distance(action_nodes[previous_node_id].next_action_node_ids.begin(), itr);
+            action_nodes[previous_node_id].next_action_success_probabilities[policyIndexForNextNode] = 1.0;
+
+            // update the success rate in opposte edge too
+            itr = std::find(action_nodes[next_node_id].next_action_node_ids.begin(), action_nodes[next_node_id].next_action_node_ids.end(), previous_node_id);
+            policyIndexForNextNode = std::distance(action_nodes[next_node_id].next_action_node_ids.begin(), itr);
+            action_nodes[next_node_id].next_action_success_probabilities[policyIndexForNextNode] = 1.0;
+            // if current edge in task graph has solution then skip
+
+            // if current edge is task graph has not solution, then set the solution here.
+        }
+    }
 }
 
 void TaskPlanner::constructMDPGraph()

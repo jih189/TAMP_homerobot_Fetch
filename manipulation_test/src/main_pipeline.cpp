@@ -799,28 +799,7 @@ int main(int argc, char** argv)
     }
     std::cout << "init constraints done" << std::endl;
 
-    // ------------------
-    ActionSequence action_sequence;
-
-    task_planner.constructMDPGraph();
-
-    task_planner.policyIteration();
-
-    // get the current joint positions
-    std::vector<double> current_joint_positions_double;
-    std::vector<float> current_joint_positions_float;
-    current_state.copyJointGroupPositions(joint_model_group, current_joint_positions_double);
-    for(int i = 0; i < current_joint_positions_double.size(); i++)
-        current_joint_positions_float.push_back((float)current_joint_positions_double[i]);
-
-
-    if(not task_planner.planActions(action_sequence, current_joint_positions_float))
-    {
-        std::cout << "no plan found" << std::endl;
-        return 0;
-    }
-
-    // add the table into the planning scene
+    // init the table as the collision object.
     moveit_msgs::CollisionObject collision_object_table;
     collision_object_table.header.frame_id = move_group.getPlanningFrame();
 
@@ -847,27 +826,43 @@ int main(int argc, char** argv)
     collision_object_table.primitives.push_back(table_primitive);
     collision_object_table.pose = table_pose;
 
-    collision_object_table.operation = collision_object_table.ADD;
-    planning_scene_interface.applyCollisionObject(collision_object_table);
+    // init the object as the collision object for re-grasping.
+    moveit_msgs::CollisionObject collision_object_target;
+    collision_object_target.header.frame_id = move_group.getPlanningFrame();
 
-    std::cout << "ready to run action sequence" << std::endl;
+    collision_object_target.id =  "target_object";
 
+    shape_msgs::SolidPrimitive target_primitive;
+    target_primitive.type = target_primitive.BOX;
+    target_primitive.dimensions.resize(3);
+    target_primitive.dimensions[0] = obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.x;
+    target_primitive.dimensions[1] = obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.y;
+    target_primitive.dimensions[2] = obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.z;
+    collision_object_target.primitives.push_back(target_primitive);
+
+    // get the current joint positions of the robot
+    std::vector<double> current_joint_positions_double;
+    std::vector<float> current_joint_positions_float;
+    current_state.copyJointGroupPositions(joint_model_group, current_joint_positions_double);
+    for(int i = 0; i < current_joint_positions_double.size(); i++)
+        current_joint_positions_float.push_back((float)current_joint_positions_double[i]);
+    
+    // construct the task planner graph
+    task_planner.constructMDPGraph();
+
+    // setup the motion planner
     move_group.setPlannerId("CLazyPRMConfigDefault");
     move_group.setPlanningTime(5.0);
 
-    robot_trajectory::RobotTrajectory total_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
-    // init the current state of the robot
-    current_state = *(move_group.getCurrentState());
-    total_trajectory.clear();
-
     // initialize the target object as the attached object.
     shapes::Shape* target_object_shape = new shapes::Box(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.x,
-                                                         obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.y,
-                                                         obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.z);
+                                                        obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.y,
+                                                        obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.z);
     std::vector<shapes::ShapeConstPtr> target_object_shapes;
     target_object_shapes.push_back(shapes::ShapeConstPtr(target_object_shape));
     EigenSTL::vector_Isometry3d shape_poses{Eigen::Isometry3d::Identity()};
 
+    // init the moveit visual tools for visualization
     moveit_visual_tools::MoveItVisualToolsPtr trajectory_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link");
     moveit_visual_tools::MoveItVisualToolsPtr robot_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link", "/moveit_visual_tools");
     robot_visuals->loadPlanningSceneMonitor();
@@ -875,195 +870,221 @@ int main(int argc, char** argv)
     robot_visuals->loadRobotStatePub("joint_states");
     robot_visuals->setManualSceneUpdating();
 
-    // check the action sequence
-    for(int i = 0; i < action_sequence.getActionSize(); i++)
+    // init the final robot trajectory for visualization later.
+    robot_trajectory::RobotTrajectory total_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);    
+
+    for(int planning_verify_number = 0; planning_verify_number < 5; planning_verify_number++)
     {
-        MotionTask m = action_sequence.getActionTaskAt(i);
-        std::cout << "--------------------------motion task " << i << std::endl;
-        std::cout << "start joint values: " << std::endl;
-        for(int j = 0; j < m.start_joint_values.size(); j++)
-            std::cout << m.start_joint_values[j] << " ";
-        std::cout << std::endl;
-        std::cout << "end joint values: " << std::endl;
-        for(int j = 0; j < m.target_joint_values.size(); j++)
-            std::cout << m.target_joint_values[j] << " ";
-        std::cout << std::endl;
-        std::cout << "foliation id " << m.foliation_id << std::endl;
-        if(m.is_in_manipulation_manifold)
-            std::cout << "in manipulation manipulation manifold with id " << m.manifold_id << std::endl;
-        else
-            std::cout << "in intermediate placement manifold with id " << m.manifold_id << std::endl;
-    
-        if(m.is_in_manipulation_manifold)
+        // run policy interation for the task.
+        task_planner.policyIteration();
+        
+        // input the current joint position and plan for the action sequence 
+        ActionSequence action_sequence;
+        if(not task_planner.planActions(action_sequence, current_joint_positions_float))
         {
-            // execute the sliding task
-            std::cout << "execute the sliding task" << std::endl;
+            std::cout << "no plan found" << std::endl;
+            return 0;
+        }
 
-            // calculate current target object pose.
-            Eigen::Isometry3d current_in_hand_pose;
-            tf::transformTFToEigen(actual_grasp_transforms[m.manifold_id].inverse(), current_in_hand_pose);
+        // add the table into the planning scene
+        collision_object_table.operation = collision_object_table.ADD;
+        planning_scene_interface.applyCollisionObject(collision_object_table);
 
-            // 1. attach the object to the end effector and remove the table from the planning scene.
-            collision_object_table.operation = collision_object_table.REMOVE;
-            planning_scene_interface.applyCollisionObject(collision_object_table);
+        std::cout << "verify the action sequence at time " << planning_verify_number << std::endl;
 
-            // current_state.attachBody("target_object", current_in_hand_pose, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link"}, "wrist_roll_link");
+        // init the current state of the robot
+        current_state = *(move_group.getCurrentState());
 
-            moveit::core::RobotState next_target_state = current_state;
-            for(int j = 0; j < joint_names.size(); j++)
+        // reset the total trajectory.
+        total_trajectory.clear();
+
+        // check the action sequence
+        for(int i = 0; i < action_sequence.getActionSize(); i++)
+        {
+            MotionTask m = action_sequence.getActionTaskAt(i);
+            std::cout << "-------------------------- motion task " << i;
+            if(m.is_in_manipulation_manifold)
+                std::cout << " in manipulation manipulation manifold with id " << m.manifold_id << " of foliation " << m.foliation_id << std::endl;
+            else
+                std::cout << " in intermediate placement manifold with id " << m.manifold_id << " of foliation " << m.foliation_id << std::endl;
+        
+            bool found_solution = false;
+            if(m.is_in_manipulation_manifold) // if current task is in manipulation manifold
             {
-                double v = (double)m.target_joint_values[j];
-                next_target_state.setJointPositions(joint_names[j], &v);
-            }
-            
-            // visualize the start robot state
-            robot_visuals->publishRobotState(next_target_state, rviz_visual_tools::ORANGE);
-            robot_visuals->trigger();
+                // calculate current target object pose.
+                Eigen::Isometry3d current_in_hand_pose;
+                tf::transformTFToEigen(actual_grasp_transforms[m.manifold_id].inverse(), current_in_hand_pose);
 
-            // 2. set the proper planner in the move group
-            move_group.setActionWithId("slide", m.manifold_id);
+                // 1. attach the object to the end effector and remove the table from the planning scene.
+                collision_object_table.operation = collision_object_table.REMOVE;
+                planning_scene_interface.applyCollisionObject(collision_object_table);
+                // current_state.attachBody("target_object", current_in_hand_pose, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link"}, "wrist_roll_link");
+                
+                // 2. set the proper planner in the move group
+                move_group.setActionWithId("slide", m.manifold_id);
 
-            // 3. set the constraint in this manifold
-            move_group.setPathConstraints(manipulation_manifold_constraints[m.manifold_id]);
-            move_group.setInHandPose(manipulation_manifold_constraints[m.manifold_id].in_hand_pose);
+                // 3. set the constraint in this manifold
+                move_group.setPathConstraints(manipulation_manifold_constraints[m.manifold_id]);
+                move_group.setInHandPose(manipulation_manifold_constraints[m.manifold_id].in_hand_pose);
 
-            // 4. set the start and target joint values
-            move_group.setStartState(current_state);
+                // 4. set the start and target joint values
+                move_group.setStartState(current_state);
 
-            std::vector<double> target_joint_positions_double;
-            for(int j = 0; j < m.target_joint_values.size(); j++)
-                target_joint_positions_double.push_back((double)m.target_joint_values[j]);
-            move_group.setJointValueTarget(target_joint_positions_double);
+                std::vector<double> target_joint_positions_double;
+                for(int j = 0; j < m.target_joint_values.size(); j++)
+                    target_joint_positions_double.push_back((double)m.target_joint_values[j]);
+                move_group.setJointValueTarget(target_joint_positions_double);
 
-            // 5. plan and execute the motion
-            robot_trajectory::RobotTrajectory slide_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
-            
-            moveit::planning_interface::MoveGroupInterface::Plan slide_plan;
-            std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
-            bool success = (move_group.plan(slide_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-            if(success)
-            {
-                std::cout << "slide plan success" << std::endl;
-                slide_trajectory.setRobotTrajectoryMsg(current_state, slide_plan.trajectory_);
-                current_state = slide_trajectory.getLastWayPoint();
+                // 5. plan and execute the motion
+                robot_trajectory::RobotTrajectory slide_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+                
+                moveit::planning_interface::MoveGroupInterface::Plan slide_plan;
+                std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+                bool success = (move_group.plan(slide_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                
+                // reset the move group
+                move_group.clearPathConstraints();
+                move_group.clearAction();
+                move_group.clearExperience();
+                move_group.clearPoseTargets();
+                move_group.clearInHandPose();
+
+                if(success)
+                {
+                    std::cout << "slide plan success" << std::endl;
+                    slide_trajectory.setRobotTrajectoryMsg(current_state, slide_plan.trajectory_);
+                    current_state = slide_trajectory.getLastWayPoint();
+                    found_solution = true;
+
+                    // set the solution in the action sequence
+                    action_sequence.setSolutionForActionTaskAt(i, slide_plan.trajectory_);
+                }
+                else
+                {
+                    std::cout << "slide plan failed" << std::endl;
+                    break;
+                }
+
+                // 6. execute the cartesian motion
+                robot_trajectory::RobotTrajectory cartesian_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+                cartesian_trajectory.setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
+
+                // 7. add the re-grasp trajectory into the total trajectory.
+                total_trajectory.append(slide_trajectory, 0.01);
+                total_trajectory.append(cartesian_trajectory, 0.01);
+
+                current_state = total_trajectory.getLastWayPoint();
+
+                // 8. detach the object from the end effector and add the table back to the planning scene.
+                collision_object_table.operation = collision_object_table.ADD;
+                planning_scene_interface.applyCollisionObject(collision_object_table);
             }
             else
             {
-                std::cout << "slide plan failed" << std::endl;
+                // execute the re-grasping task
+                // 1. add the object into the planning scene
+                geometry_msgs::Pose target_object_pose;
+                target_object_pose.position.x = feasible_intermediate_placement_transforms[m.manifold_id].getOrigin().x();
+                target_object_pose.position.y = feasible_intermediate_placement_transforms[m.manifold_id].getOrigin().y();
+                target_object_pose.position.z = feasible_intermediate_placement_transforms[m.manifold_id].getOrigin().z();
+
+                target_object_pose.orientation.x = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().x();
+                target_object_pose.orientation.y = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().y();
+                target_object_pose.orientation.z = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().z();
+                target_object_pose.orientation.w = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().w();
+                
+                collision_object_target.pose = target_object_pose;
+
+                collision_object_target.operation = collision_object_target.ADD;
+                planning_scene_interface.applyCollisionObject(collision_object_target);
+
+                // 2. set the proper planner in the move group
+                move_group.setActionWithId("regrasp", m.manifold_id);
+
+                // 3. set the constraint in this manifold
+                move_group.setPathConstraints(intermediate_manifold_constraints[m.manifold_id]);
+                move_group.setInHandPose(intermediate_manifold_constraints[m.manifold_id].in_hand_pose);
+
+                // 4. set the start and target joint values
+                move_group.setStartState(current_state);
+
+                std::vector<double> target_joint_positions_double;
+                for(int j = 0; j < m.target_joint_values.size(); j++)
+                    target_joint_positions_double.push_back((double)m.target_joint_values[j]);
+                move_group.setJointValueTarget(target_joint_positions_double);
+
+                // 5. plan and execute the motion
+                robot_trajectory::RobotTrajectory regrasp_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+                
+                moveit::planning_interface::MoveGroupInterface::Plan regrasp_plan;
+                std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+                bool success = (move_group.plan(regrasp_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                if(success)
+                {
+                    std::cout << "regrasp plan success" << std::endl;
+                    regrasp_trajectory.setRobotTrajectoryMsg(current_state, regrasp_plan.trajectory_);
+                    current_state = regrasp_trajectory.getLastWayPoint();
+                    found_solution = true;
+                    // set the solution in the action sequence
+                    action_sequence.setSolutionForActionTaskAt(i, regrasp_plan.trajectory_);
+                }
+                else
+                {
+                    std::cout << "regrasp plan failed" << std::endl;
+                    break;
+                }
+
+                move_group.clearPathConstraints();
+                move_group.clearInHandPose();
+                move_group.clearAction();
+                move_group.clearExperience();
+                move_group.clearPoseTargets();
+                move_group.clearInHandPose();
+
+
+                // 6. execute the cartesian motion
+                robot_trajectory::RobotTrajectory cartesian_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+                cartesian_trajectory.setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
+
+                // 7. add the re-grasp trajectory into the total trajectory.
+                total_trajectory.append(regrasp_trajectory, 0.01);
+                total_trajectory.append(cartesian_trajectory, 0.01);
+
+                current_state = total_trajectory.getLastWayPoint();
+
+                // 8. remove the object from the planning scene
+                collision_object_target.operation = collision_object_target.REMOVE;
+                planning_scene_interface.applyCollisionObject(collision_object_target);
+            }
+            if(not found_solution) // debug break
+                break;
+        }
+        // check current action sequence
+        bool solution_is_good = true;
+        std::cout << "** check the solution on action sequence **" << std::endl;
+        for(int i = 0; i < action_sequence.getActionSize(); i++)
+        {
+            if(action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points.size() == 0)
+            {
+                solution_is_good = false;
                 break;
             }
+        }
 
-            move_group.clearPathConstraints();
-            move_group.clearAction();
-            move_group.clearExperience();
-            move_group.clearPoseTargets();
-            move_group.clearInHandPose();
-
-            // 6. execute the cartesian motion
-            robot_trajectory::RobotTrajectory cartesian_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
-            cartesian_trajectory.setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
-
-            // 7. add the re-grasp trajectory into the total trajectory.
-            total_trajectory.append(slide_trajectory, 0.01);
-            total_trajectory.append(cartesian_trajectory, 0.01);
-
-            // current_state = total_trajectory.getLastWayPoint();
-
-            // 8. detach the object from the end effector and add the table back to the planning scene.
+        // if the solution is infeasible, then we need to re-plan the action sequence by updating the task graph.
+        if(not solution_is_good)
+        {
+            std::cout << "solution is not good, re-plan the action sequence" << std::endl;
+            task_planner.updateTaskPlanner(action_sequence);
         }
         else
         {
-            // execute the re-grasping task
-            // 1. add the object into the planning scene
-            moveit_msgs::CollisionObject collision_object_target;
-            collision_object_target.header.frame_id = move_group.getPlanningFrame();
-
-            collision_object_target.id =  "target_object";
-
-            shape_msgs::SolidPrimitive target_primitive;
-            target_primitive.type = target_primitive.BOX;
-            target_primitive.dimensions.resize(3);
-            target_primitive.dimensions[0] = obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.x;
-            target_primitive.dimensions[1] = obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.y;
-            target_primitive.dimensions[2] = obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.z;
-
-            geometry_msgs::Pose target_object_pose;
-            target_object_pose.position.x = feasible_intermediate_placement_transforms[m.manifold_id].getOrigin().x();
-            target_object_pose.position.y = feasible_intermediate_placement_transforms[m.manifold_id].getOrigin().y();
-            target_object_pose.position.z = feasible_intermediate_placement_transforms[m.manifold_id].getOrigin().z();
-
-            target_object_pose.orientation.x = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().x();
-            target_object_pose.orientation.y = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().y();
-            target_object_pose.orientation.z = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().z();
-            target_object_pose.orientation.w = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().w();
-
-            collision_object_target.primitives.push_back(target_primitive);
-            collision_object_target.pose = target_object_pose;
-
-            collision_object_target.operation = collision_object_target.ADD;
-            planning_scene_interface.applyCollisionObject(collision_object_target);
-
-            // 2. set the proper planner in the move group
-            move_group.setActionWithId("regrasp", m.manifold_id);
-
-            // 3. set the constraint in this manifold
-            move_group.setPathConstraints(intermediate_manifold_constraints[m.manifold_id]);
-            move_group.setInHandPose(intermediate_manifold_constraints[m.manifold_id].in_hand_pose);
-
-            // 4. set the start and target joint values
-            move_group.setStartState(current_state);
-
-            std::vector<double> target_joint_positions_double;
-            for(int j = 0; j < m.target_joint_values.size(); j++)
-                target_joint_positions_double.push_back((double)m.target_joint_values[j]);
-            move_group.setJointValueTarget(target_joint_positions_double);
-
-            // 5. plan and execute the motion
-            robot_trajectory::RobotTrajectory regrasp_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
-            
-            moveit::planning_interface::MoveGroupInterface::Plan regrasp_plan;
-            std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
-            bool success = (move_group.plan(regrasp_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-            if(success)
-            {
-                std::cout << "regrasp plan success" << std::endl;
-                regrasp_trajectory.setRobotTrajectoryMsg(current_state, regrasp_plan.trajectory_);
-                current_state = regrasp_trajectory.getLastWayPoint();
-            }
-            else
-            {
-                std::cout << "regrasp plan failed" << std::endl;
-                break;
-            }
-
-            move_group.clearPathConstraints();
-            move_group.clearInHandPose();
-            move_group.clearAction();
-            move_group.clearExperience();
-            move_group.clearPoseTargets();
-            move_group.clearInHandPose();
-
-
-            // 6. execute the cartesian motion
-            robot_trajectory::RobotTrajectory cartesian_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
-            cartesian_trajectory.setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
-
-            // 7. add the re-grasp trajectory into the total trajectory.
-            total_trajectory.append(regrasp_trajectory, 0.01);
-            total_trajectory.append(cartesian_trajectory, 0.01);
-
-            current_state = total_trajectory.getLastWayPoint();
-
-            // 8. remove the object from the planning scene
-            collision_object_target.operation = collision_object_target.REMOVE;
-            planning_scene_interface.applyCollisionObject(collision_object_target);
-        }
-        if(i == 1) // debug break
+            std::cout << "solution is good, break the loop" << std::endl;
             break;
+        }
     }
 
     // visualize the trajectory
-    
     trajectory_visuals->publishTrajectoryPath(total_trajectory);
 
     return 0;

@@ -24,13 +24,13 @@ to generate the motion trajectory by filling the missing information.
 */
 class ActionSequence
 {
-    
-
     public:
     ActionSequence()
     {
         motion_tasks.clear();
         cartesian_motions.clear();
+        previous_node_ids.clear();
+        next_node_ids.clear();
     }
 
     void addActionTask(const std::vector<float> &start_joint_values,
@@ -38,7 +38,9 @@ class ActionSequence
                        long unsigned int foliation_id,
                        long unsigned int manifold_id,
                        bool is_in_manipulation_manifold,
-                       const moveit_msgs::RobotTrajectory &cartesian_motion)
+                       const moveit_msgs::RobotTrajectory &cartesian_motion, 
+                       int previous_node_id, 
+                       int next_node_id)
     {
         MotionTask motion_task;
         for(int i = 0; i < start_joint_values.size(); i++)
@@ -53,29 +55,45 @@ class ActionSequence
         motion_tasks.push_back(motion_task);
 
         cartesian_motions.push_back(cartesian_motion);
+
+        previous_node_ids.push_back(previous_node_id);
+        next_node_ids.push_back(next_node_id);
     }
 
-    int getActionSize()
+    long unsigned int getActionSize() const
     {
         return motion_tasks.size();
     }
 
-    MotionTask getActionTaskAt(int task_index){
+    MotionTask getActionTaskAt(long unsigned int task_index) const
+    {
         return motion_tasks[task_index];
     }
 
-    void setActionTaskAt(int task_index, const MotionTask &motion_task){
-        motion_tasks[task_index].solution_trajectory = motion_task.solution_trajectory;
+    void setSolutionForActionTaskAt(int task_index, const moveit_msgs::RobotTrajectory &solution_motion){
+        motion_tasks[task_index].solution_trajectory = solution_motion;
     }
 
-    moveit_msgs::RobotTrajectory getCartesianMotionAt(int task_index){
+    moveit_msgs::RobotTrajectory getCartesianMotionAt(long unsigned int task_index){
         return cartesian_motions[task_index];
+    }
+
+    int getPreviousIdAt(long unsigned int task_index) const
+    {
+        return previous_node_ids[task_index];
+    }
+
+    int getNextIdAt(long unsigned int task_index) const
+    {
+        return next_node_ids[task_index];
     }
 
     private:
 
     std::vector<MotionTask> motion_tasks;
     std::vector<moveit_msgs::RobotTrajectory> cartesian_motions;
+    std::vector<int> previous_node_ids;
+    std::vector<int> next_node_ids;
 };
 
 class TaskPlanner
