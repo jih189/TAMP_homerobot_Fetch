@@ -638,7 +638,7 @@ int main(int argc, char** argv)
         }
     }
 
-    if(num_of_lifting_grasps == 0)
+    if(num_of_lifting_grasps == 0) // if there is not grasp pose to lift up the object, then return failure.
     {
         std::cout << "no way to lift the object" << std::endl;
         return 0;
@@ -785,7 +785,6 @@ int main(int argc, char** argv)
         bounding_region.dimensions[bounding_region.BOX_X] = 2000; // for x
         bounding_region.dimensions[bounding_region.BOX_Y] = 2000; // for y 
         bounding_region.dimensions[bounding_region.BOX_Z] = 2000; // for z
-        // If you want to use plane constraint, you should set 0.0005 for it.
 
         geometry_msgs::Pose target_object_pose;
         transformTFToGeoPose(target_object_transform, target_object_pose);
@@ -826,7 +825,7 @@ int main(int argc, char** argv)
     collision_object_table.primitives.push_back(table_primitive);
     collision_object_table.pose = table_pose;
 
-    // init the object as the collision object for re-grasping.
+    // init the target object as the collision object for re-grasping without pose.
     moveit_msgs::CollisionObject collision_object_target;
     collision_object_target.header.frame_id = move_group.getPlanningFrame();
 
@@ -886,10 +885,6 @@ int main(int argc, char** argv)
             return 0;
         }
 
-        // add the table into the planning scene
-        collision_object_table.operation = collision_object_table.ADD;
-        planning_scene_interface.applyCollisionObject(collision_object_table);
-
         std::cout << "verify the action sequence at time " << planning_verify_number << std::endl;
 
         // init the current state of the robot
@@ -901,23 +896,41 @@ int main(int argc, char** argv)
         // check the action sequence
         for(int i = 0; i < action_sequence.getActionSize(); i++)
         {
+            // get the current motion task
             MotionTask m = action_sequence.getActionTaskAt(i);
             std::cout << "-------------------------- motion task " << i;
             if(m.is_in_manipulation_manifold)
                 std::cout << " in manipulation manipulation manifold with id " << m.manifold_id << " of foliation " << m.foliation_id << std::endl;
             else
                 std::cout << " in intermediate placement manifold with id " << m.manifold_id << " of foliation " << m.foliation_id << std::endl;
+
+            // if the current task has solution, then continue.
+            if(action_sequence.hasSolutionAt(i))
+            {
+                // reuse the solution from the task graph
+                robot_trajectory::RobotTrajectory solution_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+                solution_trajectory.setRobotTrajectoryMsg(current_state, m.solution_trajectory);
+                current_state = solution_trajectory.getLastWayPoint();
+
+                // get the cartesian trajectory
+                robot_trajectory::RobotTrajectory cartesian_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+                cartesian_trajectory.setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
+
+                // add the reused solution trajectory into the total trajectory.
+                total_trajectory.append(solution_trajectory, 0.01);
+                total_trajectory.append(cartesian_trajectory, 0.01);
+
+                current_state = total_trajectory.getLastWayPoint();
+                continue;
+            }
         
-            bool found_solution = false;
             if(m.is_in_manipulation_manifold) // if current task is in manipulation manifold
             {
                 // calculate current target object pose.
                 Eigen::Isometry3d current_in_hand_pose;
                 tf::transformTFToEigen(actual_grasp_transforms[m.manifold_id].inverse(), current_in_hand_pose);
 
-                // 1. attach the object to the end effector and remove the table from the planning scene.
-                collision_object_table.operation = collision_object_table.REMOVE;
-                planning_scene_interface.applyCollisionObject(collision_object_table);
+                // 1. attach the object to the end effector in the planning scene.
                 // current_state.attachBody("target_object", current_in_hand_pose, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link"}, "wrist_roll_link");
                 
                 // 2. set the proper planner in the move group
@@ -954,7 +967,6 @@ int main(int argc, char** argv)
                     std::cout << "slide plan success" << std::endl;
                     slide_trajectory.setRobotTrajectoryMsg(current_state, slide_plan.trajectory_);
                     current_state = slide_trajectory.getLastWayPoint();
-                    found_solution = true;
 
                     // set the solution in the action sequence
                     action_sequence.setSolutionForActionTaskAt(i, slide_plan.trajectory_);
@@ -975,14 +987,12 @@ int main(int argc, char** argv)
 
                 current_state = total_trajectory.getLastWayPoint();
 
-                // 8. detach the object from the end effector and add the table back to the planning scene.
-                collision_object_table.operation = collision_object_table.ADD;
-                planning_scene_interface.applyCollisionObject(collision_object_table);
+                // 8. detach the object from the end effector in the planning scene.
             }
             else
             {
                 // execute the re-grasping task
-                // 1. add the object into the planning scene
+                // 1. add the object and table into the planning scene
                 geometry_msgs::Pose target_object_pose;
                 target_object_pose.position.x = feasible_intermediate_placement_transforms[m.manifold_id].getOrigin().x();
                 target_object_pose.position.y = feasible_intermediate_placement_transforms[m.manifold_id].getOrigin().y();
@@ -997,6 +1007,9 @@ int main(int argc, char** argv)
 
                 collision_object_target.operation = collision_object_target.ADD;
                 planning_scene_interface.applyCollisionObject(collision_object_target);
+
+                collision_object_table.operation = collision_object_table.ADD;
+                planning_scene_interface.applyCollisionObject(collision_object_table);
 
                 // 2. set the proper planner in the move group
                 move_group.setActionWithId("regrasp", m.manifold_id);
@@ -1024,7 +1037,6 @@ int main(int argc, char** argv)
                     std::cout << "regrasp plan success" << std::endl;
                     regrasp_trajectory.setRobotTrajectoryMsg(current_state, regrasp_plan.trajectory_);
                     current_state = regrasp_trajectory.getLastWayPoint();
-                    found_solution = true;
                     // set the solution in the action sequence
                     action_sequence.setSolutionForActionTaskAt(i, regrasp_plan.trajectory_);
                 }
@@ -1052,12 +1064,12 @@ int main(int argc, char** argv)
 
                 current_state = total_trajectory.getLastWayPoint();
 
-                // 8. remove the object from the planning scene
+                // 8. remove the object and the table from the planning scene
                 collision_object_target.operation = collision_object_target.REMOVE;
                 planning_scene_interface.applyCollisionObject(collision_object_target);
+                collision_object_table.operation = collision_object_table.REMOVE;
+                planning_scene_interface.applyCollisionObject(collision_object_table);
             }
-            if(not found_solution) // debug break
-                break;
         }
         // check current action sequence
         bool solution_is_good = true;
@@ -1065,7 +1077,7 @@ int main(int argc, char** argv)
         for(int i = 0; i < action_sequence.getActionSize(); i++)
         {
             if(action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points.size() == 0)
-            {
+            { // there is no solution in this action of the solution sequence
                 solution_is_good = false;
                 break;
             }

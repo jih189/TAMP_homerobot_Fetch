@@ -31,6 +31,7 @@ class ActionSequence
         cartesian_motions.clear();
         previous_node_ids.clear();
         next_node_ids.clear();
+        has_solutions.clear();
     }
 
     void addActionTask(const std::vector<float> &start_joint_values,
@@ -40,7 +41,8 @@ class ActionSequence
                        bool is_in_manipulation_manifold,
                        const moveit_msgs::RobotTrajectory &cartesian_motion, 
                        int previous_node_id, 
-                       int next_node_id)
+                       int next_node_id, 
+                       bool has_solution)
     {
         MotionTask motion_task;
         for(int i = 0; i < start_joint_values.size(); i++)
@@ -58,6 +60,7 @@ class ActionSequence
 
         previous_node_ids.push_back(previous_node_id);
         next_node_ids.push_back(next_node_id);
+        has_solutions.push_back(has_solution);
     }
 
     long unsigned int getActionSize() const
@@ -72,6 +75,7 @@ class ActionSequence
 
     void setSolutionForActionTaskAt(int task_index, const moveit_msgs::RobotTrajectory &solution_motion){
         motion_tasks[task_index].solution_trajectory = solution_motion;
+        setHasSolutionAt(task_index, true);
     }
 
     moveit_msgs::RobotTrajectory getCartesianMotionAt(long unsigned int task_index){
@@ -88,12 +92,23 @@ class ActionSequence
         return next_node_ids[task_index];
     }
 
+    bool hasSolutionAt(long unsigned int task_index) const
+    {
+        return has_solutions[task_index];
+    }
+
+    void setHasSolutionAt(long unsigned int task_index, bool has_solution)
+    {
+        has_solutions[task_index] = has_solution;
+    }
+
     private:
 
     std::vector<MotionTask> motion_tasks;
     std::vector<moveit_msgs::RobotTrajectory> cartesian_motions;
     std::vector<int> previous_node_ids;
     std::vector<int> next_node_ids;
+    std::vector<bool> has_solutions;
 };
 
 class TaskPlanner
@@ -115,10 +130,12 @@ class TaskPlanner
         ActionState out_state;
         float reward;
         bool isBetweenFoliations;
-        moveit_msgs::RobotTrajectory motion_trajectory;
+        moveit_msgs::RobotTrajectory motion_trajectory; // the cartesian motion trajectory between two states
         std::vector<long unsigned int> next_action_node_ids;
         std::vector<float> next_action_success_probabilities;
         long unsigned int policy;
+        std::vector<moveit_msgs::RobotTrajectory> solution_trajectories;
+        std::vector<bool> has_solution;
     };
     
     public:

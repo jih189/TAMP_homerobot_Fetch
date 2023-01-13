@@ -223,7 +223,8 @@ bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector
                                  action_nodes[current_action_node_id].in_state.is_in_manipulation_manifold,
                                  action_nodes[current_action_node_id].motion_trajectory,
                                  -1,
-                                 current_action_node_id);
+                                 current_action_node_id,
+                                 false);
 
     // generate the action sequence
     int policy = action_nodes[current_action_node_id].policy;
@@ -231,7 +232,6 @@ bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector
     {
         int last_action_node_id = current_action_node_id;
         current_action_node_id = action_nodes[current_action_node_id].next_action_node_ids[policy];
-        policy = action_nodes[current_action_node_id].policy;
 
         action_sequence.addActionTask(action_nodes[last_action_node_id].out_state.joint_values, 
                                      action_nodes[current_action_node_id].in_state.joint_values, 
@@ -240,7 +240,17 @@ bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector
                                      action_nodes[current_action_node_id].in_state.is_in_manipulation_manifold,
                                      action_nodes[current_action_node_id].motion_trajectory,
                                      last_action_node_id,
-                                     current_action_node_id);
+                                     current_action_node_id, 
+                                     false);
+
+        // if solution exists in this step, then reuse this solution.
+        if(action_nodes[last_action_node_id].has_solution[policy])
+        {
+            int current_index = action_sequence.getActionSize() - 1;
+            action_sequence.setSolutionForActionTaskAt(current_index, action_nodes[last_action_node_id].solution_trajectories[policy]);
+        }
+
+        policy = action_nodes[current_action_node_id].policy;
     }
     return true;
 }
@@ -249,14 +259,16 @@ void TaskPlanner::updateTaskPlanner(const ActionSequence &action_sequence)
 {
     for(int i = 0; i < action_sequence.getActionSize(); i++)
     {
+        // skip the initial grasping motion.
         if(action_sequence.getPreviousIdAt(i) == -1)
             continue;
-
-        if(action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points.size() == 0)
+        
+        // get the two end nodes of the current edge in task graph.
+        int previous_node_id = action_sequence.getPreviousIdAt(i);
+        int next_node_id = action_sequence.getNextIdAt(i);
+        if(not action_sequence.hasSolutionAt(i)) // this is no solution in this step.
         {
             // update the success rate of current edge in task graph.
-            int previous_node_id = action_sequence.getPreviousIdAt(i);
-            int next_node_id = action_sequence.getNextIdAt(i);
             std::vector<long unsigned int>::iterator itr = std::find(action_nodes[previous_node_id].next_action_node_ids.begin(), action_nodes[previous_node_id].next_action_node_ids.end(), next_node_id);
             int policyIndexForNextNode = std::distance(action_nodes[previous_node_id].next_action_node_ids.begin(), itr);
             action_nodes[previous_node_id].next_action_success_probabilities[policyIndexForNextNode] *= 0.7;
@@ -266,24 +278,41 @@ void TaskPlanner::updateTaskPlanner(const ActionSequence &action_sequence)
             policyIndexForNextNode = std::distance(action_nodes[next_node_id].next_action_node_ids.begin(), itr);
             action_nodes[next_node_id].next_action_success_probabilities[policyIndexForNextNode] *= 0.7;
 
+            // need to update the success rate of similar edges in task graph.
+            //TODO
+
             // only update the first failure task.
             break;
         }
         else{
-
-            int previous_node_id = action_sequence.getPreviousIdAt(i);
-            int next_node_id = action_sequence.getNextIdAt(i);
+            // set the current edge in task graph has solution.
             std::vector<long unsigned int>::iterator itr = std::find(action_nodes[previous_node_id].next_action_node_ids.begin(), action_nodes[previous_node_id].next_action_node_ids.end(), next_node_id);
             int policyIndexForNextNode = std::distance(action_nodes[previous_node_id].next_action_node_ids.begin(), itr);
-            action_nodes[previous_node_id].next_action_success_probabilities[policyIndexForNextNode] = 1.0;
+            
+            // if current edge in task graph has solution then skip
+            if(action_nodes[previous_node_id].has_solution[policyIndexForNextNode])
+                continue;
 
+            action_nodes[previous_node_id].has_solution[policyIndexForNextNode] = true;
+            action_nodes[previous_node_id].next_action_success_probabilities[policyIndexForNextNode] = 1.0;
+            action_nodes[previous_node_id].solution_trajectories[policyIndexForNextNode] = action_sequence.getActionTaskAt(i).solution_trajectory;
+            
             // update the success rate in opposte edge too
             itr = std::find(action_nodes[next_node_id].next_action_node_ids.begin(), action_nodes[next_node_id].next_action_node_ids.end(), previous_node_id);
             policyIndexForNextNode = std::distance(action_nodes[next_node_id].next_action_node_ids.begin(), itr);
+            
+            action_nodes[next_node_id].has_solution[policyIndexForNextNode] = true;
             action_nodes[next_node_id].next_action_success_probabilities[policyIndexForNextNode] = 1.0;
-            // if current edge in task graph has solution then skip
-
-            // if current edge is task graph has not solution, then set the solution here.
+            action_nodes[next_node_id].solution_trajectories[policyIndexForNextNode] = action_sequence.getActionTaskAt(i).solution_trajectory;
+            
+            // need to reverse the trajectory
+            for(int p = 0; p < action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points.size(); p++)
+            {
+                for(int j = 0; j < action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points[p].positions.size(); j++)
+                {
+                    action_nodes[next_node_id].solution_trajectories[policyIndexForNextNode].joint_trajectory.points[p].positions[j] = action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points[action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points.size() - 1 - p].positions[j];
+                }
+            }            
         }
     }
 }
@@ -302,6 +331,8 @@ void TaskPlanner::constructMDPGraph()
                 {
                     action_nodes[i].next_action_node_ids.push_back(possible_action_node_id);
                     action_nodes[i].next_action_success_probabilities.push_back(0.5);
+                    action_nodes[i].solution_trajectories.push_back(moveit_msgs::RobotTrajectory());
+                    action_nodes[i].has_solution.push_back(false);
                 }
             }
         } 
@@ -318,12 +349,16 @@ void TaskPlanner::constructMDPGraph()
                     {
                         action_nodes[i].next_action_node_ids.push_back(possible_action_node_id);
                         action_nodes[i].next_action_success_probabilities.push_back(0.5);
+                        action_nodes[i].solution_trajectories.push_back(moveit_msgs::RobotTrajectory());
+                        action_nodes[i].has_solution.push_back(false);
                     }
                 }
                 else if(action_nodes[possible_action_node_id].configuration_id != action_nodes[i].configuration_id)
                 {
                     action_nodes[i].next_action_node_ids.push_back(possible_action_node_id);
                     action_nodes[i].next_action_success_probabilities.push_back(0.5);
+                    action_nodes[i].solution_trajectories.push_back(moveit_msgs::RobotTrajectory());
+                    action_nodes[i].has_solution.push_back(false);
                 }
             }
         }
@@ -333,6 +368,8 @@ void TaskPlanner::constructMDPGraph()
             {
                 action_nodes[i].next_action_node_ids.push_back(possible_action_node_id);
                 action_nodes[i].next_action_success_probabilities.push_back(0.5);
+                action_nodes[i].solution_trajectories.push_back(moveit_msgs::RobotTrajectory());
+                action_nodes[i].has_solution.push_back(false);
             }
         }
         // if current action node has no next action node, then its policy will be always -1.
