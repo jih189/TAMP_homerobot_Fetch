@@ -931,7 +931,7 @@ int main(int argc, char** argv)
                 tf::transformTFToEigen(actual_grasp_transforms[m.manifold_id].inverse(), current_in_hand_pose);
 
                 // 1. attach the object to the end effector in the planning scene.
-                // current_state.attachBody("target_object", current_in_hand_pose, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link"}, "wrist_roll_link");
+                current_state.attachBody("target_object", current_in_hand_pose, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link"}, "wrist_roll_link");
                 
                 // 2. set the proper planner in the move group
                 move_group.setActionWithId("slide", m.manifold_id);
@@ -988,6 +988,7 @@ int main(int argc, char** argv)
                 current_state = total_trajectory.getLastWayPoint();
 
                 // 8. detach the object from the end effector in the planning scene.
+                current_state.clearAttachedBody("target_object");
             }
             else
             {
