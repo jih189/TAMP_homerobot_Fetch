@@ -4,10 +4,12 @@
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_trajectory/robot_trajectory.h>
+#include <moveit/robot_state/conversions.h>
 
 #include <moveit_visual_tools/moveit_visual_tools.h>
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/DisplayTrajectory.h>
+#include <moveit_msgs/GetStateValidity.h>
 
 #include <trac_ik/trac_ik.hpp>
 #include <kdl/chainiksolverpos_nr_jl.hpp>
@@ -95,6 +97,10 @@ int main(int argc, char** argv)
     robot_model_loader::RobotModelLoaderConstPtr robot_model_loader = std::make_shared<robot_model_loader::RobotModelLoader>("robot_description");
     // get the robot kinematic model
     robot_model::RobotModelConstPtr kinematic_model = robot_model_loader->getModel();
+
+    // init the state validity checker for the robot
+    ros::ServiceClient validity_client =  node_handle.serviceClient<moveit_msgs::GetStateValidity>("/check_state_validity");
+    validity_client.waitForExistence();
 
     // visualize the grasp poses over the current object
     ros::ServiceClient client = node_handle.serviceClient<manipulation_test::VisualizeGrasp>("visualize_grasp");
@@ -502,13 +508,34 @@ int main(int argc, char** argv)
                     // check whether this arm configuration can be used to lift the object.
                     setRobotState(currentState, random_joint_array, joint_names);
 
-                    move_group.setStartState(currentState);
-                    moveit_msgs::RobotTrajectory approach_trajectory_msg;
+                    // check whether the start state is valid.
+                    moveit_msgs::GetStateValidity::Request validity_request;
+                    moveit_msgs::GetStateValidity::Response validity_response;
+                    robot_state::robotStateToRobotStateMsg(currentState, validity_request.robot_state);
+                    validity_request.group_name = PLANNING_GROUP;
 
-                    double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.005, 5.0, approach_trajectory_msg, false);
+                    validity_client.call(validity_request, validity_response);
+                    if (validity_response.valid)
+                    {
+                        // check the cartesian path
+                        move_group.setStartState(currentState);
+                        moveit_msgs::RobotTrajectory approach_trajectory_msg;
 
-                    if(fraction >= 0.95)
-                        current_lifting_motions.push_back(approach_trajectory_msg);
+                        double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.005, 5.0, approach_trajectory_msg, false);
+    
+                        if(fraction >= 0.95)
+                        {
+                            // check the validity of the end point of the path
+                            robot_state::RobotState end_state = currentState;
+                            end_state.setVariablePositions(joint_names, approach_trajectory_msg.joint_trajectory.points.back().positions);
+                            robot_state::robotStateToRobotStateMsg(end_state, validity_request.robot_state);
+
+                            validity_client.call(validity_request, validity_response);
+                            if (validity_response.valid)
+                                current_lifting_motions.push_back(approach_trajectory_msg);
+                        }
+                    }
+                        
                     move_group.clearPoseTargets();
                 }
 
@@ -565,13 +592,33 @@ int main(int argc, char** argv)
                 // check whether this arm configuration can be used to lift the object.
                 setRobotState(currentState, random_joint_array, joint_names);
 
-                move_group.setStartState(currentState);
-                moveit_msgs::RobotTrajectory approach_trajectory_msg;
+                // check whether the start state is valid.
+                moveit_msgs::GetStateValidity::Request validity_request;
+                moveit_msgs::GetStateValidity::Response validity_response;
+                robot_state::robotStateToRobotStateMsg(currentState, validity_request.robot_state);
+                validity_request.group_name = PLANNING_GROUP;
 
-                double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.005, 5.0, approach_trajectory_msg, false);
+                validity_client.call(validity_request, validity_response);
+                if (validity_response.valid)
+                {
+                    // check the cartesian path
+                    move_group.setStartState(currentState);
+                    moveit_msgs::RobotTrajectory approach_trajectory_msg;
 
-                if(fraction >= 0.95)
-                    current_lifting_motions.push_back(approach_trajectory_msg);
+                    double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.005, 5.0, approach_trajectory_msg, false);
+
+                    if(fraction >= 0.95)
+                    {
+                        // check the validity of the end point of the path
+                        robot_state::RobotState end_state = currentState;
+                        end_state.setVariablePositions(joint_names, approach_trajectory_msg.joint_trajectory.points.back().positions);
+                        robot_state::robotStateToRobotStateMsg(end_state, validity_request.robot_state);
+
+                        validity_client.call(validity_request, validity_response);
+                        if (validity_response.valid)
+                            current_lifting_motions.push_back(approach_trajectory_msg);
+                    }
+                }
                 move_group.clearPoseTargets();
             }
 
@@ -872,7 +919,7 @@ int main(int argc, char** argv)
     // init the final robot trajectory for visualization later.
     robot_trajectory::RobotTrajectory total_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);    
 
-    for(int planning_verify_number = 0; planning_verify_number < 5; planning_verify_number++)
+    for(int planning_verify_number = 0; planning_verify_number < 30; planning_verify_number++)
     {
         // run policy interation for the task.
         task_planner.policyIteration();
