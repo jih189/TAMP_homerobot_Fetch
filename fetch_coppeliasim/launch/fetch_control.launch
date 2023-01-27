@@ -33,6 +33,14 @@
       <remap from="image_rect"  to="/head_camera/rgb/image_rect" />
     </node>
 
+    <!-- need to rectify the seg image -->
+    <node pkg="nodelet" type="nodelet" name="rectify_seg" args="load image_proc/rectify standalone_nodelet --no-bond"
+          respawn="true">
+      <remap from="image_mono"  to="/head_camera/seg/image_raw" />
+      <remap from="camera_info" to="/head_camera/seg/camera_info" />
+      <remap from="image_rect"  to="/head_camera/seg/image_rect" />
+    </node>
+
     <!-- need to rectify the depth image -->
     <node pkg="nodelet" type="nodelet" name="rectify_depth" args="load image_proc/rectify standalone_nodelet --no-bond"
           respawn="true">
@@ -60,6 +68,23 @@
 
     </node>
 
+    <!-- Convert to segmented point cloud -->
+    <node pkg="nodelet" type="nodelet" name="depth_image_proc_seg" args="load depth_image_proc/point_cloud_xyzrgb standalone_nodelet" output="screen">
+
+        <!-- Input: Camera calibration and metadata.  (sensor_msgs/CameraInfo) -->
+        <remap from="rgb/camera_info" to="/head_camera/seg/camera_info"/>
+
+        <!-- Input: Rectified color image. (sensor_msgs/Image) -->
+	<remap from="rgb/image_rect_color" to="/head_camera/seg/image_rect_color"/>
+
+        <!-- Input: Rectified depth image, registered to the RGB camera. (sensor_msgs/Image) -->
+        <remap from="depth_registered/image_rect" to="/head_camera/depth/image_rect"/>
+
+        <!-- Output: XYZ point cloud. If using PCL, subscribe as PointCloud<PointXYZ>.  (sensor_msgs/PointCloud2)  -->
+        <remap from="depth_registered/points" to="/head_camera/depth_seg/points"/>
+
+    </node>
+
     <include file="$(find rail_segmentation)/launch/searchtable.launch"/>
 
     <!-- diff drive remapper -->
@@ -67,4 +92,8 @@
     
     <!-- object mover -->
     <node pkg="fetch_coppeliasim" name="object_mover" type="objectMover.py" output="screen" />
+
+    <!-- fake object segmentation -->
+    <node pkg="fetch_coppeliasim" name="object_segmentation" type="fake_object_segmentation.py" output="screen" />
+
 </launch>

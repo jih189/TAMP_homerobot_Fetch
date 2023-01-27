@@ -227,6 +227,37 @@ int main(int argc, char** argv)
     int grasped_object_id = std::stoi(grasped_object_id_str);
     is_target[grasped_object_id] = true;
 
+    // need to analyze which obstacle should be moved away before grasping the targect object.
+    int last_front_obstacle_id = grasped_object_id;
+    int front_obstacle_id = last_front_obstacle_id;
+    
+    do{
+        front_obstacle_id = last_front_obstacle_id;
+        float cx = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.pose.pose.position.x;
+        float cy = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.pose.pose.position.y;
+        float c_norm = sqrt(cx*cx + cy*cy);
+        float c_size = (obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x + obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y ) / 4.0;
+        for(int i = 0; i < obstacle_srv.response.segmented_objects.objects.size(); i++)
+        {
+            if(i == front_obstacle_id)
+                continue;
+            float ox = obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.position.x;
+            float oy = obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.position.y;
+            float o_norm = sqrt(ox*ox + oy*oy);
+
+            float distancetoline = o_norm * sqrt(1.0 - pow((cx * ox + cy * oy) / (o_norm * c_norm),2));
+            if(c_norm > o_norm && distancetoline < c_size)
+            {
+                last_front_obstacle_id = i;
+                continue;
+            }
+        }
+    }while(front_obstacle_id != last_front_obstacle_id);
+
+    std::cout << "the object should be grasped now is: " << front_obstacle_id << std::endl;
+
+    return 0; // todo
+
     // initialize the collision environment
     
     using CollisionGeometryPtr_t = std::shared_ptr<fcl::CollisionGeometryf>;

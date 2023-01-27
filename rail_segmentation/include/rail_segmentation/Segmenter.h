@@ -97,9 +97,9 @@ public:
     /*! The cluster tolerance level. */
     static constexpr double CLUSTER_TOLERANCE = 0.02;
     /*! The color tolerance level, only for RGB segmentation */
-    static constexpr double POINT_COLOR_THRESHOLD = 10;
+    static constexpr double POINT_COLOR_THRESHOLD = 1;
     /*! The region color tolerance, only for small region merging in RGB segmentation */
-    static constexpr double REGION_COLOR_THRESHOLD = 10;
+    static constexpr double REGION_COLOR_THRESHOLD = 1;
     /*! Leaf size of the voxel grid for downsampling. */
     static constexpr float DOWNSAMPLE_LEAF_SIZE = 0.01;
     /*! Size of the marker visualization scale factor. */
@@ -122,9 +122,9 @@ public:
   /*! The cluster tolerance level. */
   static const double CLUSTER_TOLERANCE = 0.02;
   /*! The color tolerance level, only for RGB segmentation */
-  static const double POINT_COLOR_THRESHOLD = 10;
+  static const double POINT_COLOR_THRESHOLD = 1;
   /*! The region color tolerance, only for small region merging in RGB segmentation */
-  static const double REGION_COLOR_THRESHOLD = 10;
+  static const double REGION_COLOR_THRESHOLD = 1;
   /*! Leaf size of the voxel grid for downsampling. */
   static const float DOWNSAMPLE_LEAF_SIZE = 0.01;
   /*! Size of the marker visualization scale factor. */
