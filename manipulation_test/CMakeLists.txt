@@ -31,6 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   rail_segmentation
   rail_manipulation_msgs
+  ros_tensorflow_msgs
 )
 
 ## System dependencies are found with CMake's conventions

@@ -75,6 +75,7 @@
   <build_depend>message_generation</build_depend>
   <build_depend>rail_segmentation</build_depend>
   <build_depend>rail_manipulation_msgs</build_depend>
+  <build_depend>ros_tensorflow_msgs</build_depend>
   <build_depend>fcl</build_depend>
 
   <build_export_depend>roscpp</build_export_depend>
@@ -105,6 +106,7 @@
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>rail_segmentation</exec_depend>
   <exec_depend>rail_manipulation_msgs</exec_depend>
+  <exec_depend>ros_tensorflow_msgs</exec_depend>
   <exec_depend>fcl</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->

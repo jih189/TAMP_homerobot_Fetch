@@ -24,6 +24,8 @@
 #include <rail_segmentation/SearchTable.h>
 #include <rail_manipulation_msgs/SegmentObjects.h>
 
+#include <ros_tensorflow_msgs/Predict.h>
+
 #include <fcl/narrowphase/collision_object.h>
 #include <fcl/geometry/shape/box.h>
 #include <fcl/narrowphase/collision.h>
@@ -35,6 +37,8 @@
 #include <pcl_ros/transforms.h>
 
 #include "manipulation_test/task_planner.hpp"
+
+#include <cmath>
 
 bool is_number(const std::string& s)
 {
@@ -76,6 +80,33 @@ void setRobotState(moveit::core::RobotState &currentState, KDL::JntArray &random
     }
 }
 
+bool lift_torque_test(tf::Vector3 object_mass_center, float object_mass, tf::Stamped<tf::Transform> grasp_pose)
+{
+    float grasping_force = 3.5;
+    float friction_coefficient = 0.01;
+    float pi_constant = 3.141592653589793238462643383279502884197169399375;
+
+    tf::Matrix3x3 grasp_rotation = grasp_pose.getBasis();
+    tf::Vector3 y_grasp_axis = grasp_rotation.getColumn(1);
+    tf::Vector3 gravity_axis(0.0,0.0,-1.0);
+    float angle_between_grasping_axis_and_gravity_axis = y_grasp_axis.angle(gravity_axis);
+    angle_between_grasping_axis_and_gravity_axis = std::min(angle_between_grasping_axis_and_gravity_axis, pi_constant - angle_between_grasping_axis_and_gravity_axis);
+    if( angle_between_grasping_axis_and_gravity_axis == 0.0) // when the grasping axis is parallel to the gravity axis, then the torque is zero.
+        return true;
+
+    tf::Vector3 horizotal_line = tf::Vector3(y_grasp_axis.x(), y_grasp_axis.y(), 0.0).cross(tf::Vector3(0.0,0.0,1.0));
+
+    tf::Vector3 grasping_center_point = grasp_pose * tf::Vector3(0.17,0.0,0.0);
+    tf::Vector3 grasping_point_in_line = object_mass_center - grasping_center_point;
+    float horizontal_distance = std::abs(grasping_point_in_line.dot(horizotal_line)/horizotal_line.length());
+
+    if(object_mass * horizontal_distance * std::sin(angle_between_grasping_axis_and_gravity_axis) <= 
+                (object_mass * 9.8 * std::cos(angle_between_grasping_axis_and_gravity_axis) + grasping_force) * friction_coefficient)
+        return true;
+    else
+        return false;
+}
+
 int main(int argc, char** argv)
 {
     static const std::string OBJECT_NAME = "hammer";
@@ -85,22 +116,22 @@ int main(int argc, char** argv)
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
-    // initialize the moveit interfaces
-    static const std::string PLANNING_GROUP = "arm";
-    static const std::string END_EFFECTOR_PLANNING_GROUP = "gripper";
-    moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
-    moveit::planning_interface::MoveGroupInterface end_effector_move_group(END_EFFECTOR_PLANNING_GROUP);
+    // // initialize the moveit interfaces
+    // static const std::string PLANNING_GROUP = "arm";
+    // static const std::string END_EFFECTOR_PLANNING_GROUP = "gripper";
+    // moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
+    // moveit::planning_interface::MoveGroupInterface end_effector_move_group(END_EFFECTOR_PLANNING_GROUP);
 
-    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-    const robot_state::JointModelGroup* joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
+    // moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+    // const robot_state::JointModelGroup* joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
 
-    robot_model_loader::RobotModelLoaderConstPtr robot_model_loader = std::make_shared<robot_model_loader::RobotModelLoader>("robot_description");
-    // get the robot kinematic model
-    robot_model::RobotModelConstPtr kinematic_model = robot_model_loader->getModel();
+    // robot_model_loader::RobotModelLoaderConstPtr robot_model_loader = std::make_shared<robot_model_loader::RobotModelLoader>("robot_description");
+    // // get the robot kinematic model
+    // robot_model::RobotModelConstPtr kinematic_model = robot_model_loader->getModel();
 
     // init the state validity checker for the robot
-    ros::ServiceClient validity_client =  node_handle.serviceClient<moveit_msgs::GetStateValidity>("/check_state_validity");
-    validity_client.waitForExistence();
+    // ros::ServiceClient validity_client =  node_handle.serviceClient<moveit_msgs::GetStateValidity>("/check_state_validity");
+    // validity_client.waitForExistence();
 
     // visualize the grasp poses over the current object
     ros::ServiceClient client = node_handle.serviceClient<manipulation_test::VisualizeGrasp>("visualize_grasp");
@@ -256,10 +287,110 @@ int main(int argc, char** argv)
 
     std::cout << "the object should be grasped now is: " << front_obstacle_id << std::endl;
 
-    return 0; // todo
+    // we need to extract the grasped object point cloud with full point cloud
+    // init client for grasp prediction.
+    ros::ServiceClient grasp_prediction_client = node_handle.serviceClient<ros_tensorflow_msgs::Predict>("grasp_predict");
+    grasp_prediction_client.waitForExistence();
+
+    // need to get the camera pose as well.
+    tf::TransformListener listener;
+    tf::StampedTransform camera_transform;
+    geometry_msgs::TransformStamped camera_stamped_transform;
+    try{
+        ros::Time now = ros::Time::now();
+        listener.waitForTransform("/base_link", "/head_camera_rgb_optical_frame", ros::Time(0), ros::Duration(1.0));
+        listener.lookupTransform("/base_link","/head_camera_rgb_optical_frame", ros::Time(0), camera_transform);
+        tf::transformStampedTFToMsg(camera_transform, camera_stamped_transform);
+    }
+    catch(tf::TransformException ex){
+        ROS_ERROR("%s", ex.what());
+        ros::Duration(1.0).sleep();
+    }
+
+
+    ros_tensorflow_msgs::Predict grasp_prediction_srv;
+
+    grasp_prediction_srv.request.full_point_cloud = table_srv.response.full_point_cloud;
+    grasp_prediction_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
+    grasp_prediction_srv.request.camera_stamped_transform = camera_stamped_transform;
+
+    if (not grasp_prediction_client.call(grasp_prediction_srv))
+    {
+        ROS_ERROR("Failed to call service grasp prediction");
+        return 1;
+    }
+
+    // find the com of the object.
+    /************************************************************************************/
+    // get the target object transform
+    tf::Transform target_object_transform(tf::Quaternion(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.x, 
+                                                        obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.y, 
+                                                        obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.z, 
+                                                        obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.w), 
+                                          tf::Vector3(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.x, 
+                                                      obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.y, 
+                                                      obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.z));
+
+    tf::Vector3 target_com;
+    // get object pose from tf
+    std::vector<std::string> object_names = {"can", "book", "bottle", "hammer"};
+    for(std::string ob: object_names)
+    {   
+        try{
+            tf::StampedTransform object_transform_temp;
+            ros::Time now = ros::Time::now();
+            listener.waitForTransform("/base_link", "/" + ob, ros::Time(0), ros::Duration(1.0));
+            listener.lookupTransform("/base_link", "/" + ob, ros::Time(0), object_transform_temp);
+
+            tf::Vector3 distanceToCom = target_object_transform.inverse() * object_transform_temp.getOrigin();
+
+            if(distanceToCom.x() < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x &&
+               distanceToCom.y() < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y &&
+               distanceToCom.z() < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z)
+            {
+                std::cout << "the target object is: " << ob << std::endl;
+                target_com.setX(object_transform_temp.getOrigin().x());
+                target_com.setY(object_transform_temp.getOrigin().y());
+                target_com.setZ(object_transform_temp.getOrigin().z());
+                break;
+            }
+        }
+        catch(tf::TransformException ex){
+            ROS_ERROR("%s", ex.what());
+            ros::Duration(1.0).sleep();
+        }
+    }
+
+    /************************************************************************************/
+
+    // show the grasp prediction result
+    ros::ServiceClient regrasp_poses_visualizer = node_handle.serviceClient<manipulation_test::VisualizeRegrasp>("visualize_regrasp");
+    regrasp_poses_visualizer.waitForExistence();
+
+    manipulation_test::VisualizeRegrasp regrasp_poses_visualize_srv;
+    for(int i = 0; i < grasp_prediction_srv.response.predicted_grasp_poses.size(); i++){
+        if(grasp_prediction_srv.response.scores[i] < 0.5)
+            continue;
+        regrasp_poses_visualize_srv.request.grasp_poses.push_back(grasp_prediction_srv.response.predicted_grasp_poses[i]);
+        regrasp_poses_visualize_srv.request.grasp_jawwidths.push_back(0.08);
+        tf::Stamped<tf::Transform> predicted_grasp_transform;
+        tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
+        if(lift_torque_test(target_com, 1.0, predicted_grasp_transform))
+            regrasp_poses_visualize_srv.request.grasp_types.push_back(0);
+        else
+            regrasp_poses_visualize_srv.request.grasp_types.push_back(1);
+    }
+    if (!regrasp_poses_visualizer.call(regrasp_poses_visualize_srv))
+    {
+        ROS_ERROR("Failed to call service visualize_regrasp");
+        return 1;
+    }
+
+    return 0;
+}
+    /*
 
     // initialize the collision environment
-    
     using CollisionGeometryPtr_t = std::shared_ptr<fcl::CollisionGeometryf>;
     using CollisionObjectPtr_t = std::shared_ptr<fcl::CollisionObjectf>;
     std::vector<CollisionObjectPtr_t> collision_objects;
@@ -345,15 +476,6 @@ int main(int argc, char** argv)
     tf::Transform table_transform(tf::Quaternion(table_srv.response.orientation.x, table_srv.response.orientation.y, table_srv.response.orientation.z, table_srv.response.orientation.w), 
                                   tf::Vector3(table_srv.response.center.x, table_srv.response.center.y, table_srv.response.center.z));
 
-    // get the target object transform
-    tf::Transform target_object_transform(tf::Quaternion(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.x, 
-                                                        obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.y, 
-                                                        obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.z, 
-                                                        obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.w), 
-                                          tf::Vector3(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.x, 
-                                                      obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.y, 
-                                                      obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.z));
-
 
     std::vector<tf::Transform> actual_grasp_transforms;
     for(int i = 0; i < srv.response.actual_grasp_poses.size(); i++)
@@ -429,7 +551,6 @@ int main(int argc, char** argv)
     // based on the above information, we use them to initialize the task planner.
 
     // need to get the should transform for ik solver
-    tf::TransformListener listener;
     tf::StampedTransform torso_transform;
     try{
         ros::Time now = ros::Time::now();
@@ -1179,4 +1300,5 @@ int main(int argc, char** argv)
     trajectory_visuals->publishTrajectoryPath(total_trajectory);
 
     return 0;
-}
+    }
+    */
