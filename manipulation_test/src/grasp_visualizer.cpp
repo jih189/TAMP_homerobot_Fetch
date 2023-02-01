@@ -202,26 +202,26 @@ class GraspVisualizer
     {
       visual_tools_->deleteAllMarkers();
 
-      if(not has_init)
-        return;
-      tf::StampedTransform object_transform;
-      try{
-        ros::Time now = ros::Time::now();
-        listener.waitForTransform("/" + OBJECT_NAME, "/base_link", now, ros::Duration(1.0));
-        listener.lookupTransform("/base_link","/" + OBJECT_NAME, now, object_transform);
-      }
-      catch(tf::TransformException ex){
-        ROS_ERROR("%s", ex.what());
-        ros::Duration(1.0).sleep();
-      }
+      // if(not has_init)
+      //   return;
+      // tf::StampedTransform object_transform;
+      // try{
+      //   ros::Time now = ros::Time::now();
+      //   listener.waitForTransform("/" + OBJECT_NAME, "/base_link", now, ros::Duration(1.0));
+      //   listener.lookupTransform("/base_link","/" + OBJECT_NAME, now, object_transform);
+      // }
+      // catch(tf::TransformException ex){
+      //   ROS_ERROR("%s", ex.what());
+      //   ros::Duration(1.0).sleep();
+      // }
 
-      visualizeObject(object_transform);
+      // visualizeObject(object_transform);
 
-      for(int i = 0; i < grasp_data_list.size(); i++)
-      {
-        tf::Transform gripper_transform = object_transform * grasp_data_list[i].grasp_transform;
-        visualizeGrasp(gripper_transform, grasp_data_list[i].gripper_width, grasp_data_list[i].grasp_type == 0 ? rviz_visual_tools::GREEN : rviz_visual_tools::RED);
-      }
+      // for(int i = 0; i < grasp_data_list.size(); i++)
+      // {
+      //   tf::Transform gripper_transform = object_transform * grasp_data_list[i].grasp_transform;
+      //   visualizeGrasp(gripper_transform, grasp_data_list[i].gripper_width, grasp_data_list[i].grasp_type == 0 ? rviz_visual_tools::GREEN : rviz_visual_tools::RED);
+      // }
 
       for(int i = 0; i < regrasp_data_list.size(); i++)
       {

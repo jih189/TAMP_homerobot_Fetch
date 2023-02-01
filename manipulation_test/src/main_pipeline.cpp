@@ -133,49 +133,8 @@ int main(int argc, char** argv)
     // ros::ServiceClient validity_client =  node_handle.serviceClient<moveit_msgs::GetStateValidity>("/check_state_validity");
     // validity_client.waitForExistence();
 
-    // visualize the grasp poses over the current object
-    ros::ServiceClient client = node_handle.serviceClient<manipulation_test::VisualizeGrasp>("visualize_grasp");
-    client.waitForExistence();
 
-    manipulation_test::VisualizeGrasp srv;
-    srv.request.grasped_object_name = OBJECT_NAME;
-
-    std::vector<tf::Transform> grasp_transforms(3);
-    std::vector<float> grasp_jawwidths(3);
-    std::vector<int> grasp_types(3);
-
-    grasp_transforms[0].setOrigin(tf::Vector3(0, 0, 0.2));
-    grasp_transforms[0].setRotation(tf::Quaternion(-0.5, -0.5, 0.5, -0.5));
-    grasp_jawwidths[0] = 0.08;
-    grasp_types[0] = 0; // [0: lifting, 1: sliding
-
-    grasp_transforms[1].setOrigin(tf::Vector3(0, 0.12, 0.2));
-    grasp_transforms[1].setRotation(tf::Quaternion(-0.5, -0.5, 0.5, -0.5));
-    grasp_jawwidths[1] = 0.08;
-    grasp_types[1] = 1; // [0: lifting, 1: sliding
-
-    grasp_transforms[2].setOrigin(tf::Vector3(0, 0.25, 0.2));
-    grasp_transforms[2].setRotation(tf::Quaternion(-0.5, -0.5, 0.5, -0.5));
-    grasp_jawwidths[2] = 0.08;
-    grasp_types[2] = 1; // [0: lifting, 1: sliding
-
-    for(int i = 0; i < grasp_transforms.size(); i++)
-    {
-        geometry_msgs::PoseStamped grasp_pose;
-        transformTFToGeoPose(grasp_transforms[i], grasp_pose.pose);
-
-        srv.request.grasp_poses.push_back(grasp_pose);
-        srv.request.grasp_jawwidths.push_back(grasp_jawwidths[i]);
-        srv.request.grasp_types.push_back(grasp_types[i]);
-    }
-
-    if (not client.call(srv))
-    {
-        ROS_ERROR("Failed to call service visualize_grasp");
-        return 1;
-    }
-
-    // search for the table and add it ad the obstacle in the planning scene
+    //******************************************** search for the table and add it ad the obstacle in the planning scene
     ros::ServiceClient table_client = node_handle.serviceClient<rail_segmentation::SearchTable>("table_searcher/search_table");
     table_client.waitForExistence();
 
@@ -203,7 +162,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    // search fo the obstacle on the table
+    //******************************************** search the objects on the table
     ros::ServiceClient obstacle_client = node_handle.serviceClient<rail_manipulation_msgs::SegmentObjects>("table_searcher/segment_objects");
     obstacle_client.waitForExistence();
 
@@ -217,11 +176,11 @@ int main(int argc, char** argv)
 
     if(obstacle_srv.response.segmented_objects.objects.size() == 0)
     {
-        ROS_INFO("No obstacle found on the table");
+        ROS_INFO("No object found on the table");
         return 0;
     }
 
-    // // visualize the obstacle
+    // visualize the obstacle
     ros::ServiceClient obstacle_visualizer = node_handle.serviceClient<manipulation_test::VisualizeObstacle>("visualize_obstacle");
     obstacle_visualizer.waitForExistence();
 
@@ -307,7 +266,6 @@ int main(int argc, char** argv)
         ros::Duration(1.0).sleep();
     }
 
-
     ros_tensorflow_msgs::Predict grasp_prediction_srv;
 
     grasp_prediction_srv.request.full_point_cloud = table_srv.response.full_point_cloud;
@@ -363,23 +321,85 @@ int main(int argc, char** argv)
 
     /************************************************************************************/
 
+    std::vector<tf::Transform> grasp_transforms_before_clustering;
+    std::vector<float> grasp_jawwidths_before_clustering;
+    std::vector<int> grasp_types_before_clustering;
+
+    // add the lifting grasp poses first
+    for(int i = 0; i < grasp_prediction_srv.response.predicted_grasp_poses.size(); i++){
+        if(grasp_prediction_srv.response.scores[i] < 0.5)
+            continue;
+        tf::Stamped<tf::Transform> predicted_grasp_transform;
+        tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
+        if(lift_torque_test(target_com, 1.0, predicted_grasp_transform))
+        {
+            grasp_transforms_before_clustering.push_back(target_object_transform.inverse() * predicted_grasp_transform);
+            grasp_jawwidths_before_clustering.push_back(0.08);
+            grasp_types_before_clustering.push_back(0);
+        }
+    }
+
+    // then add sliding grasp poses
+    for(int i = 0; i < grasp_prediction_srv.response.predicted_grasp_poses.size(); i++){
+        if(grasp_prediction_srv.response.scores[i] < 0.5)
+            continue;
+        tf::Stamped<tf::Transform> predicted_grasp_transform;
+        tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
+        if(!lift_torque_test(target_com, 1.0, predicted_grasp_transform))
+        {
+            grasp_transforms_before_clustering.push_back(target_object_transform.inverse() * predicted_grasp_transform);
+            grasp_jawwidths_before_clustering.push_back(0.08);
+            grasp_types_before_clustering.push_back(1);
+        }
+    }
+
+    // grasp pose clustering
+    std::vector<tf::Transform> grasp_transforms;
+    std::vector<float> grasp_jawwidths;
+    std::vector<int> grasp_types;
+
+    for(int i = 0; i < grasp_transforms_before_clustering.size(); i++){
+        bool is_clustered = false;
+        tf::Transform grasp_point_transform = grasp_transforms_before_clustering[i] * tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0.2, 0, 0));
+        for(int j = 0; j < grasp_transforms.size(); j++){
+            tf::Transform grasp_point_transform_clustered = grasp_transforms[j] * tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0.2, 0, 0));
+            if(grasp_point_transform.getRotation().angle(grasp_point_transform_clustered.getRotation()) < 0.6){
+                if(grasp_point_transform.getOrigin().distance(grasp_point_transform_clustered.getOrigin()) < 0.06){
+                    is_clustered = true;
+                    break;
+                }
+            }
+        }
+        if(!is_clustered){
+            grasp_transforms.push_back(grasp_transforms_before_clustering[i]);
+            grasp_jawwidths.push_back(grasp_jawwidths_before_clustering[i]);
+            grasp_types.push_back(grasp_types_before_clustering[i]);
+        }
+    }
+
     // show the grasp prediction result
     ros::ServiceClient regrasp_poses_visualizer = node_handle.serviceClient<manipulation_test::VisualizeRegrasp>("visualize_regrasp");
     regrasp_poses_visualizer.waitForExistence();
 
     manipulation_test::VisualizeRegrasp regrasp_poses_visualize_srv;
-    for(int i = 0; i < grasp_prediction_srv.response.predicted_grasp_poses.size(); i++){
-        if(grasp_prediction_srv.response.scores[i] < 0.5)
-            continue;
-        regrasp_poses_visualize_srv.request.grasp_poses.push_back(grasp_prediction_srv.response.predicted_grasp_poses[i]);
-        regrasp_poses_visualize_srv.request.grasp_jawwidths.push_back(0.08);
-        tf::Stamped<tf::Transform> predicted_grasp_transform;
-        tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
-        if(lift_torque_test(target_com, 1.0, predicted_grasp_transform))
-            regrasp_poses_visualize_srv.request.grasp_types.push_back(0);
-        else
-            regrasp_poses_visualize_srv.request.grasp_types.push_back(1);
+    for(int i = 0; i < grasp_transforms.size(); i++){
+        tf::Transform grasp_transform_in_world = target_object_transform * grasp_transforms[i];
+        geometry_msgs::PoseStamped grasp_pose_msg;
+        grasp_pose_msg.header.frame_id = "base_link";
+        grasp_pose_msg.pose.position.x = grasp_transform_in_world.getOrigin().x();
+        grasp_pose_msg.pose.position.y = grasp_transform_in_world.getOrigin().y();
+        grasp_pose_msg.pose.position.z = grasp_transform_in_world.getOrigin().z();
+
+        grasp_pose_msg.pose.orientation.x = grasp_transform_in_world.getRotation().x();
+        grasp_pose_msg.pose.orientation.y = grasp_transform_in_world.getRotation().y();
+        grasp_pose_msg.pose.orientation.z = grasp_transform_in_world.getRotation().z();
+        grasp_pose_msg.pose.orientation.w = grasp_transform_in_world.getRotation().w();
+
+        regrasp_poses_visualize_srv.request.grasp_poses.push_back(grasp_pose_msg);
+        regrasp_poses_visualize_srv.request.grasp_jawwidths.push_back(grasp_jawwidths[i]);
+        regrasp_poses_visualize_srv.request.grasp_types.push_back(grasp_types[i]);
     }
+
     if (!regrasp_poses_visualizer.call(regrasp_poses_visualize_srv))
     {
         ROS_ERROR("Failed to call service visualize_regrasp");
