@@ -116,23 +116,22 @@ int main(int argc, char** argv)
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
-    // // initialize the moveit interfaces
-    // static const std::string PLANNING_GROUP = "arm";
-    // static const std::string END_EFFECTOR_PLANNING_GROUP = "gripper";
-    // moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
-    // moveit::planning_interface::MoveGroupInterface end_effector_move_group(END_EFFECTOR_PLANNING_GROUP);
+    // initialize the moveit interfaces
+    static const std::string PLANNING_GROUP = "arm";
+    static const std::string END_EFFECTOR_PLANNING_GROUP = "gripper";
+    moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
+    moveit::planning_interface::MoveGroupInterface end_effector_move_group(END_EFFECTOR_PLANNING_GROUP);
 
-    // moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-    // const robot_state::JointModelGroup* joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
+    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+    const robot_state::JointModelGroup* joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
 
-    // robot_model_loader::RobotModelLoaderConstPtr robot_model_loader = std::make_shared<robot_model_loader::RobotModelLoader>("robot_description");
-    // // get the robot kinematic model
-    // robot_model::RobotModelConstPtr kinematic_model = robot_model_loader->getModel();
+    robot_model_loader::RobotModelLoaderConstPtr robot_model_loader = std::make_shared<robot_model_loader::RobotModelLoader>("robot_description");
+    // get the robot kinematic model
+    robot_model::RobotModelConstPtr kinematic_model = robot_model_loader->getModel();
 
     // init the state validity checker for the robot
-    // ros::ServiceClient validity_client =  node_handle.serviceClient<moveit_msgs::GetStateValidity>("/check_state_validity");
-    // validity_client.waitForExistence();
-
+    ros::ServiceClient validity_client =  node_handle.serviceClient<moveit_msgs::GetStateValidity>("/check_state_validity");
+    validity_client.waitForExistence();
 
     //******************************************** search for the table and add it ad the obstacle in the planning scene
     ros::ServiceClient table_client = node_handle.serviceClient<rail_segmentation::SearchTable>("table_searcher/search_table");
@@ -339,6 +338,12 @@ int main(int argc, char** argv)
         }
     }
 
+    if(grasp_transforms_before_clustering.size() == 0)
+    {
+        ROS_ERROR("No lifting grasp found");
+        return 1;
+    }
+
     // then add sliding grasp poses
     for(int i = 0; i < grasp_prediction_srv.response.predicted_grasp_poses.size(); i++){
         if(grasp_prediction_srv.response.scores[i] < 0.5)
@@ -405,10 +410,6 @@ int main(int argc, char** argv)
         ROS_ERROR("Failed to call service visualize_regrasp");
         return 1;
     }
-
-    return 0;
-}
-    /*
 
     // initialize the collision environment
     using CollisionGeometryPtr_t = std::shared_ptr<fcl::CollisionGeometryf>;
@@ -498,17 +499,18 @@ int main(int argc, char** argv)
 
 
     std::vector<tf::Transform> actual_grasp_transforms;
-    for(int i = 0; i < srv.response.actual_grasp_poses.size(); i++)
-    {
-        tf::Transform actual_grasp_transform = target_object_transform.inverse() * tf::Transform(tf::Quaternion(srv.response.actual_grasp_poses[i].pose.orientation.x, 
-                                                                                                                srv.response.actual_grasp_poses[i].pose.orientation.y, 
-                                                                                                                srv.response.actual_grasp_poses[i].pose.orientation.z, 
-                                                                                                                srv.response.actual_grasp_poses[i].pose.orientation.w), 
-                                                                                                tf::Vector3(srv.response.actual_grasp_poses[i].pose.position.x, 
-                                                                                                            srv.response.actual_grasp_poses[i].pose.position.y, 
-                                                                                                            srv.response.actual_grasp_poses[i].pose.position.z));
-        actual_grasp_transforms.push_back(actual_grasp_transform);
-    }
+    actual_grasp_transforms = grasp_transforms;
+    // for(int i = 0; i < srv.response.actual_grasp_poses.size(); i++)
+    // {
+    //     tf::Transform actual_grasp_transform = target_object_transform.inverse() * tf::Transform(tf::Quaternion(srv.response.actual_grasp_poses[i].pose.orientation.x, 
+    //                                                                                                             srv.response.actual_grasp_poses[i].pose.orientation.y, 
+    //                                                                                                             srv.response.actual_grasp_poses[i].pose.orientation.z, 
+    //                                                                                                             srv.response.actual_grasp_poses[i].pose.orientation.w), 
+    //                                                                                             tf::Vector3(srv.response.actual_grasp_poses[i].pose.position.x, 
+    //                                                                                                         srv.response.actual_grasp_poses[i].pose.position.y, 
+    //                                                                                                         srv.response.actual_grasp_poses[i].pose.position.z));
+    //     actual_grasp_transforms.push_back(actual_grasp_transform);
+    // }
 
     // get the target object transform in the table frame
     tf::Transform target_object_transform_in_table_frame = table_transform.inverse() * target_object_transform;
@@ -614,6 +616,7 @@ int main(int argc, char** argv)
     std::vector<std::vector<tf::Transform>> feasible_regrasp_transforms;
     std::vector<std::vector<int>> regrasp_ids;
     std::vector<std::vector<int>> regrasp_types;
+    std::vector<std::vector<std::vector<moveit_msgs::RobotTrajectory>>> approach_motions;
     std::vector<std::vector<std::vector<moveit_msgs::RobotTrajectory>>> lifting_motions;
 
     srand(time(0));
@@ -648,7 +651,8 @@ int main(int argc, char** argv)
         std::vector<tf::Transform> feasible_regrasp_transforms_temp;  // feasible re-grasp poses in this intermediate placement
         std::vector<int> regrasp_ids_temp; // the id of re-grasp poses in this intermediate placement
         std::vector<int> regrasp_types_temp; // the type of re-grasp poses in this intermediate placement
-        std::vector<std::vector<moveit_msgs::RobotTrajectory>> lifting_motions_temp; // the lifting motions of feasible re-grasp poses in this intermediate placement
+        std::vector<std::vector<moveit_msgs::RobotTrajectory>> approach_motions_temp; // the lifting motions of feasible re-grasp poses in this intermediate placement
+        std::vector<std::vector<moveit_msgs::RobotTrajectory>> lifting_motions_temp;
         
         // search all state in this intermediate placement
         for(int g = 0; g < actual_grasp_transforms.size(); g++)
@@ -658,10 +662,14 @@ int main(int argc, char** argv)
 
             // find pre-grasp pose and transform of current grasp pose.
             tf::Transform pre_grasp_pose_in_world_frame = intermedaite_placement_transform * actual_grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.1, 0, 0));
+            tf::Transform lift_grasp_pose_in_world_frame = tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(0, 0, 0.1)) * intermedaite_placement_transform * actual_grasp_transforms[g];
             geometry_msgs::Pose pre_grasp_pose;
+            geometry_msgs::Pose lift_grasp_pose;
             transformTFToGeoPose(pre_grasp_pose_in_world_frame, pre_grasp_pose);
+            transformTFToGeoPose(lift_grasp_pose_in_world_frame, lift_grasp_pose);
 
-            std::vector<moveit_msgs::RobotTrajectory> current_lifting_motions; // the lifting motions of current grasp pose
+            std::vector<moveit_msgs::RobotTrajectory> current_approach_motions; // the lifting motions of current grasp pose
+            std::vector<moveit_msgs::RobotTrajectory> current_lifting_motions;
             // desired end-effector pose
             KDL::Frame end_effector_pose;
             transformTFToKDL(torso_transform.inverse() * intermedaite_placement_transform * actual_grasp_transforms[g], end_effector_pose);
@@ -692,10 +700,12 @@ int main(int argc, char** argv)
                         // check the cartesian path
                         move_group.setStartState(currentState);
                         moveit_msgs::RobotTrajectory approach_trajectory_msg;
+                        moveit_msgs::RobotTrajectory lifting_trajectory_msg;
 
-                        double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.005, 5.0, approach_trajectory_msg, false);
+                        double pre_grasp_fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.005, 5.0, approach_trajectory_msg, false);
+                        double lift_grasp_fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{lift_grasp_pose}, 0.005, 5.0, lifting_trajectory_msg, false);
     
-                        if(fraction >= 0.95)
+                        if(pre_grasp_fraction >= 0.95 && lift_grasp_fraction >= 0.95)
                         {
                             // check the validity of the end point of the path
                             robot_state::RobotState end_state = currentState;
@@ -703,20 +713,34 @@ int main(int argc, char** argv)
                             robot_state::robotStateToRobotStateMsg(end_state, validity_request.robot_state);
 
                             validity_client.call(validity_request, validity_response);
-                            if (validity_response.valid)
-                                current_lifting_motions.push_back(approach_trajectory_msg);
+
+                            bool approach_valid = validity_response.valid;
+
+                            end_state.setVariablePositions(joint_names, lifting_trajectory_msg.joint_trajectory.points.back().positions);
+                            robot_state::robotStateToRobotStateMsg(end_state, validity_request.robot_state);
+
+                            validity_client.call(validity_request, validity_response);
+
+                            bool lifting_valid = validity_response.valid;
+
+                            if (approach_valid && lifting_valid)
+                            {
+                                current_lifting_motions.push_back(lifting_trajectory_msg);
+                                current_approach_motions.push_back(approach_trajectory_msg);
+                            }
                         }
                     }
                         
                     move_group.clearPoseTargets();
                 }
 
-                if(current_lifting_motions.size() > 2) // no need to find more lifting motions
+                if(current_approach_motions.size() > 2) // no need to find more lifting motions
                     break;
             }
 
-            if(current_lifting_motions.size() > 0) // has a way to lift up the object with current grasp pose 
+            if(current_approach_motions.size() > 0) // has a way to lift up the object with current grasp pose 
             {
+                approach_motions_temp.push_back(current_approach_motions);
                 lifting_motions_temp.push_back(current_lifting_motions);
                 feasible_regrasp_transforms_temp.push_back(pre_grasp_pose_in_world_frame);
                 regrasp_ids_temp.push_back(g);
@@ -729,6 +753,7 @@ int main(int argc, char** argv)
             feasible_regrasp_transforms.push_back(feasible_regrasp_transforms_temp);
             regrasp_ids.push_back(regrasp_ids_temp);
             regrasp_types.push_back(regrasp_types_temp);
+            approach_motions.push_back(approach_motions_temp);
             lifting_motions.push_back(lifting_motions_temp);
         }
     }
@@ -737,14 +762,19 @@ int main(int argc, char** argv)
     std::vector<tf::Transform> feasible_regrasp_transforms_for_init;  // feasible re-grasp poses in this intermediate placement
     std::vector<int> regrasp_ids_for_init; // the id of re-grasp poses in this intermediate placement
     std::vector<int> regrasp_types_for_init; // the type of re-grasp poses in this intermediate placement
+    std::vector<std::vector<moveit_msgs::RobotTrajectory>> approach_motions_for_init; // the lifting motions of feasible re-grasp poses in this intermediate placement
     std::vector<std::vector<moveit_msgs::RobotTrajectory>> lifting_motions_for_init; // the lifting motions of feasible re-grasp poses in this intermediate placement
 
     for(int g = 0; g < actual_grasp_transforms.size(); g++)
     {
         tf::Transform pre_grasp_pose_in_world_frame = target_object_transform * actual_grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.1, 0, 0));
+        tf::Transform lift_grasp_pose_in_world_frame = tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(0, 0, 0.1)) * target_object_transform * actual_grasp_transforms[g];
         geometry_msgs::Pose pre_grasp_pose;
+        geometry_msgs::Pose lift_grasp_pose;
         transformTFToGeoPose(pre_grasp_pose_in_world_frame, pre_grasp_pose);
+        transformTFToGeoPose(lift_grasp_pose_in_world_frame, lift_grasp_pose);
 
+        std::vector<moveit_msgs::RobotTrajectory> current_approach_motions; // the lifting motions of current grasp pose
         std::vector<moveit_msgs::RobotTrajectory> current_lifting_motions; // the lifting motions of current grasp pose
         // desired end-effector pose
         KDL::Frame end_effector_pose;
@@ -776,10 +806,12 @@ int main(int argc, char** argv)
                     // check the cartesian path
                     move_group.setStartState(currentState);
                     moveit_msgs::RobotTrajectory approach_trajectory_msg;
+                    moveit_msgs::RobotTrajectory lifting_trajectory_msg;
 
-                    double fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.005, 5.0, approach_trajectory_msg, false);
+                    double pre_grasp_fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.005, 5.0, approach_trajectory_msg, false);
+                    double lift_grasp_fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{lift_grasp_pose}, 0.005, 5.0, lifting_trajectory_msg, false);
 
-                    if(fraction >= 0.95)
+                    if(pre_grasp_fraction >= 0.95 && lift_grasp_fraction >= 0.95)
                     {
                         // check the validity of the end point of the path
                         robot_state::RobotState end_state = currentState;
@@ -787,19 +819,33 @@ int main(int argc, char** argv)
                         robot_state::robotStateToRobotStateMsg(end_state, validity_request.robot_state);
 
                         validity_client.call(validity_request, validity_response);
-                        if (validity_response.valid)
-                            current_lifting_motions.push_back(approach_trajectory_msg);
+
+                        bool approach_valid = validity_response.valid;
+
+                        end_state.setVariablePositions(joint_names, lifting_trajectory_msg.joint_trajectory.points.back().positions);
+                        robot_state::robotStateToRobotStateMsg(end_state, validity_request.robot_state);
+
+                        validity_client.call(validity_request, validity_response);
+
+                        bool lifting_valid = validity_response.valid;
+
+                        if (approach_valid && lifting_valid)
+                        {
+                            current_lifting_motions.push_back(lifting_trajectory_msg);
+                            current_approach_motions.push_back(approach_trajectory_msg);
+                        }
                     }
                 }
                 move_group.clearPoseTargets();
             }
 
-            if(current_lifting_motions.size() > 2) // no need to find more lifting motions
+            if(current_approach_motions.size() > 2) // no need to find more lifting motions
                 break;
         }
 
-        if(current_lifting_motions.size() > 0)
+        if(current_approach_motions.size() > 0)
         { // this grasp pose can be used to lift the object.
+            approach_motions_for_init.push_back(current_approach_motions);
             lifting_motions_for_init.push_back(current_lifting_motions);
             feasible_regrasp_transforms_for_init.push_back(pre_grasp_pose_in_world_frame);
             regrasp_ids_for_init.push_back(g);
@@ -813,6 +859,7 @@ int main(int argc, char** argv)
         feasible_regrasp_transforms.push_back(feasible_regrasp_transforms_for_init);
         regrasp_ids.push_back(regrasp_ids_for_init);
         regrasp_types.push_back(regrasp_types_for_init);
+        approach_motions.push_back(approach_motions_for_init);
         lifting_motions.push_back(lifting_motions_for_init);
     }
     else
@@ -849,9 +896,9 @@ int main(int argc, char** argv)
                         task_planner.addActionBetweenFoliations(lifting_motions[p][g][k], f, regrasp_ids[p][g], f+1, regrasp_ids[p][g], 1.0);
                     }
                 }
-                for(int k = 0; k < lifting_motions[p][g].size(); k++)
+                for(int k = 0; k < approach_motions[p][g].size(); k++)
                 {
-                    task_planner.addActionBetweenManifolds(lifting_motions[p][g][k], p, regrasp_ids[p][g], f, is_init_action, -0.005);
+                    task_planner.addActionBetweenManifolds(approach_motions[p][g][k], p, regrasp_ids[p][g], f, is_init_action, -0.005);
                 }
             }
         }
@@ -863,11 +910,11 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    // visualize the regrasp poses
-    ros::ServiceClient regrasp_poses_visualizer = node_handle.serviceClient<manipulation_test::VisualizeRegrasp>("visualize_regrasp");
-    regrasp_poses_visualizer.waitForExistence();
+    // // visualize the regrasp poses
+    // ros::ServiceClient regrasp_poses_visualizer = node_handle.serviceClient<manipulation_test::VisualizeRegrasp>("visualize_regrasp");
+    // regrasp_poses_visualizer.waitForExistence();
 
-    manipulation_test::VisualizeRegrasp regrasp_poses_visualize_srv;
+    // manipulation_test::VisualizeRegrasp regrasp_poses_visualize_srv;
     for(int i = 0; i < feasible_regrasp_transforms.size(); i++)
     {
         for(int j = 0; j < feasible_regrasp_transforms[i].size(); j++)
@@ -1319,6 +1366,7 @@ int main(int argc, char** argv)
     // visualize the trajectory
     trajectory_visuals->publishTrajectoryPath(total_trajectory);
 
+    // clean the move group
+
     return 0;
-    }
-    */
+}
