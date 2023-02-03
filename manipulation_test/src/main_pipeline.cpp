@@ -1005,16 +1005,35 @@ int main(int argc, char** argv)
         shape_msgs::SolidPrimitive bounding_region;
         bounding_region.type = bounding_region.BOX;
         bounding_region.dimensions.resize(3);
+        // bounding_region.dimensions[bounding_region.BOX_X] = 0.0005; // for x
+        // bounding_region.dimensions[bounding_region.BOX_Y] = 2000; // for y 
+        // bounding_region.dimensions[bounding_region.BOX_Z] = 2000; // for z
+        // // If you want to use plane constraint, you should set 0.0005 for it.
+
         bounding_region.dimensions[bounding_region.BOX_X] = 0.0005; // for x
-        bounding_region.dimensions[bounding_region.BOX_Y] = 2000; // for y 
-        bounding_region.dimensions[bounding_region.BOX_Z] = 2000; // for z
+        bounding_region.dimensions[bounding_region.BOX_Y] = table_srv.response.depth; // for y 
+        bounding_region.dimensions[bounding_region.BOX_Z] = table_srv.response.width; // for z
         // If you want to use plane constraint, you should set 0.0005 for it.
 
-        geometry_msgs::Pose target_object_pose;
-        transformTFToGeoPose(target_object_transform, target_object_pose);
+        // geometry_msgs::Pose target_object_pose;
+        // transformTFToGeoPose(target_object_transform, target_object_pose);
 
+        // try to find the proper position constraint
+        tf::Transform position_constraint_transform(target_object_transform_in_table_frame);
+        position_constraint_transform.setOrigin(tf::Vector3(0, 0, position_constraint_transform.getOrigin().getZ()));
+        position_constraint_transform = table_transform * position_constraint_transform;
+
+        tf::Matrix3x3 position_constraint_transform_matrix(table_transform.getBasis().getColumn(2).getX(),table_transform.getBasis().getColumn(1).getX(),-table_transform.getBasis().getColumn(0).getX(),
+                                                           table_transform.getBasis().getColumn(2).getY(),table_transform.getBasis().getColumn(1).getY(),-table_transform.getBasis().getColumn(0).getY(),
+                                                           table_transform.getBasis().getColumn(2).getZ(),table_transform.getBasis().getColumn(1).getZ(),-table_transform.getBasis().getColumn(0).getZ());
+        position_constraint_transform.setBasis(position_constraint_transform_matrix);
+
+        geometry_msgs::Pose position_constraint_pose;
+        transformTFToGeoPose(position_constraint_transform, position_constraint_pose);
+ 
         position_constraint.constraint_region.primitives.push_back(bounding_region);
-        position_constraint.constraint_region.primitive_poses.push_back(target_object_pose);
+        // position_constraint.constraint_region.primitive_poses.push_back(target_object_pose);
+        position_constraint.constraint_region.primitive_poses.push_back(position_constraint_pose);
         constraints.position_constraints.push_back(position_constraint);
         manipulation_manifold_constraints.push_back(constraints);
     }
@@ -1104,6 +1123,7 @@ int main(int argc, char** argv)
     target_primitive.dimensions[1] = obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.y;
     target_primitive.dimensions[2] = obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.z;
     collision_object_target.primitives.push_back(target_primitive);
+    std::cout << "init all collision objects done" << std::endl;
 
     // get the current joint positions of the robot
     std::vector<double> current_joint_positions_double;

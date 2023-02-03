@@ -1222,6 +1222,7 @@ bool Segmenter::findSurface(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &i
       Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(covariance_matrix, Eigen::ComputeEigenvectors);
       Eigen::Matrix3f eigen_vectors = eigen_solver.eigenvectors();
       eigen_vectors.col(2) = eigen_vectors.col(0).cross(eigen_vectors.col(1));
+      
       //calculate rotation from eigenvectors
       const Eigen::Quaternionf qfinal(eigen_vectors);
 
