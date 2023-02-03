@@ -122,8 +122,10 @@ int main(int argc, char** argv)
     moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
     moveit::planning_interface::MoveGroupInterface end_effector_move_group(END_EFFECTOR_PLANNING_GROUP);
 
+
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
     const robot_state::JointModelGroup* joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
+    const robot_state::JointModelGroup* end_effector_joint_model_group = end_effector_move_group.getCurrentState()->getJointModelGroup(END_EFFECTOR_PLANNING_GROUP);
 
     robot_model_loader::RobotModelLoaderConstPtr robot_model_loader = std::make_shared<robot_model_loader::RobotModelLoader>("robot_description");
     // get the robot kinematic model
@@ -1186,9 +1188,53 @@ int main(int argc, char** argv)
             MotionTask m = action_sequence.getActionTaskAt(i);
             std::cout << "-------------------------- motion task " << i;
             if(m.is_in_manipulation_manifold)
+            {
                 std::cout << " in manipulation manipulation manifold with id " << m.manifold_id << " of foliation " << m.foliation_id << std::endl;
+                // need to close gripper
+                end_effector_move_group.setStartState(current_state);
+                std::vector<std::string> finger_joint_names = end_effector_move_group.getActiveJoints();
+                for(int i = 0; i < finger_joint_names.size(); i++)
+                    end_effector_move_group.setJointValueTarget(finger_joint_names[i], 0.00);
+
+                robot_trajectory::RobotTrajectory close_gripper_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group);
+
+                moveit::planning_interface::MoveGroupInterface::Plan close_gripper_plan;
+                bool success = end_effector_move_group.plan(close_gripper_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
+
+                if(!success)
+                {
+                    std::cout << "close gripper plan failed" << std::endl;
+                    break;
+                }
+                close_gripper_trajectory.setRobotTrajectoryMsg(current_state, close_gripper_plan.trajectory_);
+                
+                total_trajectory.append(close_gripper_trajectory, 0.01);
+                current_state = total_trajectory.getLastWayPoint();
+            }
             else
+            {
                 std::cout << " in intermediate placement manifold with id " << m.manifold_id << " of foliation " << m.foliation_id << std::endl;
+                // need to open gripper
+                end_effector_move_group.setStartState(current_state);
+                std::vector<std::string> finger_joint_names = end_effector_move_group.getActiveJoints();
+                for(int i = 0; i < finger_joint_names.size(); i++)
+                    end_effector_move_group.setJointValueTarget(finger_joint_names[i], 0.04);
+
+                robot_trajectory::RobotTrajectory open_gripper_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group);
+
+                moveit::planning_interface::MoveGroupInterface::Plan open_gripper_plan;
+                bool success = end_effector_move_group.plan(open_gripper_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
+
+                if(!success)
+                {
+                    std::cout << "open gripper plan failed" << std::endl;
+                    break;
+                }
+                open_gripper_trajectory.setRobotTrajectoryMsg(current_state, open_gripper_plan.trajectory_);
+                
+                total_trajectory.append(open_gripper_trajectory, 0.01);
+                current_state = total_trajectory.getLastWayPoint();
+            }
 
             // if the current task has solution, then continue.
             if(action_sequence.hasSolutionAt(i))
@@ -1384,6 +1430,7 @@ int main(int argc, char** argv)
     }
 
     // visualize the trajectory
+    total_trajectory.setGroupName("arm_with_gripper");
     trajectory_visuals->publishTrajectoryPath(total_trajectory);
 
     // clean the move group
