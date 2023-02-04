@@ -39,7 +39,8 @@ class ActionSequence
                        long unsigned int foliation_id,
                        long unsigned int manifold_id,
                        bool is_in_manipulation_manifold,
-                       const moveit_msgs::RobotTrajectory &cartesian_motion, 
+                       const moveit_msgs::RobotTrajectory &cartesian_motion,
+                       bool isToNextFoliation,
                        int previous_node_id, 
                        int next_node_id, 
                        bool has_solution)
@@ -57,6 +58,8 @@ class ActionSequence
         motion_tasks.push_back(motion_task);
 
         cartesian_motions.push_back(cartesian_motion);
+
+        isToNextFoliations.push_back(isToNextFoliation);
 
         previous_node_ids.push_back(previous_node_id);
         next_node_ids.push_back(next_node_id);
@@ -80,6 +83,11 @@ class ActionSequence
 
     moveit_msgs::RobotTrajectory getCartesianMotionAt(long unsigned int task_index){
         return cartesian_motions[task_index];
+    }
+
+    bool isToNextFoliationAt(long unsigned int task_index) const
+    {
+        return isToNextFoliations[task_index];
     }
 
     int getPreviousIdAt(long unsigned int task_index) const
@@ -106,6 +114,7 @@ class ActionSequence
 
     std::vector<MotionTask> motion_tasks;
     std::vector<moveit_msgs::RobotTrajectory> cartesian_motions;
+    std::vector<bool> isToNextFoliations;
     std::vector<int> previous_node_ids;
     std::vector<int> next_node_ids;
     std::vector<bool> has_solutions;

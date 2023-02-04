@@ -222,6 +222,7 @@ bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector
                                  action_nodes[current_action_node_id].in_state.manifold_id,
                                  action_nodes[current_action_node_id].in_state.is_in_manipulation_manifold,
                                  action_nodes[current_action_node_id].motion_trajectory,
+                                 action_nodes[current_action_node_id].in_state.foliation_id != action_nodes[current_action_node_id].out_state.foliation_id,
                                  -1,
                                  current_action_node_id,
                                  false);
@@ -239,6 +240,7 @@ bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector
                                      action_nodes[current_action_node_id].in_state.manifold_id,
                                      action_nodes[current_action_node_id].in_state.is_in_manipulation_manifold,
                                      action_nodes[current_action_node_id].motion_trajectory,
+                                     action_nodes[current_action_node_id].in_state.foliation_id != action_nodes[current_action_node_id].out_state.foliation_id,
                                      last_action_node_id,
                                      current_action_node_id, 
                                      false);
