@@ -335,6 +335,7 @@ int main(int argc, char** argv)
         tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
         if(lift_torque_test(target_com, 1.0, predicted_grasp_transform))
         {
+            // if we just want to use contact grasp net alone, we can to here directly
             grasp_transforms_before_clustering.push_back(target_object_transform.inverse() * predicted_grasp_transform);
             grasp_jawwidths_before_clustering.push_back(0.08);
             grasp_types_before_clustering.push_back(0);
@@ -500,20 +501,7 @@ int main(int argc, char** argv)
     tf::Transform table_transform(tf::Quaternion(table_srv.response.orientation.x, table_srv.response.orientation.y, table_srv.response.orientation.z, table_srv.response.orientation.w), 
                                   tf::Vector3(table_srv.response.center.x, table_srv.response.center.y, table_srv.response.center.z));
 
-
-    std::vector<tf::Transform> actual_grasp_transforms;
-    actual_grasp_transforms = grasp_transforms;
-    // for(int i = 0; i < srv.response.actual_grasp_poses.size(); i++)
-    // {
-    //     tf::Transform actual_grasp_transform = target_object_transform.inverse() * tf::Transform(tf::Quaternion(srv.response.actual_grasp_poses[i].pose.orientation.x, 
-    //                                                                                                             srv.response.actual_grasp_poses[i].pose.orientation.y, 
-    //                                                                                                             srv.response.actual_grasp_poses[i].pose.orientation.z, 
-    //                                                                                                             srv.response.actual_grasp_poses[i].pose.orientation.w), 
-    //                                                                                             tf::Vector3(srv.response.actual_grasp_poses[i].pose.position.x, 
-    //                                                                                                         srv.response.actual_grasp_poses[i].pose.position.y, 
-    //                                                                                                         srv.response.actual_grasp_poses[i].pose.position.z));
-    //     actual_grasp_transforms.push_back(actual_grasp_transform);
-    // }
+    std::vector<tf::Transform> actual_grasp_transforms = grasp_transforms;
 
     // get the target object transform in the table frame
     tf::Transform target_object_transform_in_table_frame = table_transform.inverse() * target_object_transform;
