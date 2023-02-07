@@ -113,6 +113,13 @@ int main(int argc, char** argv)
 
     ros::init(argc, argv, "main_pipeline");
     ros::NodeHandle node_handle;
+
+    //////////////////////////////////////////
+    bool use_regrasp = false;
+    //////////////////////////////////////////
+
+    std::cout << "use regrasp: " << use_regrasp << std::endl;
+
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
@@ -131,6 +138,9 @@ int main(int argc, char** argv)
     robot_model_loader::RobotModelLoaderConstPtr robot_model_loader = std::make_shared<robot_model_loader::RobotModelLoader>("robot_description");
     // get the robot kinematic model
     robot_model::RobotModelConstPtr kinematic_model = robot_model_loader->getModel();
+
+    // init the moveit visual tools for visualization
+    moveit_visual_tools::MoveItVisualToolsPtr trajectory_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link");
 
     // init the state validity checker for the robot
     ros::ServiceClient validity_client =  node_handle.serviceClient<moveit_msgs::GetStateValidity>("/check_state_validity");
@@ -489,6 +499,127 @@ int main(int argc, char** argv)
     {
         ROS_ERROR("Failed to call service visualize_obstacle");
         return 1;
+    }
+
+    if(!use_regrasp) // if we don't want to use regrasp, we plan the motion grasp the object directly.
+    {
+        robot_trajectory::RobotTrajectory simple_total_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+        for(int g = 0; g < grasp_transforms.size(); g++)
+        {
+            simple_total_trajectory.clear();
+            if(grasp_types[g] == 0)
+            {
+                tf::Transform pre_grasp_pose_in_world_frame = target_object_transform * grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.1, 0, 0));
+                tf::Transform grasp_pose_in_world_frame = target_object_transform * grasp_transforms[g];
+                tf::Transform lift_grasp_pose_in_world_frame = tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(0, 0, 0.1)) * target_object_transform * grasp_transforms[g];
+                geometry_msgs::Pose pre_grasp_pose;
+                geometry_msgs::Pose grasp_pose;
+                geometry_msgs::Pose lift_grasp_pose;
+                transformTFToGeoPose(pre_grasp_pose_in_world_frame, pre_grasp_pose);
+                transformTFToGeoPose(grasp_pose_in_world_frame, grasp_pose);
+                transformTFToGeoPose(lift_grasp_pose_in_world_frame, lift_grasp_pose);
+
+                // move to pre-grasp pose
+                moveit::core::RobotState current_state = *(move_group.getCurrentState());
+                move_group.setStartState(current_state);
+                move_group.setPoseTarget(pre_grasp_pose);
+                robot_trajectory::RobotTrajectory pregrasp_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+                moveit::planning_interface::MoveGroupInterface::Plan pregrasp_plan;
+                bool success = (move_group.plan(pregrasp_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+
+                if(!success)
+                    continue;
+
+                pregrasp_trajectory.setRobotTrajectoryMsg(current_state, pregrasp_plan.trajectory_);
+                current_state = pregrasp_trajectory.getLastWayPoint();
+
+                simple_total_trajectory.append(pregrasp_trajectory, 0.0);
+
+                // open the gripper
+                end_effector_move_group.setStartState(current_state);
+                for(int i = 0; i < finger_joint_names.size(); i++)
+                    end_effector_move_group.setJointValueTarget(finger_joint_names[i], 0.04);
+
+                robot_trajectory::RobotTrajectory open_gripper_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group);
+
+                moveit::planning_interface::MoveGroupInterface::Plan open_gripper_plan;
+                success = end_effector_move_group.plan(open_gripper_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
+
+                if(!success)
+                {
+                    continue;
+                }
+                open_gripper_trajectory.setRobotTrajectoryMsg(current_state, open_gripper_plan.trajectory_);
+                
+                simple_total_trajectory.append(open_gripper_trajectory, 0.01);
+                current_state = simple_total_trajectory.getLastWayPoint();
+
+                // approach the object
+                move_group.setStartState(current_state);
+
+                moveit_msgs::RobotTrajectory approach_trajectory_msg;
+
+                double pre_grasp_fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{grasp_pose}, 0.005, 5.0, approach_trajectory_msg, true);
+    
+                if(pre_grasp_fraction >= 0.95)
+                {
+                    // convert the trajectory message to robot trajectory
+                    robot_trajectory::RobotTrajectory approach_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+                    approach_trajectory.setRobotTrajectoryMsg(current_state, approach_trajectory_msg);
+                    simple_total_trajectory.append(approach_trajectory, 0.01);
+                    current_state = simple_total_trajectory.getLastWayPoint();
+                }
+                else
+                {
+                    continue;
+                }
+
+                // close the gripper
+                end_effector_move_group.setStartState(current_state);
+                for(int i = 0; i < finger_joint_names.size(); i++)
+                    end_effector_move_group.setJointValueTarget(finger_joint_names[i], 0.0);
+
+                robot_trajectory::RobotTrajectory close_gripper_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group);
+
+                moveit::planning_interface::MoveGroupInterface::Plan close_gripper_plan;
+                success = end_effector_move_group.plan(close_gripper_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
+
+                if(!success)
+                {
+                    continue;
+                }
+                close_gripper_trajectory.setRobotTrajectoryMsg(current_state, close_gripper_plan.trajectory_);
+                
+                simple_total_trajectory.append(close_gripper_trajectory, 0.01);
+                current_state = simple_total_trajectory.getLastWayPoint();
+
+                // lift the object
+                move_group.setStartState(current_state);
+
+                moveit_msgs::RobotTrajectory lift_trajectory_msg;
+
+                double lift_grasp_fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{lift_grasp_pose}, 0.005, 5.0, lift_trajectory_msg, true);
+    
+                if(lift_grasp_fraction >= 0.95)
+                {
+                    // convert the trajectory message to robot trajectory
+                    robot_trajectory::RobotTrajectory lifting_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);
+                    lifting_trajectory.setRobotTrajectoryMsg(current_state, lift_trajectory_msg);
+                    simple_total_trajectory.append(lifting_trajectory, 0.01);
+                    current_state = simple_total_trajectory.getLastWayPoint();
+                }
+                else
+                {
+                    continue;
+                }
+
+
+                // visualize the trajectory
+                simple_total_trajectory.setGroupName("arm_with_gripper");
+                trajectory_visuals->publishTrajectoryPath(simple_total_trajectory);
+            } 
+        }
+        return 0;
     }
 
     // convert the table point cloud to pcl point cloud
@@ -1138,13 +1269,12 @@ int main(int argc, char** argv)
     target_object_shapes.push_back(shapes::ShapeConstPtr(target_object_shape));
     EigenSTL::vector_Isometry3d shape_poses{Eigen::Isometry3d::Identity()};
 
-    // init the moveit visual tools for visualization
-    moveit_visual_tools::MoveItVisualToolsPtr trajectory_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link");
-    moveit_visual_tools::MoveItVisualToolsPtr robot_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link", "/moveit_visual_tools");
-    robot_visuals->loadPlanningSceneMonitor();
-    robot_visuals->loadMarkerPub(true);
-    robot_visuals->loadRobotStatePub("joint_states");
-    robot_visuals->setManualSceneUpdating();
+
+    // moveit_visual_tools::MoveItVisualToolsPtr robot_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link", "/moveit_visual_tools");
+    // robot_visuals->loadPlanningSceneMonitor();
+    // robot_visuals->loadMarkerPub(true);
+    // robot_visuals->loadRobotStatePub("joint_states");
+    // robot_visuals->setManualSceneUpdating();
 
     // init the final robot trajectory for visualization later.
     robot_trajectory::RobotTrajectory total_trajectory = robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group);    
