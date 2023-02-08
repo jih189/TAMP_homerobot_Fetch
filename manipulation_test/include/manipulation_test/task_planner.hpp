@@ -32,6 +32,7 @@ class ActionSequence
         previous_node_ids.clear();
         next_node_ids.clear();
         has_solutions.clear();
+        in_hand_poses.clear();
     }
 
     void addActionTask(const std::vector<float> &start_joint_values,
@@ -43,7 +44,8 @@ class ActionSequence
                        bool isToNextFoliation,
                        int previous_node_id, 
                        int next_node_id, 
-                       bool has_solution)
+                       bool has_solution,
+                       const geometry_msgs::Pose &in_hand_pose)
     {
         MotionTask motion_task;
         for(int i = 0; i < start_joint_values.size(); i++)
@@ -64,6 +66,8 @@ class ActionSequence
         previous_node_ids.push_back(previous_node_id);
         next_node_ids.push_back(next_node_id);
         has_solutions.push_back(has_solution);
+
+        in_hand_poses.push_back(in_hand_pose);
     }
 
     long unsigned int getActionSize() const
@@ -76,8 +80,14 @@ class ActionSequence
         return motion_tasks[task_index];
     }
 
-    void setSolutionForActionTaskAt(int task_index, const moveit_msgs::RobotTrajectory &solution_motion){
+    geometry_msgs::Pose getInHandPoseAt(long unsigned int task_index) const
+    {
+        return in_hand_poses[task_index];
+    }
+
+    void setSolutionForActionTaskAt(int task_index, const moveit_msgs::RobotTrajectory &solution_motion, const geometry_msgs::Pose &in_hand_pose){
         motion_tasks[task_index].solution_trajectory = solution_motion;
+        in_hand_poses[task_index] = in_hand_pose;
         setHasSolutionAt(task_index, true);
     }
 
@@ -118,6 +128,7 @@ class ActionSequence
     std::vector<int> previous_node_ids;
     std::vector<int> next_node_ids;
     std::vector<bool> has_solutions;
+    std::vector<geometry_msgs::Pose> in_hand_poses;
 };
 
 class TaskPlanner
@@ -144,6 +155,7 @@ class TaskPlanner
         std::vector<float> next_action_success_probabilities;
         long unsigned int policy;
         std::vector<moveit_msgs::RobotTrajectory> solution_trajectories;
+        std::vector<geometry_msgs::Pose> in_hand_poses;
         std::vector<bool> has_solution;
     };
     

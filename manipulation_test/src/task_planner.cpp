@@ -225,7 +225,8 @@ bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector
                                  action_nodes[current_action_node_id].in_state.foliation_id != action_nodes[current_action_node_id].out_state.foliation_id,
                                  -1,
                                  current_action_node_id,
-                                 false);
+                                 false,
+                                 geometry_msgs::Pose());
 
     // generate the action sequence
     int policy = action_nodes[current_action_node_id].policy;
@@ -243,13 +244,14 @@ bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector
                                      action_nodes[current_action_node_id].in_state.foliation_id != action_nodes[current_action_node_id].out_state.foliation_id,
                                      last_action_node_id,
                                      current_action_node_id, 
-                                     false);
+                                     false,
+                                     geometry_msgs::Pose());
 
         // if solution exists in this step, then reuse this solution.
         if(action_nodes[last_action_node_id].has_solution[policy])
         {
             int current_index = action_sequence.getActionSize() - 1;
-            action_sequence.setSolutionForActionTaskAt(current_index, action_nodes[last_action_node_id].solution_trajectories[policy]);
+            action_sequence.setSolutionForActionTaskAt(current_index, action_nodes[last_action_node_id].solution_trajectories[policy], action_nodes[last_action_node_id].in_hand_poses[policy]);
         }
 
         policy = action_nodes[current_action_node_id].policy;
@@ -298,6 +300,7 @@ void TaskPlanner::updateTaskPlanner(const ActionSequence &action_sequence)
             action_nodes[previous_node_id].has_solution[policyIndexForNextNode] = true;
             action_nodes[previous_node_id].next_action_success_probabilities[policyIndexForNextNode] = 1.0;
             action_nodes[previous_node_id].solution_trajectories[policyIndexForNextNode] = action_sequence.getActionTaskAt(i).solution_trajectory;
+            action_nodes[previous_node_id].in_hand_poses[policyIndexForNextNode] = action_sequence.getInHandPoseAt(i);
             
             // update the success rate in opposte edge too
             itr = std::find(action_nodes[next_node_id].next_action_node_ids.begin(), action_nodes[next_node_id].next_action_node_ids.end(), previous_node_id);
@@ -306,6 +309,7 @@ void TaskPlanner::updateTaskPlanner(const ActionSequence &action_sequence)
             action_nodes[next_node_id].has_solution[policyIndexForNextNode] = true;
             action_nodes[next_node_id].next_action_success_probabilities[policyIndexForNextNode] = 1.0;
             action_nodes[next_node_id].solution_trajectories[policyIndexForNextNode] = action_sequence.getActionTaskAt(i).solution_trajectory;
+            action_nodes[next_node_id].in_hand_poses[policyIndexForNextNode] = action_sequence.getInHandPoseAt(i);
             
             // need to reverse the trajectory
             for(int p = 0; p < action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points.size(); p++)
@@ -334,6 +338,7 @@ void TaskPlanner::constructMDPGraph()
                     action_nodes[i].next_action_node_ids.push_back(possible_action_node_id);
                     action_nodes[i].next_action_success_probabilities.push_back(0.5);
                     action_nodes[i].solution_trajectories.push_back(moveit_msgs::RobotTrajectory());
+                    action_nodes[i].in_hand_poses.push_back(geometry_msgs::Pose());
                     action_nodes[i].has_solution.push_back(false);
                 }
             }
@@ -352,6 +357,7 @@ void TaskPlanner::constructMDPGraph()
                         action_nodes[i].next_action_node_ids.push_back(possible_action_node_id);
                         action_nodes[i].next_action_success_probabilities.push_back(0.5);
                         action_nodes[i].solution_trajectories.push_back(moveit_msgs::RobotTrajectory());
+                        action_nodes[i].in_hand_poses.push_back(geometry_msgs::Pose());
                         action_nodes[i].has_solution.push_back(false);
                     }
                 }
@@ -360,6 +366,7 @@ void TaskPlanner::constructMDPGraph()
                     action_nodes[i].next_action_node_ids.push_back(possible_action_node_id);
                     action_nodes[i].next_action_success_probabilities.push_back(0.5);
                     action_nodes[i].solution_trajectories.push_back(moveit_msgs::RobotTrajectory());
+                    action_nodes[i].in_hand_poses.push_back(geometry_msgs::Pose());
                     action_nodes[i].has_solution.push_back(false);
                 }
             }
@@ -371,6 +378,7 @@ void TaskPlanner::constructMDPGraph()
                 action_nodes[i].next_action_node_ids.push_back(possible_action_node_id);
                 action_nodes[i].next_action_success_probabilities.push_back(0.5);
                 action_nodes[i].solution_trajectories.push_back(moveit_msgs::RobotTrajectory());
+                action_nodes[i].in_hand_poses.push_back(geometry_msgs::Pose());
                 action_nodes[i].has_solution.push_back(false);
             }
         }

@@ -66,6 +66,11 @@ void transformTFToGeoPose(const tf::Transform &t, geometry_msgs::Pose &p){
   p.position.z = t.getOrigin().z();
 }
 
+void GeoPoseTotransformTF(const geometry_msgs::Pose &p, tf::Transform &t){
+  t.setOrigin(tf::Vector3(p.position.x, p.position.y, p.position.z));
+  t.setRotation(tf::Quaternion(p.orientation.x, p.orientation.y, p.orientation.z, p.orientation.w));
+}
+
 void randomJointArray(KDL::JntArray &joint_array, const KDL::JntArray &lower_limits, const KDL::JntArray &upper_limits)
 {
     for(uint j = 0; j < joint_array.data.size(); j++){
@@ -119,7 +124,7 @@ int main(int argc, char** argv)
 
     //////////////////////////////////////////
     bool use_regrasp = true;
-    bool is_execute = true;
+    bool is_execute = false;
     //////////////////////////////////////////
 
     std::cout << "use regrasp: " << use_regrasp << std::endl;
@@ -1217,6 +1222,7 @@ int main(int argc, char** argv)
         
         // construct the task planner graph
         task_planner.constructMDPGraph();
+        std::cout << "construct MDP graph done" << std::endl;
 
         // setup the motion planner
         move_group.setPlannerId("CLazyPRMConfigDefault");
@@ -1250,6 +1256,8 @@ int main(int argc, char** argv)
 
             // reset the total trajectory.
             robot_action_trajectory_execution_list.clear();
+
+            geometry_msgs::Pose current_in_hand_pose_for_placing;
 
             // check the action sequence
             for(int i = 0; i < action_sequence.getActionSize(); i++)
@@ -1310,6 +1318,9 @@ int main(int argc, char** argv)
                         robot_action_trajectory_execution_list.push_back(std::make_pair("close", close_gripper_trajectory));
                         current_state = close_gripper_trajectory.getLastWayPoint();
                     }
+                    else{
+                        current_in_hand_pose_for_placing = action_sequence.getInHandPoseAt(i);
+                    }
                     continue;
                 }
             
@@ -1354,10 +1365,13 @@ int main(int argc, char** argv)
                         std::cout << "slide plan failed" << std::endl;
                         break;
                     }
+
+                    current_in_hand_pose_for_placing = manipulation_manifold_constraints[m.manifold_id].in_hand_pose;
+
                     std::cout << "slide plan success" << std::endl;
                     robot_trajectory::RobotTrajectory slide_trajectory = 
                                     robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, slide_plan.trajectory_);
-                    action_sequence.setSolutionForActionTaskAt(i, slide_plan.trajectory_);
+                    action_sequence.setSolutionForActionTaskAt(i, slide_plan.trajectory_, manipulation_manifold_constraints[m.manifold_id].in_hand_pose);
                     robot_action_trajectory_execution_list.push_back(std::make_pair("arm", slide_trajectory));                
                     current_state = slide_trajectory.getLastWayPoint();
 
@@ -1449,7 +1463,7 @@ int main(int argc, char** argv)
                                     robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, regrasp_plan.trajectory_);
 
                     // set the solution in the action sequence
-                    action_sequence.setSolutionForActionTaskAt(i, regrasp_plan.trajectory_);
+                    action_sequence.setSolutionForActionTaskAt(i, regrasp_plan.trajectory_, intermediate_manifold_constraints[m.manifold_id].in_hand_pose);
                     robot_action_trajectory_execution_list.push_back(std::make_pair("arm", regrasp_trajectory));
                     current_state = regrasp_trajectory.getLastWayPoint();
 
@@ -1514,6 +1528,67 @@ int main(int argc, char** argv)
             else
             {
                 std::cout << "solution is good, break the loop" << std::endl;
+                // need to place the object with constrained based rrt planning.
+                move_group.setPlannerId("CBIRRTConfigDefault");
+                move_group.setStartState(current_state);
+
+                // set the placing constraints
+                moveit_msgs::Constraints placing_constraints;
+                placing_constraints.name = "use_equality_constraints";
+                placing_constraints.in_hand_pose = current_in_hand_pose_for_placing;
+
+                // define the orientation constraint on the object
+                moveit_msgs::OrientationConstraint orientation_constraint;
+                orientation_constraint.parameterization = moveit_msgs::OrientationConstraint::ROTATION_VECTOR;
+                orientation_constraint.header.frame_id = "base_link";
+                orientation_constraint.header.stamp = ros::Time(0);
+                orientation_constraint.link_name = "wrist_roll_link";
+                geometry_msgs::Quaternion constrained_quaternion;
+                constrained_quaternion.x = target_object_transform.getRotation().x();
+                constrained_quaternion.y = target_object_transform.getRotation().y();
+                constrained_quaternion.z = target_object_transform.getRotation().z();
+                constrained_quaternion.w = target_object_transform.getRotation().w();
+                orientation_constraint.orientation = constrained_quaternion;
+                orientation_constraint.weight = 1.0;
+                orientation_constraint.absolute_x_axis_tolerance = 2 * 3.1415;
+                orientation_constraint.absolute_y_axis_tolerance = 0.05;
+                orientation_constraint.absolute_z_axis_tolerance = 0.05;
+                placing_constraints.orientation_constraints.push_back(orientation_constraint);
+
+                // calculate current target object pose.
+                tf::Transform placing_transform;
+                Eigen::Isometry3d placing_eigen_transform;
+                GeoPoseTotransformTF(current_in_hand_pose_for_placing, placing_transform);
+                tf::transformTFToEigen(placing_transform, placing_eigen_transform);
+                current_state.attachBody("target_object", placing_eigen_transform, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link"}, "wrist_roll_link");
+
+                move_group.setPathConstraints(placing_constraints);
+                move_group.setInHandPose(current_in_hand_pose_for_placing);
+
+                move_group.setPositionTarget(0.248, -0.658, 0.721);
+                moveit::planning_interface::MoveGroupInterface::Plan placing_plan;
+                std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+                bool success = (move_group.plan(placing_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+
+                move_group.clearPathConstraints();
+                move_group.clearInHandPose();
+                move_group.clearAction();
+                move_group.clearExperience();
+                move_group.clearPoseTargets();
+                move_group.clearInHandPose();
+
+                if(!success)
+                {
+                    std::cout << "placing plan failed" << std::endl;
+                    break;
+                }
+                std::cout << "placing plan success" << std::endl;
+                robot_trajectory::RobotTrajectory placing_trajectory = 
+                                robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, placing_plan.trajectory_);
+
+                robot_action_trajectory_execution_list.push_back(std::make_pair("arm", placing_trajectory));
+                current_state = placing_trajectory.getLastWayPoint();
+
                 break;
             }
         }
