@@ -1528,6 +1528,10 @@ int main(int argc, char** argv)
             else
             {
                 std::cout << "solution is good, break the loop" << std::endl;
+
+                collision_object_table.operation = collision_object_table.ADD;
+                planning_scene_interface.applyCollisionObject(collision_object_table);
+
                 // need to place the object with constrained based rrt planning.
                 move_group.setPlannerId("CBIRRTConfigDefault");
                 move_group.setStartState(current_state);
@@ -1551,8 +1555,8 @@ int main(int argc, char** argv)
                 orientation_constraint.orientation = constrained_quaternion;
                 orientation_constraint.weight = 1.0;
                 orientation_constraint.absolute_x_axis_tolerance = 2 * 3.1415;
-                orientation_constraint.absolute_y_axis_tolerance = 0.05;
-                orientation_constraint.absolute_z_axis_tolerance = 0.05;
+                orientation_constraint.absolute_y_axis_tolerance = 0.1;
+                orientation_constraint.absolute_z_axis_tolerance = 0.1;
                 placing_constraints.orientation_constraints.push_back(orientation_constraint);
 
                 // calculate current target object pose.
@@ -1566,6 +1570,7 @@ int main(int argc, char** argv)
                 move_group.setInHandPose(current_in_hand_pose_for_placing);
 
                 move_group.setPositionTarget(0.248, -0.658, 0.721);
+                move_group.setCleanPlanningContextFlag(true);
                 moveit::planning_interface::MoveGroupInterface::Plan placing_plan;
                 std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
                 bool success = (move_group.plan(placing_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -1588,6 +1593,11 @@ int main(int argc, char** argv)
 
                 robot_action_trajectory_execution_list.push_back(std::make_pair("arm", placing_trajectory));
                 current_state = placing_trajectory.getLastWayPoint();
+
+                current_state.clearAttachedBody("target_object");
+
+                collision_object_table.operation = collision_object_table.REMOVE;
+                planning_scene_interface.applyCollisionObject(collision_object_table);
 
                 break;
             }
