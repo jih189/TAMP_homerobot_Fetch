@@ -172,6 +172,7 @@ void TaskPlanner::addActionBetweenManifolds(moveit_msgs::RobotTrajectory motion_
         {
             action_node2.motion_trajectory.joint_trajectory.points[i].positions[j] = motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1 - i].positions[j];
         }
+        // action_node2.motion_trajectory.joint_trajectory.points[i].time_from_start = motion_trajectory.joint_trajectory.points[motion_trajectory.joint_trajectory.points.size() - 1 - i].time_from_start;
     }
 
     action_node2.reward = reward;
@@ -279,6 +280,11 @@ void TaskPlanner::updateTaskPlanner(const ActionSequence &action_sequence)
 
             // update the success rate in opposte edge too
             itr = std::find(action_nodes[next_node_id].next_action_node_ids.begin(), action_nodes[next_node_id].next_action_node_ids.end(), previous_node_id);
+            // if the opposite edge is not found, the this edge is between foliation.
+            if(itr == action_nodes[next_node_id].next_action_node_ids.end())
+            {
+                break;
+            }
             policyIndexForNextNode = std::distance(action_nodes[next_node_id].next_action_node_ids.begin(), itr);
             action_nodes[next_node_id].next_action_success_probabilities[policyIndexForNextNode] *= 0.7;
 
@@ -304,6 +310,11 @@ void TaskPlanner::updateTaskPlanner(const ActionSequence &action_sequence)
             
             // update the success rate in opposte edge too
             itr = std::find(action_nodes[next_node_id].next_action_node_ids.begin(), action_nodes[next_node_id].next_action_node_ids.end(), previous_node_id);
+            // if the opposite edge is not found, the this edge is between foliation.
+            if(itr == action_nodes[next_node_id].next_action_node_ids.end())
+            {
+                continue;
+            }
             policyIndexForNextNode = std::distance(action_nodes[next_node_id].next_action_node_ids.begin(), itr);
             
             action_nodes[next_node_id].has_solution[policyIndexForNextNode] = true;
@@ -318,6 +329,7 @@ void TaskPlanner::updateTaskPlanner(const ActionSequence &action_sequence)
                 {
                     action_nodes[next_node_id].solution_trajectories[policyIndexForNextNode].joint_trajectory.points[p].positions[j] = action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points[action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points.size() - 1 - p].positions[j];
                 }
+                // action_nodes[next_node_id].solution_trajectories[policyIndexForNextNode].joint_trajectory.points[p].time_from_start = action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points[action_sequence.getActionTaskAt(i).solution_trajectory.joint_trajectory.points.size() - 1 - p].time_from_start;
             }            
         }
     }
@@ -418,6 +430,7 @@ void TaskPlanner::policyIteration()
             if(oldPolicy != action_nodes[i].policy)
                 numOfUpdatedStates++;
         }
+        // std::cout << "numOfUpdatedStates: " << numOfUpdatedStates << std::endl;
     }while(numOfUpdatedStates > 0);
     
 }

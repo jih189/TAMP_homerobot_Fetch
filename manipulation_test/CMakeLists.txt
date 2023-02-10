@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  sensor_msgs
   geometry_msgs
   interactive_markers
   moveit_core
@@ -95,6 +96,7 @@ add_service_files(DIRECTORY srv FILES VisualizeGrasp.srv VisualizeTable.srv Visu
 generate_messages(
    DEPENDENCIES
    std_msgs
+   sensor_msgs
    geometry_msgs
    rail_manipulation_msgs
 )
@@ -135,6 +137,7 @@ catkin_package(
    roscpp
    rospy
    std_msgs
+   sensor_msgs
    geometry_msgs
    moveit_core
    moveit_visual_tools
