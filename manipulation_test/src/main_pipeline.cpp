@@ -224,61 +224,8 @@ int main(int argc, char** argv)
     //******************************************** search for the table and add it ad the obstacle in the planning scene
     ros::ServiceClient table_client = node_handle.serviceClient<rail_segmentation::SearchTable>("table_searcher/search_table");
     table_client.waitForExistence();
-
-    rail_segmentation::SearchTable table_srv;
-    if (not table_client.call(table_srv))
-    {
-        ROS_ERROR("Failed to call service search_table");
-        return 1;
-    }
-
-    // get the table transform
-    tf::Transform table_transform(tf::Quaternion(table_srv.response.orientation.x, table_srv.response.orientation.y, table_srv.response.orientation.z, table_srv.response.orientation.w), 
-                                tf::Vector3(table_srv.response.center.x, table_srv.response.center.y, table_srv.response.center.z));
-
-    // visualize the table
     ros::ServiceClient table_visualizer = node_handle.serviceClient<manipulation_test::VisualizeTable>("visualize_table");
     table_visualizer.waitForExistence();
-
-    manipulation_test::VisualizeTable table_visualize_srv;
-    table_visualize_srv.request.width = table_srv.response.width;
-    table_visualize_srv.request.depth = table_srv.response.depth;
-    table_visualize_srv.request.height = 0.001;
-    table_visualize_srv.request.center = table_srv.response.center;
-    table_visualize_srv.request.orientation = table_srv.response.orientation;
-
-    if (not table_visualizer.call(table_visualize_srv))
-    {
-        ROS_ERROR("Failed to call service visualize_table");
-        return 1;
-    }
-
-    // init the table as the collision object.
-    moveit_msgs::CollisionObject collision_object_table;
-    collision_object_table.header.frame_id = move_group.getPlanningFrame();
-
-    collision_object_table.id = "table";
-
-    shape_msgs::SolidPrimitive table_primitive;
-    table_primitive.type = table_primitive.BOX;
-    table_primitive.dimensions.resize(3);
-    table_primitive.dimensions[0] = table_srv.response.depth;
-    table_primitive.dimensions[1] = table_srv.response.width;
-    table_primitive.dimensions[2] =  0.005;
-
-    geometry_msgs::Pose table_pose;
-    table_pose.position.x = table_srv.response.center.x;
-    table_pose.position.y = table_srv.response.center.y;
-    table_pose.position.z = table_srv.response.center.z;
-
-    table_pose.orientation.x = table_srv.response.orientation.x;
-    table_pose.orientation.y = table_srv.response.orientation.y;
-    table_pose.orientation.z = table_srv.response.orientation.z;
-    table_pose.orientation.w = table_srv.response.orientation.w;
-
-    collision_object_table.primitives.push_back(table_primitive);
-    collision_object_table.pose = table_pose;
-
     // initialize the ros server clients
     // init the obstavle searcher.
     ros::ServiceClient obstacle_client = node_handle.serviceClient<rail_manipulation_msgs::SegmentObjects>("table_searcher/segment_objects");
@@ -312,9 +259,64 @@ int main(int argc, char** argv)
     sensor_msgs::CameraInfo camera_info;
     camera_info = *(ros::topic::waitForMessage<sensor_msgs::CameraInfo>("/head_camera/rgb/camera_info", node_handle));
 
+    bool hasTargetObject = false;
+    tf::Transform target_object_transform;
+
     //////////////// here is the point to re-analyze the object for re-grasping ////////////////
     do
     {
+        rail_segmentation::SearchTable table_srv;
+        if (not table_client.call(table_srv))
+        {
+            ROS_ERROR("Failed to call service search_table");
+            return 1;
+        }
+
+        // get the table transform
+        tf::Transform table_transform(tf::Quaternion(table_srv.response.orientation.x, table_srv.response.orientation.y, table_srv.response.orientation.z, table_srv.response.orientation.w), 
+                                    tf::Vector3(table_srv.response.center.x, table_srv.response.center.y, table_srv.response.center.z));
+
+        // visualize the table
+
+        manipulation_test::VisualizeTable table_visualize_srv;
+        table_visualize_srv.request.width = table_srv.response.width;
+        table_visualize_srv.request.depth = table_srv.response.depth;
+        table_visualize_srv.request.height = 0.001;
+        table_visualize_srv.request.center = table_srv.response.center;
+        table_visualize_srv.request.orientation = table_srv.response.orientation;
+
+        if (not table_visualizer.call(table_visualize_srv))
+        {
+            ROS_ERROR("Failed to call service visualize_table");
+            return 1;
+        }
+
+        // init the table as the collision object.
+        moveit_msgs::CollisionObject collision_object_table;
+        collision_object_table.header.frame_id = move_group.getPlanningFrame();
+
+        collision_object_table.id = "table";
+
+        shape_msgs::SolidPrimitive table_primitive;
+        table_primitive.type = table_primitive.BOX;
+        table_primitive.dimensions.resize(3);
+        table_primitive.dimensions[0] = table_srv.response.depth;
+        table_primitive.dimensions[1] = table_srv.response.width;
+        table_primitive.dimensions[2] =  0.005;
+
+        geometry_msgs::Pose table_pose;
+        table_pose.position.x = table_srv.response.center.x;
+        table_pose.position.y = table_srv.response.center.y;
+        table_pose.position.z = table_srv.response.center.z;
+
+        table_pose.orientation.x = table_srv.response.orientation.x;
+        table_pose.orientation.y = table_srv.response.orientation.y;
+        table_pose.orientation.z = table_srv.response.orientation.z;
+        table_pose.orientation.w = table_srv.response.orientation.w;
+
+        collision_object_table.primitives.push_back(table_primitive);
+        collision_object_table.pose = table_pose;
+
         rail_manipulation_msgs::SegmentObjects obstacle_srv;
 
         if (not obstacle_client.call(obstacle_srv))
@@ -349,18 +351,41 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        std::cout << "Please enter the grasped object id: " << std::endl;
-        std::string grasped_object_id_str;
-        std::getline(std::cin, grasped_object_id_str);
-        
-        while(is_number(grasped_object_id_str) == false or std::stoi(grasped_object_id_str) >= obstacle_srv.response.segmented_objects.objects.size() or std::stoi(grasped_object_id_str) < 0)
+        int grasped_object_id;
+
+        if(!hasTargetObject) // if the target object is not selected, then select the target object.
         {
-            std::cout << "You should enter a integer and less than the obstacle size number and larger or equal to 0!! " << std::endl;
+            std::cout << "Please enter the grasped object id: " << std::endl;
+            std::string grasped_object_id_str;
             std::getline(std::cin, grasped_object_id_str);
+            
+            while(is_number(grasped_object_id_str) == false or std::stoi(grasped_object_id_str) >= obstacle_srv.response.segmented_objects.objects.size() or std::stoi(grasped_object_id_str) < 0)
+            {
+                std::cout << "You should enter a integer and less than the obstacle size number and larger or equal to 0!! " << std::endl;
+                std::getline(std::cin, grasped_object_id_str);
+            }
+            grasped_object_id = std::stoi(grasped_object_id_str);
+        }
+        else{ // if we have target object transform, then select the target object based on it.
+            grasped_object_id = 0;
+            float min_distance = 1000000;
+            for(int i = 0; i < obstacle_srv.response.segmented_objects.objects.size(); i++)
+            {
+                float diffDistance = (target_object_transform.getOrigin() - tf::Vector3(obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.position.x, obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.position.y, obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.position.z)).length();
+                if(diffDistance < min_distance)
+                {
+                    min_distance = diffDistance;
+                    grasped_object_id = i;
+                }
+            }
+            if(min_distance == 1000000)
+            {
+                ROS_ERROR("No object found on the table");
+                return 0;
+            }
         }
 
-        std::cout << "grasped object id: " << grasped_object_id_str << std::endl;
-        int grasped_object_id = std::stoi(grasped_object_id_str);
+        std::cout << "grasped object id: " << grasped_object_id << std::endl;
         is_target[grasped_object_id] = true;
 
         // need to analyze which obstacle should be moved away before grasping the targect object.
@@ -395,6 +420,15 @@ int main(int argc, char** argv)
 
         std::cout << "the object should be grasped now is: " << front_obstacle_id << std::endl;
 
+        // get the target object transform
+        target_object_transform.setOrigin(tf::Vector3(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.x, 
+                                                        obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.y, 
+                                                        obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.z));
+        target_object_transform.setRotation(tf::Quaternion(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.x, 
+                                                            obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.y, 
+                                                            obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.z, 
+                                                            obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.w));
+
         // we need to extract the grasped object point cloud with full point cloud.
         ros_tensorflow_msgs::Predict grasp_prediction_srv;
 
@@ -402,72 +436,74 @@ int main(int argc, char** argv)
         grasp_prediction_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
         grasp_prediction_srv.request.camera_stamped_transform = camera_stamped_transform;
 
-        if (not grasp_prediction_client.call(grasp_prediction_srv))
-        {
-            ROS_ERROR("Failed to call service grasp prediction");
-            return 1;
-        }
-
-        // find the com of the object.
-        /************************************************************************************/
-        // get the target object transform
-        tf::Transform target_object_transform(tf::Quaternion(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.x, 
-                                                            obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.y, 
-                                                            obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.z, 
-                                                            obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.w), 
-                                            tf::Vector3(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.x, 
-                                                        obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.y, 
-                                                        obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.position.z));
-
-        tf::Vector3 target_com;
-        // get object pose from tf
-        std::vector<std::string> object_names = {"can", "book", "bottle", "hammer"};
-        for(std::string ob: object_names)
-        {   
-            try{
-                tf::StampedTransform object_transform_temp;
-                ros::Time now = ros::Time::now();
-                listener.waitForTransform("/base_link", "/" + ob, ros::Time(0), ros::Duration(1.0));
-                listener.lookupTransform("/base_link", "/" + ob, ros::Time(0), object_transform_temp);
-
-                tf::Vector3 distanceToCom = target_object_transform.inverse() * object_transform_temp.getOrigin();
-
-                if(abs(distanceToCom.x()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x / 2.0 &&
-                abs(distanceToCom.y()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y / 2.0 &&
-                abs(distanceToCom.z()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z / 2.0)
-                {
-                    target_com.setX(object_transform_temp.getOrigin().x());
-                    target_com.setY(object_transform_temp.getOrigin().y());
-                    target_com.setZ(object_transform_temp.getOrigin().z());
-                    break;
-                }
-            }
-            catch(tf::TransformException ex){
-                ROS_ERROR("%s", ex.what());
-                ros::Duration(1.0).sleep();
-            }
-        }
-
-        /************************************************************************************/
-
         std::vector<tf::Transform> grasp_transforms_before_clustering;
         std::vector<float> grasp_jawwidths_before_clustering;
         std::vector<int> grasp_types_before_clustering;
 
-        // add the lifting grasp poses first
-        for(int i = 0; i < grasp_prediction_srv.response.predicted_grasp_poses.size(); i++){
-            if(grasp_prediction_srv.response.scores[i] < 0.5)
-                continue;
-            tf::Stamped<tf::Transform> predicted_grasp_transform;
-            tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
-            if(lift_torque_test(target_com, 1.0, predicted_grasp_transform))
+        tf::Vector3 target_com;
+
+        int grasp_prediction_attempts = 0;
+
+        do{
+            std::cout << "grasp prediction attempts: " << grasp_prediction_attempts << std::endl;
+            if (not grasp_prediction_client.call(grasp_prediction_srv))
             {
-                // if we just want to use contact grasp net alone, we can to here directly
-                grasp_transforms_before_clustering.push_back(target_object_transform.inverse() * predicted_grasp_transform);
-                grasp_jawwidths_before_clustering.push_back(0.08);
-                grasp_types_before_clustering.push_back(0);
+                ROS_ERROR("Failed to call service grasp prediction");
+                return 1;
             }
-        }
+
+            // find the com of the object.
+            /************************************************************************************/            
+            // get object pose from tf
+            std::vector<std::string> object_names = {"can", "book", "bottle", "hammer"};
+            for(std::string ob: object_names)
+            {   
+                try{
+                    tf::StampedTransform object_transform_temp;
+                    ros::Time now = ros::Time::now();
+                    listener.waitForTransform("/base_link", "/" + ob, ros::Time(0), ros::Duration(1.0));
+                    listener.lookupTransform("/base_link", "/" + ob, ros::Time(0), object_transform_temp);
+
+                    tf::Vector3 distanceToCom = target_object_transform.inverse() * object_transform_temp.getOrigin();
+
+                    if(abs(distanceToCom.x()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x / 2.0 &&
+                    abs(distanceToCom.y()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y / 2.0 &&
+                    abs(distanceToCom.z()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z / 2.0)
+                    {
+                        target_com.setX(object_transform_temp.getOrigin().x());
+                        target_com.setY(object_transform_temp.getOrigin().y());
+                        target_com.setZ(object_transform_temp.getOrigin().z());
+                        break;
+                    }
+                }
+                catch(tf::TransformException ex){
+                    ROS_ERROR("%s", ex.what());
+                    ros::Duration(1.0).sleep();
+                }
+            }
+
+            /************************************************************************************/
+        
+            grasp_transforms_before_clustering.clear();
+            grasp_jawwidths_before_clustering.clear();
+            grasp_types_before_clustering.clear();
+
+            // add the lifting grasp poses first
+            for(int i = 0; i < grasp_prediction_srv.response.predicted_grasp_poses.size(); i++){
+                if(grasp_prediction_srv.response.scores[i] < 0.5)
+                    continue;
+                tf::Stamped<tf::Transform> predicted_grasp_transform;
+                tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
+                if(lift_torque_test(target_com, 1.0, predicted_grasp_transform))
+                {
+                    // if we just want to use contact grasp net alone, we can to here directly
+                    grasp_transforms_before_clustering.push_back(target_object_transform.inverse() * predicted_grasp_transform);
+                    grasp_jawwidths_before_clustering.push_back(0.08);
+                    grasp_types_before_clustering.push_back(0);
+                }
+            }
+            grasp_prediction_attempts++;
+        }while(grasp_transforms_before_clustering.size() == 0 and grasp_prediction_attempts < 5); // if no lifting grasp found, try again
 
         if(grasp_transforms_before_clustering.size() == 0)
         {
@@ -615,6 +651,8 @@ int main(int argc, char** argv)
         }
 
         std::vector<std::pair<std::string, robot_trajectory::RobotTrajectory>> robot_action_trajectory_execution_list;
+        bool need_to_reanalyze = true;
+        tf::Transform target_object_transform_during_regrasp;
 
         if(!use_regrasp) // if we don't want to use regrasp, we plan the motion grasp the object directly.
         {
@@ -826,8 +864,6 @@ int main(int argc, char** argv)
             for(int grasp_type_n: regrasp_types_for_init)
                 if(grasp_type_n == 0)
                     numberOfGraspPosesCanLiftDirectly++;
-
-            std::cout << "number of grasp poses can be used to lift up the object directly: " << numberOfGraspPosesCanLiftDirectly << std::endl;
                 
             if(numberOfGraspPosesCanLiftDirectly == 0)
             {
@@ -1309,7 +1345,7 @@ int main(int argc, char** argv)
             target_object_shapes.push_back(shapes::ShapeConstPtr(target_object_shape));
             EigenSTL::vector_Isometry3d shape_poses{Eigen::Isometry3d::Identity()};
 
-            for(int planning_verify_number = 0; planning_verify_number < 2; planning_verify_number++)
+            for(int planning_verify_number = 0; planning_verify_number < 10; planning_verify_number++)
             {
                 // run policy interation for the task.
                 std::cout << "run policy iteration for action sequence" << std::endl;
@@ -1329,6 +1365,7 @@ int main(int argc, char** argv)
 
                 // reset the total trajectory.
                 robot_action_trajectory_execution_list.clear();
+                need_to_reanalyze = true;
 
                 geometry_msgs::Pose current_in_hand_pose_for_placing;
 
@@ -1397,7 +1434,21 @@ int main(int argc, char** argv)
                             // get the cartesian trajectory
                             robot_trajectory::RobotTrajectory cartesian_trajectory = 
                                             robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
-                            robot_action_trajectory_execution_list.push_back(std::make_pair("after_slide", cartesian_trajectory));
+                            if(!action_sequence.isToNextFoliationAt(i)){
+                                robot_action_trajectory_execution_list.push_back(std::make_pair("after_slide", cartesian_trajectory));
+                                if(need_to_reanalyze) // only record the object transform at the before the first regrasping
+                                {
+                                    tf::Transform current_in_hand_transform;
+                                    GeoPoseTotransformTF(action_sequence.getInHandPoseAt(i), current_in_hand_transform);
+                                    tf::Transform current_hand_transform;
+                                    tf::transformEigenToTF(current_state.getGlobalLinkTransform("wrist_roll_link"), current_hand_transform);
+                                    target_object_transform_during_regrasp = current_hand_transform * current_in_hand_transform;
+                                    need_to_reanalyze = false;
+                                }
+                            }
+                            else
+                                robot_action_trajectory_execution_list.push_back(std::make_pair("arm", cartesian_trajectory));
+                            
                             current_state = cartesian_trajectory.getLastWayPoint();
 
                             current_in_hand_pose_for_placing = action_sequence.getInHandPoseAt(i);
@@ -1496,16 +1547,34 @@ int main(int argc, char** argv)
                                             robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group).setRobotTrajectoryMsg(current_state, open_gripper_plan.trajectory_);
                             robot_action_trajectory_execution_list.push_back(std::make_pair("open", open_gripper_trajectory));
                             current_state = open_gripper_trajectory.getLastWayPoint();
+
+                            // 6. execute the cartesian motion
+                            robot_trajectory::RobotTrajectory cartesian_trajectory = 
+                                            robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
+
+                            // 7. add the cartesian trajectory into the total trajectory.
+                            robot_action_trajectory_execution_list.push_back(std::make_pair("after_slide", cartesian_trajectory));
+                            if(need_to_reanalyze) // only record the object transform at the before the first regrasping
+                            {
+                                tf::Transform current_in_hand_transform;
+                                GeoPoseTotransformTF(manipulation_manifold_constraints[m.manifold_id].in_hand_pose, current_in_hand_transform);
+                                tf::Transform current_hand_transform;
+                                tf::transformEigenToTF(current_state.getGlobalLinkTransform("wrist_roll_link"), current_hand_transform);
+                                target_object_transform_during_regrasp = current_hand_transform * current_in_hand_transform;
+                                need_to_reanalyze = false;
+                            }
+                            current_state = cartesian_trajectory.getLastWayPoint();
+                        }
+                        else{
+                            // 6. execute the cartesian motion
+                            robot_trajectory::RobotTrajectory cartesian_trajectory = 
+                                            robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
+
+                            // 7. add the cartesian trajectory into the total trajectory.
+                            robot_action_trajectory_execution_list.push_back(std::make_pair("arm", cartesian_trajectory));
+                            current_state = cartesian_trajectory.getLastWayPoint();
                         }
                         
-                        // 6. execute the cartesian motion
-                        robot_trajectory::RobotTrajectory cartesian_trajectory = 
-                                        robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
-
-                        // 7. add the cartesian trajectory into the total trajectory.
-                        robot_action_trajectory_execution_list.push_back(std::make_pair("after_slide", cartesian_trajectory));
-                        current_state = cartesian_trajectory.getLastWayPoint();
-
                         // 8. detach the object from the end effector in the planning scene.
                         current_state.clearAttachedBody("target_object");
                     }
@@ -1792,6 +1861,9 @@ int main(int argc, char** argv)
                         move_group.execute(re_analyze_plan);
 
                         planning_scene_interface.removeCollisionObjects(planning_scene_interface.getKnownObjectNames());
+
+                        target_object_transform = target_object_transform_during_regrasp;
+                        hasTargetObject = true;
 
                         break;
                     }
