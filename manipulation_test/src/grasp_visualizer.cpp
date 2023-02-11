@@ -4,15 +4,18 @@
 #include "manipulation_test/VisualizeObstacle.h"
 #include "manipulation_test/VisualizeIntermediatePlacements.h"
 #include "manipulation_test/VisualizeRegrasp.h"
+#include <ros_tensorflow_msgs/ComPredict.h>
 #include <tf/transform_listener.h>
 #include <rviz_visual_tools/rviz_visual_tools.h>
 
 class GraspVisualizer
 {
   public:
-    GraspVisualizer()
+    GraspVisualizer(ros::NodeHandle &nh)
     {
       visual_tools_ = std::make_shared<rviz_visual_tools::RvizVisualTools>("base_link", "/rviz_visual_tools");
+      segmented_object_pub = nh.advertise<sensor_msgs::PointCloud2>("segmented_object_for_com_pred", 1);
+      segmented_table_pub = nh.advertise<sensor_msgs::PointCloud2>("segmented_table_for_com_pred", 1);
       has_init = false;
       has_set_table = false;
     }
@@ -198,30 +201,25 @@ class GraspVisualizer
       return true;
     }
 
+    bool setPointCloud(ros_tensorflow_msgs::ComPredict::Request &req, ros_tensorflow_msgs::ComPredict::Response &res)
+    {
+      ROS_INFO("Receive set point cloud request for com prediction");
+      // point_cloud.clear();
+      // for(int i = 0; i < req.point_cloud.size(); i++)
+      // {
+      //   point_cloud.push_back(req.point_cloud[i]);
+      // }
+      segmented_object_pc = req.segmented_point_cloud;
+      segmented_table_pc = req.table_point_cloud;
+
+      return true;
+    }
+
     void update()
     {
+      segmented_object_pub.publish(segmented_object_pc);
+      segmented_table_pub.publish(segmented_table_pc);
       visual_tools_->deleteAllMarkers();
-
-      // if(not has_init)
-      //   return;
-      // tf::StampedTransform object_transform;
-      // try{
-      //   ros::Time now = ros::Time::now();
-      //   listener.waitForTransform("/" + OBJECT_NAME, "/base_link", now, ros::Duration(1.0));
-      //   listener.lookupTransform("/base_link","/" + OBJECT_NAME, now, object_transform);
-      // }
-      // catch(tf::TransformException ex){
-      //   ROS_ERROR("%s", ex.what());
-      //   ros::Duration(1.0).sleep();
-      // }
-
-      // visualizeObject(object_transform);
-
-      // for(int i = 0; i < grasp_data_list.size(); i++)
-      // {
-      //   tf::Transform gripper_transform = object_transform * grasp_data_list[i].grasp_transform;
-      //   visualizeGrasp(gripper_transform, grasp_data_list[i].gripper_width, grasp_data_list[i].grasp_type == 0 ? rviz_visual_tools::GREEN : rviz_visual_tools::RED);
-      // }
 
       for(int i = 0; i < regrasp_data_list.size(); i++)
       {
@@ -315,6 +313,10 @@ class GraspVisualizer
       p.position.z = t.getOrigin().z();
     }
 
+    ros::Publisher segmented_object_pub;
+    ros::Publisher segmented_table_pub;
+
+
     tf::TransformListener listener;
     rviz_visual_tools::RvizVisualToolsPtr visual_tools_;
     std::string OBJECT_NAME;
@@ -330,6 +332,9 @@ class GraspVisualizer
     std::vector<int> obstacle_ids;
     std::vector<bool> is_target;
 
+    sensor_msgs::PointCloud2 segmented_object_pc;
+    sensor_msgs::PointCloud2 segmented_table_pc;
+
     bool has_init;
     bool has_set_table;
 };
@@ -339,7 +344,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "grasp_visulizer_server");
   ros::NodeHandle n;
 
-  GraspVisualizer graspvis;
+  GraspVisualizer graspvis(n);
 
   ros::ServiceServer visualize_grasp_service = n.advertiseService("visualize_grasp", &GraspVisualizer::setGrasp, &graspvis);
 
@@ -350,6 +355,8 @@ int main(int argc, char **argv)
   ros::ServiceServer visualize_obstacle_service = n.advertiseService("visualize_obstacle", &GraspVisualizer::setObstacles, &graspvis);
 
   ros::ServiceServer visualize_intermediate_placements_service = n.advertiseService("visualize_intermediate_placements", &GraspVisualizer::setIntermediatePlacements, &graspvis);
+
+  ros::ServiceServer visualize_point_cloud_service = n.advertiseService("visualize_point_cloud", &GraspVisualizer::setPointCloud, &graspvis);
 
   ros::Rate r(5);
   while(ros::ok())

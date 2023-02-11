@@ -132,6 +132,33 @@ bool is_in_view(tf::Vector3 point_3d, double fx, double fy, double tx, double ty
         return true;
 }
 
+void generatePointCloudOfPlane(tf::Transform planePose, double planeWidth, double planeLength, double planeHeight, double planeResolution, sensor_msgs::PointCloud2 &planePointCloud)
+{
+    // generate PointCloud2 of the plane
+    pcl::PointCloud<pcl::PointXYZ> plane_cloud;
+    plane_cloud.width = planeWidth / planeResolution;
+    plane_cloud.height = planeLength / planeResolution;
+    plane_cloud.is_dense = false;
+    plane_cloud.points.resize(plane_cloud.width * plane_cloud.height);
+
+    for (size_t i = 0; i < plane_cloud.points.size(); ++i)
+    {
+        plane_cloud.points[i].x = - planeHeight / 2.0;
+        plane_cloud.points[i].y = (i % (int)plane_cloud.width) * planeResolution - planeWidth / 2.0;
+        plane_cloud.points[i].z = (i / (int)plane_cloud.width) * planeResolution - planeLength / 2.0;
+    }
+
+    // convert tf::Transform to Eigen::Affine3d
+    Eigen::Affine3d plane_pose;
+    tf::transformTFToEigen(planePose, plane_pose);
+
+    // transform the point cloud
+    pcl::transformPointCloud(plane_cloud, plane_cloud, plane_pose);
+
+    pcl::toROSMsg(plane_cloud, planePointCloud);
+    planePointCloud.header.frame_id = "base_link";
+}
+
 
 int main(int argc, char** argv)
 {
@@ -140,7 +167,7 @@ int main(int argc, char** argv)
 
     //////////////////////////////////////////
     bool use_regrasp = true;
-    bool is_execute = true;
+    bool is_execute = false;
     bool re_analyze = true;
     //////////////////////////////////////////
     if(!is_execute) // re-analyze must be used when is_execute is true.
@@ -242,6 +269,9 @@ int main(int argc, char** argv)
     // visualize the random target object poses
     ros::ServiceClient intermediate_placements_visualizer = node_handle.serviceClient<manipulation_test::VisualizeIntermediatePlacements>("visualize_intermediate_placements");
     intermediate_placements_visualizer.waitForExistence();
+
+    ros::ServiceClient com_predict_visualizer = node_handle.serviceClient<ros_tensorflow_msgs::ComPredict>("visualize_point_cloud");
+    com_predict_visualizer.waitForExistence();
 
     // need to get the camera pose as well.
     tf::StampedTransform camera_transform;
@@ -458,7 +488,28 @@ int main(int argc, char** argv)
             }
 
             // find the com of the object.
-            /************************************************************************************/            
+            /************************************************************************************/
+
+            // // get the lower corners points of bounding box
+            // float cx = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x /= 2.0;
+            // float cy = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y /= 2.0;
+            // float cz = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z /= 2.0;
+
+            sensor_msgs::PointCloud2 cropped_table_point_cloud;
+            generatePointCloudOfPlane(target_object_transform, 
+                                obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y * 1.7,
+                                obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z * 1.7,
+                                obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x,
+                                0.005,
+                                cropped_table_point_cloud);
+
+            ros_tensorflow_msgs::ComPredict com_predict_srv;
+            com_predict_srv.request.table_point_cloud = cropped_table_point_cloud;
+            com_predict_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
+            com_predict_srv.request.camera_stamped_transform = camera_stamped_transform;
+
+            com_predict_visualizer.call(com_predict_srv);
+            
             // get object pose from tf
             std::vector<std::string> object_names = {"can", "book", "bottle", "hammer"};
             for(std::string ob: object_names)
