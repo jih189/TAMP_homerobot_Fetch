@@ -26,6 +26,7 @@
 #include <sensor_msgs/CameraInfo.h>
 
 #include <ros_tensorflow_msgs/Predict.h>
+#include <ros_tensorflow_msgs/ComPredict.h>
 
 #include <actionlib/client/simple_action_client.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
@@ -441,6 +442,10 @@ int main(int argc, char** argv)
         std::vector<int> grasp_types_before_clustering;
 
         tf::Vector3 target_com;
+
+        moveit_msgs::CollisionObject collision_object_target;
+        collision_object_target.header.frame_id = move_group.getPlanningFrame();
+        collision_object_target.id =  "target_object";
 
         int grasp_prediction_attempts = 0;
 
@@ -1307,11 +1312,7 @@ int main(int argc, char** argv)
             std::cout << "init constraints done" << std::endl;
 
             // init the target object as the collision object for re-grasping without pose.
-            moveit_msgs::CollisionObject collision_object_target;
-            collision_object_target.header.frame_id = move_group.getPlanningFrame();
-
-            collision_object_target.id =  "target_object";
-
+            collision_object_target.primitives.clear();
             shape_msgs::SolidPrimitive target_primitive;
             target_primitive.type = target_primitive.BOX;
             target_primitive.dimensions.resize(3);
@@ -1593,7 +1594,6 @@ int main(int argc, char** argv)
                         target_object_pose.orientation.w = feasible_intermediate_placement_transforms[m.manifold_id].getRotation().w();
                         
                         collision_object_target.pose = target_object_pose;
-
                         collision_object_target.operation = collision_object_target.ADD;
                         planning_scene_interface.applyCollisionObject(collision_object_target);
 
@@ -1616,9 +1616,11 @@ int main(int argc, char** argv)
                         move_group.setJointValueTarget(target_joint_positions_double);
 
                         // 5. plan and execute the motion
+                        move_group.setMaxVelocityScalingFactor(1.0);
                         moveit::planning_interface::MoveGroupInterface::Plan regrasp_plan;
                         std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
                         bool success = (move_group.plan(regrasp_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                        move_group.setMaxVelocityScalingFactor(0.1);
 
                         move_group.clearPathConstraints();
                         move_group.clearInHandPose();
@@ -1781,6 +1783,7 @@ int main(int argc, char** argv)
         
         }
 
+        // where there is no solution, we need to reset the arm to home position.
         if(robot_action_trajectory_execution_list.size() == 0)
         {
             // reset the arm to home position
@@ -1833,6 +1836,12 @@ int main(int argc, char** argv)
                     move_group.execute(plan);
 
                     if(re_analyze){ // need to reanalyze the target object before re-grasping.
+                        geometry_msgs::Pose target_object_pose;
+                        transformTFToGeoPose(target_object_transform_during_regrasp, target_object_pose);
+                        collision_object_target.pose = target_object_pose;
+                        collision_object_target.operation = collision_object_target.ADD;
+                        planning_scene_interface.applyCollisionObject(collision_object_target);
+
                         collision_object_table.operation = collision_object_table.ADD;
                         planning_scene_interface.applyCollisionObject(collision_object_table);
                         std::cout << "move arm before re-grasping" << std::endl;
@@ -1841,9 +1850,11 @@ int main(int argc, char** argv)
 
                         move_group.setPositionTarget(0.248, -0.71, 0.721);
                         move_group.setCleanPlanningContextFlag(true);
+                        move_group.setMaxVelocityScalingFactor(1.0);
                         moveit::planning_interface::MoveGroupInterface::Plan re_analyze_plan;
                         std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
                         bool success = (move_group.plan(re_analyze_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                        move_group.setMaxVelocityScalingFactor(0.1);
 
                         move_group.clearPathConstraints();
                         move_group.clearInHandPose();

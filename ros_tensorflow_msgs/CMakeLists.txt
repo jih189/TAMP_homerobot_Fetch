@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
   FILES
   Predict.srv
+  ComPredict.srv
 )
 
 generate_messages(

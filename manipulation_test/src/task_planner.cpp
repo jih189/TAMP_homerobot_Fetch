@@ -228,6 +228,8 @@ bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector
                                  current_action_node_id,
                                  false,
                                  geometry_msgs::Pose());
+    
+    int lenth_of_action_sequence = 0;
 
     // generate the action sequence
     int policy = action_nodes[current_action_node_id].policy;
@@ -256,6 +258,13 @@ bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector
         }
 
         policy = action_nodes[current_action_node_id].policy;
+        
+        lenth_of_action_sequence++;
+        if(lenth_of_action_sequence > 100)
+        {
+            std::cout << "the length of action sequence is too long!" << std::endl;
+            return false;
+        }
     }
     return true;
 }
