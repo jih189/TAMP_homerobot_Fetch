@@ -1336,7 +1336,7 @@ int main(int argc, char** argv)
 
             // setup the motion planner
             move_group.setPlannerId("CLazyPRMConfigDefault");
-            move_group.setPlanningTime(5.0);
+            move_group.setPlanningTime(1.0);
 
             // initialize the target object as the attached object.
             shapes::Shape* target_object_shape = new shapes::Box(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.x,
@@ -1346,7 +1346,7 @@ int main(int argc, char** argv)
             target_object_shapes.push_back(shapes::ShapeConstPtr(target_object_shape));
             EigenSTL::vector_Isometry3d shape_poses{Eigen::Isometry3d::Identity()};
 
-            for(int planning_verify_number = 0; planning_verify_number < 10; planning_verify_number++)
+            for(int planning_verify_number = 0; planning_verify_number < 50; planning_verify_number++)
             {
                 // run policy interation for the task.
                 std::cout << "run policy iteration for action sequence" << std::endl;
@@ -1501,13 +1501,14 @@ int main(int argc, char** argv)
 
                             // 5. plan and execute the motion
                             
-                            std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
-                            bool success = (move_group.plan(slide_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                            // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+                            // bool success = (move_group.plan(slide_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                            bool success = (move_group.plan(slide_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
                             
                             // reset the move group
                             move_group.clearPathConstraints();
                             move_group.clearAction();
-                            move_group.clearExperience();
+                            // move_group.clearExperience();
                             move_group.clearPoseTargets();
                             move_group.clearInHandPose();
 
@@ -1618,14 +1619,15 @@ int main(int argc, char** argv)
                         // 5. plan and execute the motion
                         move_group.setMaxVelocityScalingFactor(1.0);
                         moveit::planning_interface::MoveGroupInterface::Plan regrasp_plan;
-                        std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
-                        bool success = (move_group.plan(regrasp_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                        // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+                        // bool success = (move_group.plan(regrasp_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                        bool success = (move_group.plan(regrasp_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
                         move_group.setMaxVelocityScalingFactor(0.1);
 
                         move_group.clearPathConstraints();
                         move_group.clearInHandPose();
                         move_group.clearAction();
-                        move_group.clearExperience();
+                        // move_group.clearExperience();
                         move_group.clearPoseTargets();
                         move_group.clearInHandPose();
 
@@ -1750,13 +1752,14 @@ int main(int argc, char** argv)
                     move_group.setPositionTarget(0.248, -0.658, 0.721);
                     move_group.setCleanPlanningContextFlag(true);
                     moveit::planning_interface::MoveGroupInterface::Plan placing_plan;
-                    std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
-                    bool success = (move_group.plan(placing_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                    // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+                    // bool success = (move_group.plan(placing_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                    bool success = (move_group.plan(placing_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 
                     move_group.clearPathConstraints();
                     move_group.clearInHandPose();
                     move_group.clearAction();
-                    move_group.clearExperience();
+                    // move_group.clearExperience();
                     move_group.clearPoseTargets();
                     move_group.clearInHandPose();
 
@@ -1793,8 +1796,9 @@ int main(int argc, char** argv)
             move_group.setJointValueTarget(home_joint_values);
             move_group.setCleanPlanningContextFlag(true);
             moveit::planning_interface::MoveGroupInterface::Plan home_plan;
-            std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
-            move_group.plan(home_plan, experience);
+            // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+            // move_group.plan(home_plan, experience);
+            move_group.plan(home_plan);
 
             planning_scene_interface.removeCollisionObjects(planning_scene_interface.getKnownObjectNames());
 
@@ -1852,14 +1856,15 @@ int main(int argc, char** argv)
                         move_group.setCleanPlanningContextFlag(true);
                         move_group.setMaxVelocityScalingFactor(1.0);
                         moveit::planning_interface::MoveGroupInterface::Plan re_analyze_plan;
-                        std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
-                        bool success = (move_group.plan(re_analyze_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                        // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+                        // bool success = (move_group.plan(re_analyze_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                        bool success = (move_group.plan(re_analyze_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
                         move_group.setMaxVelocityScalingFactor(0.1);
 
                         move_group.clearPathConstraints();
                         move_group.clearInHandPose();
                         move_group.clearAction();
-                        move_group.clearExperience();
+                        // move_group.clearExperience();
                         move_group.clearPoseTargets();
                         move_group.clearInHandPose();
 
