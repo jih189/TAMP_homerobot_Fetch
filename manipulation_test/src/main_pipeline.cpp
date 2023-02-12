@@ -20,6 +20,7 @@
 #include "manipulation_test/VisualizeObstacle.h"
 #include "manipulation_test/VisualizeIntermediatePlacements.h"
 #include "manipulation_test/VisualizeRegrasp.h"
+#include "manipulation_test/VisualizeCom.h"
 
 #include <rail_segmentation/SearchTable.h>
 #include <rail_manipulation_msgs/SegmentObjects.h>
@@ -166,9 +167,9 @@ int main(int argc, char** argv)
     ros::NodeHandle node_handle;
 
     //////////////////////////////////////////
-    bool use_regrasp = true;
-    bool is_execute = false;
-    bool re_analyze = true;
+    bool use_regrasp = true; // if true, the regrasp is used.
+    bool is_execute = false; // if true, the robot is executed.
+    bool re_analyze = true; // if true, replanning will be run for each re-grasping.
     //////////////////////////////////////////
     if(!is_execute) // re-analyze must be used when is_execute is true.
         re_analyze = false;
@@ -263,6 +264,9 @@ int main(int argc, char** argv)
     // init client for grasp prediction.
     ros::ServiceClient grasp_prediction_client = node_handle.serviceClient<ros_tensorflow_msgs::Predict>("grasp_predict");
     grasp_prediction_client.waitForExistence();
+    // init client for center of mass prediction.
+    ros::ServiceClient com_prediction_client = node_handle.serviceClient<ros_tensorflow_msgs::ComPredict>("CoMPredict");
+    com_prediction_client.waitForExistence();
     // show the grasp prediction result
     ros::ServiceClient regrasp_poses_visualizer = node_handle.serviceClient<manipulation_test::VisualizeRegrasp>("visualize_regrasp");
     regrasp_poses_visualizer.waitForExistence();
@@ -270,7 +274,7 @@ int main(int argc, char** argv)
     ros::ServiceClient intermediate_placements_visualizer = node_handle.serviceClient<manipulation_test::VisualizeIntermediatePlacements>("visualize_intermediate_placements");
     intermediate_placements_visualizer.waitForExistence();
 
-    ros::ServiceClient com_predict_visualizer = node_handle.serviceClient<ros_tensorflow_msgs::ComPredict>("visualize_point_cloud");
+    ros::ServiceClient com_predict_visualizer = node_handle.serviceClient<manipulation_test::VisualizeCom>("visualize_point_cloud");
     com_predict_visualizer.waitForExistence();
 
     // need to get the camera pose as well.
@@ -489,12 +493,6 @@ int main(int argc, char** argv)
 
             // find the com of the object.
             /************************************************************************************/
-
-            // // get the lower corners points of bounding box
-            // float cx = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x /= 2.0;
-            // float cy = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y /= 2.0;
-            // float cz = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z /= 2.0;
-
             sensor_msgs::PointCloud2 cropped_table_point_cloud;
             generatePointCloudOfPlane(target_object_transform, 
                                 obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y * 1.7,
@@ -507,36 +505,56 @@ int main(int argc, char** argv)
             com_predict_srv.request.table_point_cloud = cropped_table_point_cloud;
             com_predict_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
             com_predict_srv.request.camera_stamped_transform = camera_stamped_transform;
-
-            com_predict_visualizer.call(com_predict_srv);
-            
-            // get object pose from tf
-            std::vector<std::string> object_names = {"can", "book", "bottle", "hammer"};
-            for(std::string ob: object_names)
-            {   
-                try{
-                    tf::StampedTransform object_transform_temp;
-                    ros::Time now = ros::Time::now();
-                    listener.waitForTransform("/base_link", "/" + ob, ros::Time(0), ros::Duration(1.0));
-                    listener.lookupTransform("/base_link", "/" + ob, ros::Time(0), object_transform_temp);
-
-                    tf::Vector3 distanceToCom = target_object_transform.inverse() * object_transform_temp.getOrigin();
-
-                    if(abs(distanceToCom.x()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x / 2.0 &&
-                    abs(distanceToCom.y()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y / 2.0 &&
-                    abs(distanceToCom.z()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z / 2.0)
-                    {
-                        target_com.setX(object_transform_temp.getOrigin().x());
-                        target_com.setY(object_transform_temp.getOrigin().y());
-                        target_com.setZ(object_transform_temp.getOrigin().z());
-                        break;
-                    }
-                }
-                catch(tf::TransformException ex){
-                    ROS_ERROR("%s", ex.what());
-                    ros::Duration(1.0).sleep();
-                }
+            if (not com_prediction_client.call(com_predict_srv))
+            {
+                ROS_ERROR("Failed to call service center of mass prediction");
+                return 1;
             }
+            // otherwise, store the result in the target_com
+            target_com.setX(com_predict_srv.response.com.x);
+            target_com.setY(com_predict_srv.response.com.y);
+            target_com.setZ(com_predict_srv.response.com.z);
+
+            // get object pose from tf TODO: delete if COMpredict is working
+            // std::vector<std::string> object_names = {"can", "book", "bottle", "hammer"};
+            // for(std::string ob: object_names)
+            // {   
+            //     try{
+            //         tf::StampedTransform object_transform_temp;
+            //         ros::Time now = ros::Time::now();
+            //         listener.waitForTransform("/base_link", "/" + ob, ros::Time(0), ros::Duration(1.0));
+            //         listener.lookupTransform("/base_link", "/" + ob, ros::Time(0), object_transform_temp);
+
+            //         tf::Vector3 distanceToCom = target_object_transform.inverse() * object_transform_temp.getOrigin();
+
+            //         if(abs(distanceToCom.x()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x / 2.0 &&
+            //         abs(distanceToCom.y()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y / 2.0 &&
+            //         abs(distanceToCom.z()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z / 2.0)
+            //         {
+            //             target_com.setX(object_transform_temp.getOrigin().x());
+            //             target_com.setY(object_transform_temp.getOrigin().y());
+            //             target_com.setZ(object_transform_temp.getOrigin().z());
+            //             break;
+            //         }
+            //     }
+            //     catch(tf::TransformException ex){
+            //         ROS_ERROR("%s", ex.what());
+            //         ros::Duration(1.0).sleep();
+            //     }
+            // }
+
+            manipulation_test::VisualizeCom com_visualize_srv;
+            // com_visualize_srv.request.com = com_predict_srv.response.com;
+            std::cout << "predicted com: " << target_com.x() << ", " << target_com.y() << ", " << target_com.z() << std::endl;
+            geometry_msgs::Point com_point;
+            com_point.x = target_com.x();
+            com_point.y = target_com.y();
+            com_point.z = target_com.z();
+            com_visualize_srv.request.com = com_point;
+            com_visualize_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
+            com_visualize_srv.request.table_point_cloud = cropped_table_point_cloud;
+
+            com_predict_visualizer.call(com_visualize_srv);
 
             /************************************************************************************/
         

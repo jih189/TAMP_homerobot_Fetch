@@ -83,7 +83,7 @@ link_directories(${FCL_LIBRARY_DIRS})
 # )
 
 ## Generate services in the 'srv' folder
-add_service_files(DIRECTORY srv FILES VisualizeGrasp.srv VisualizeTable.srv VisualizeObstacle.srv VisualizeIntermediatePlacements.srv VisualizeRegrasp.srv)
+add_service_files(DIRECTORY srv FILES VisualizeGrasp.srv VisualizeTable.srv VisualizeObstacle.srv VisualizeIntermediatePlacements.srv VisualizeRegrasp.srv VisualizeCom.srv)
 
 ## Generate actions in the 'action' folder
 # add_action_files(

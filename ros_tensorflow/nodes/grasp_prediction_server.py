@@ -66,7 +66,7 @@ class RosInterface():
 
 
 def main():
-    rospy.init_node("ros_tensorflow")
+    rospy.init_node("grasp_prediction_server")
     rospy.loginfo("Creating the Tensorflow model")
     ri = RosInterface()
     rospy.loginfo("ros_tensorflow node initialized")

@@ -4,6 +4,7 @@
 #include "manipulation_test/VisualizeObstacle.h"
 #include "manipulation_test/VisualizeIntermediatePlacements.h"
 #include "manipulation_test/VisualizeRegrasp.h"
+#include "manipulation_test/VisualizeCom.h"
 #include <ros_tensorflow_msgs/ComPredict.h>
 #include <tf/transform_listener.h>
 #include <rviz_visual_tools/rviz_visual_tools.h>
@@ -201,16 +202,17 @@ class GraspVisualizer
       return true;
     }
 
-    bool setPointCloud(ros_tensorflow_msgs::ComPredict::Request &req, ros_tensorflow_msgs::ComPredict::Response &res)
+    bool setPointCloud(manipulation_test::VisualizeCom::Request &req, manipulation_test::VisualizeCom::Response &res)
     {
       ROS_INFO("Receive set point cloud request for com prediction");
-      // point_cloud.clear();
-      // for(int i = 0; i < req.point_cloud.size(); i++)
-      // {
-      //   point_cloud.push_back(req.point_cloud[i]);
-      // }
+
       segmented_object_pc = req.segmented_point_cloud;
       segmented_table_pc = req.table_point_cloud;
+      center_of_mass.x = req.com.x;
+      center_of_mass.y = req.com.y;
+      center_of_mass.z = req.com.z;
+
+      std::cout << "received com: " << center_of_mass.x << " " << center_of_mass.y << " " << center_of_mass.z << std::endl;
 
       return true;
     }
@@ -231,6 +233,8 @@ class GraspVisualizer
       visualizeObstacles();
 
       visualizeIntermediatePlacements();
+
+      visualizePoint();
 
       visual_tools_->trigger();
     }
@@ -266,6 +270,11 @@ class GraspVisualizer
       visual_tools_->publishLine(gripper_axis_1_point, gripper_fingertip_1_point, color, rviz_visual_tools::MEDIUM);
       visual_tools_->publishLine(gripper_axis_2_point, gripper_fingertip_2_point, color, rviz_visual_tools::MEDIUM);
       visual_tools_->publishLine(gripper_center_point, gripper_end_point, color, rviz_visual_tools::MEDIUM);
+    }
+
+    void visualizePoint()
+    {
+      visual_tools_->publishSphere(center_of_mass, rviz_visual_tools::GREEN, rviz_visual_tools::MEDIUM);
     }
 
     void visualizeTable()
@@ -334,6 +343,8 @@ class GraspVisualizer
 
     sensor_msgs::PointCloud2 segmented_object_pc;
     sensor_msgs::PointCloud2 segmented_table_pc;
+
+    geometry_msgs::Point center_of_mass;
 
     bool has_init;
     bool has_set_table;
