@@ -20,10 +20,6 @@ from pointnet_util import pointnet_sa_module, pointnet_fp_module, pointnet_sa_mo
 from tf_sampling import farthest_point_sample, gather_point
 from tf_grouping import query_ball_point, group_point, knn_point
 
-# see if my gpu is working
-print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
-
-
 
 def get_model(point_cloud, is_training, bn_decay):
     l0_xyz = tf.slice(point_cloud, [0,0,0], [-1,-1,3])

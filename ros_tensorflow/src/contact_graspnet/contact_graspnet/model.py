@@ -29,20 +29,22 @@ class ModelWrapper():
         global_config = config_utils.load_config(checkpoint_dir, batch_size=1, arg_configs=[])
         print(str(global_config))
         print('pid: %s'%(str(os.getpid())))
-        self.grasp_estimator = GraspEstimator(global_config)
-        self.grasp_estimator.build_network()
+        # use GPU 1
+        with tf.device('/gpu:1'):
+            self.grasp_estimator = GraspEstimator(global_config)
+            self.grasp_estimator.build_network()
 
-        # Add ops to save and restore all the variables.
-        saver = tf.train.Saver(save_relative_paths=True)
-        
-        # Create a session
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        config.allow_soft_placement = True
-        self.sess = tf.Session(config=config)
+            # Add ops to save and restore all the variables.
+            saver = tf.train.Saver(save_relative_paths=True)
+            
+            # Create a session
+            config = tf.ConfigProto()
+            config.gpu_options.allow_growth = True
+            config.allow_soft_placement = True
+            self.sess = tf.Session(config=config)
 
-        # Load weights
-        self.grasp_estimator.load_weights(self.sess, saver, checkpoint_dir, mode='test')
+            # Load weights
+            self.grasp_estimator.load_weights(self.sess, saver, checkpoint_dir, mode='test')
 
     def predict(self, pc_full, pc_segment):
         pc_segments = {}

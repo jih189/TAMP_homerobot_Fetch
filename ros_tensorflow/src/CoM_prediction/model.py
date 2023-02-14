@@ -23,18 +23,19 @@ class ModelWrapper():
 
         # create the model
         self.pred, _ = get_model2(self.pointclouds_pl, self.is_training_pl, bn_decay=None)
-        
+
         # resore session
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         config.allow_soft_placement = True
-        config.log_device_placement = False
+        config.log_device_placement = True
         self.sess = tf.Session(config=config)
 
         # restore the model
-        saver = tf.train.import_meta_graph(os.path.join(BASE_DIR, 'log2', 'model.ckpt.index'))
-        print("saver: ", saver)
+        print("Restoring the model from: ", os.path.join(BASE_DIR, 'log2', 'model.ckpt.index'))
+        saver = tf.train.import_meta_graph(os.path.join(BASE_DIR, 'log2', 'model.ckpt.index'), clear_devices=True)
         saver.restore(self.sess, os.path.join(BASE_DIR, 'log2', 'model.ckpt'))
+
 
 
     def predict(self, x):
