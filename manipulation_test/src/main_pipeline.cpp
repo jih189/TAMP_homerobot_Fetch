@@ -168,7 +168,7 @@ int main(int argc, char** argv)
 
     //////////////////////////////////////////
     bool use_regrasp = true; // if true, the regrasp is used.
-    bool is_execute = true; // if true, the robot is executed.
+    bool is_execute = false; // if true, the robot is executed.
     bool re_analyze = true; // if true, replanning will be run for each re-grasping.
     //////////////////////////////////////////
     if(!is_execute) // re-analyze must be used when is_execute is true.
@@ -476,6 +476,7 @@ int main(int argc, char** argv)
         std::vector<int> grasp_types_before_clustering;
 
         tf::Vector3 target_com;
+        tf::Vector3 target_com_in_object_frame;
 
         moveit_msgs::CollisionObject collision_object_target;
         collision_object_target.header.frame_id = move_group.getPlanningFrame();
@@ -514,6 +515,8 @@ int main(int argc, char** argv)
             target_com.setX(com_predict_srv.response.com.x);
             target_com.setY(com_predict_srv.response.com.y);
             target_com.setZ(com_predict_srv.response.com.z);
+
+            target_com_in_object_frame = target_object_transform.inverse() * target_com;
 
             // get object pose from tf TODO: delete if COMpredict is working
             // std::vector<std::string> object_names = {"can", "book", "bottle", "hammer"};
@@ -986,6 +989,14 @@ int main(int argc, char** argv)
 
                     // for object_z_3d_neg
                     if(!is_in_view(object_z_3d_neg, camera_info.K[0], camera_info.K[4], camera_info.K[2], camera_info.K[5], camera_info.width, camera_info.height))
+                        continue;
+
+                    // the object's com should be on the table during regrasping.
+                    tf::Vector3 random_object_com = random_target_object_transform_in_table_frame * target_com_in_object_frame;
+                    if(random_object_com.x() <  - table_srv.response.depth / 2.0 || random_object_com.x() > table_srv.response.depth / 2.0)
+                        continue;
+
+                    if(random_object_com.y() <  - table_srv.response.width / 2.0 || random_object_com.y() > table_srv.response.width / 2.0)
                         continue;
 
                     // set the target collision object transform
