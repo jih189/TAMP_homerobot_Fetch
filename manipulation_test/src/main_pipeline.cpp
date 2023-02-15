@@ -168,7 +168,7 @@ int main(int argc, char** argv)
 
     //////////////////////////////////////////
     bool use_regrasp = true; // if true, the regrasp is used.
-    bool is_execute = true; // if true, the robot is executed.
+    bool is_execute = false; // if true, the robot is executed.
     bool re_analyze = true; // if true, replanning will be run for each re-grasping.
     //////////////////////////////////////////
     if(!is_execute) // re-analyze must be used when is_execute is true.
