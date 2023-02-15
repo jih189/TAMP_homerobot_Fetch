@@ -1416,7 +1416,7 @@ int main(int argc, char** argv)
 
             // setup the motion planner
             move_group.setPlannerId("CLazyPRMConfigDefault");
-            move_group.setPlanningTime(1.0);
+            move_group.setPlanningTime(0.4);
 
             // initialize the target object as the attached object.
             shapes::Shape* target_object_shape = new shapes::Box(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.x,
