@@ -168,7 +168,7 @@ int main(int argc, char** argv)
 
     //////////////////////////////////////////
     bool use_regrasp = true; // if true, the regrasp is used.
-    bool is_execute = false; // if true, the robot is executed.
+    bool is_execute = true; // if true, the robot is executed.
     bool re_analyze = true; // if true, replanning will be run for each re-grasping.
     //////////////////////////////////////////
     if(!is_execute) // re-analyze must be used when is_execute is true.
@@ -242,6 +242,19 @@ int main(int argc, char** argv)
     srand(time(0));
     KDL::JntArray random_joint_array(chain.getNrOfJoints());
     std::vector<std::string> joint_names = move_group.getActiveJoints();
+
+    std::cout << "setting arm to home position" << std::endl;
+    // reset the arm to home position
+    move_group.setPlannerId("RRTConnectkConfigDefault");
+    move_group.setStartState(*(move_group.getCurrentState()));
+
+    move_group.setJointValueTarget(home_joint_values);
+    move_group.setCleanPlanningContextFlag(true);
+    moveit::planning_interface::MoveGroupInterface::Plan home_plan;
+    // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+    // move_group.plan(home_plan, experience);
+    move_group.plan(home_plan);
+    move_group.execute(home_plan);
 
     // init the moveit visual tools for visualization
     moveit_visual_tools::MoveItVisualToolsPtr trajectory_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link");
@@ -585,6 +598,18 @@ int main(int argc, char** argv)
         if(grasp_transforms_before_clustering.size() == 0)
         {
             ROS_ERROR("No lifting grasp found");
+            // here we need to add a function to move the arm back to the initial position
+            std::cout << "resetting arm to innocuous position" << std::endl;
+            // reset the arm to home position
+            move_group.setPlannerId("RRTConnectkConfigDefault");
+            move_group.setStartState(*(move_group.getCurrentState()));
+
+            move_group.setJointValueTarget(home_joint_values);
+            move_group.setCleanPlanningContextFlag(true);
+            moveit::planning_interface::MoveGroupInterface::Plan home_plan;
+            // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+            // move_group.plan(home_plan, experience);
+            move_group.plan(home_plan);
             return 1;
         }
 
