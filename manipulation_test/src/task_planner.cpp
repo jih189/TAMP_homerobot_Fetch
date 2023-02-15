@@ -285,7 +285,7 @@ void TaskPlanner::updateTaskPlanner(const ActionSequence &action_sequence)
             // update the success rate of current edge in task graph.
             std::vector<long unsigned int>::iterator itr = std::find(action_nodes[previous_node_id].next_action_node_ids.begin(), action_nodes[previous_node_id].next_action_node_ids.end(), next_node_id);
             int policyIndexForNextNode = std::distance(action_nodes[previous_node_id].next_action_node_ids.begin(), itr);
-            action_nodes[previous_node_id].next_action_success_probabilities[policyIndexForNextNode] *= 0.7;
+            action_nodes[previous_node_id].next_action_success_probabilities[policyIndexForNextNode] *= 0.85;
 
             // update the success rate in opposte edge too
             itr = std::find(action_nodes[next_node_id].next_action_node_ids.begin(), action_nodes[next_node_id].next_action_node_ids.end(), previous_node_id);
@@ -295,10 +295,99 @@ void TaskPlanner::updateTaskPlanner(const ActionSequence &action_sequence)
                 break;
             }
             policyIndexForNextNode = std::distance(action_nodes[next_node_id].next_action_node_ids.begin(), itr);
-            action_nodes[next_node_id].next_action_success_probabilities[policyIndexForNextNode] *= 0.7;
+            action_nodes[next_node_id].next_action_success_probabilities[policyIndexForNextNode] *= 0.85;
 
             // need to update the success rate of similar edges in task graph.
             //TODO
+            long unsigned int failed_pre_node_manifold_id = action_nodes[previous_node_id].in_state.manifold_id;
+            long unsigned int failed_pre_node_foliation_id = action_nodes[previous_node_id].in_state.foliation_id;
+            bool failed_pre_node_is_in_manipulation_manifold = action_nodes[previous_node_id].in_state.is_in_manipulation_manifold;
+
+            long unsigned int failed_next_node_manifold_id = action_nodes[next_node_id].out_state.manifold_id;
+            long unsigned int failed_next_node_foliation_id = action_nodes[next_node_id].out_state.foliation_id;
+            bool failed_next_node_is_in_manipulation_manifold = action_nodes[next_node_id].out_state.is_in_manipulation_manifold;
+
+            // long unsigned int failed_current_node_manifold_id = action_nodes[next_node_id].in_state.manifold_id;
+            if(
+                action_nodes[previous_node_id].out_state.manifold_id != action_nodes[next_node_id].in_state.manifold_id ||
+                action_nodes[previous_node_id].out_state.foliation_id != action_nodes[next_node_id].in_state.foliation_id ||
+                action_nodes[previous_node_id].out_state.is_in_manipulation_manifold != action_nodes[next_node_id].in_state.is_in_manipulation_manifold
+            )
+            {
+                std::cerr << "-----------------------------------------------------" << std::endl;
+                std::cerr << "something wrong in updateTaskPlanner" << std::endl;
+                std::cerr << "-----------------------------------------------------" << std::endl;
+            }
+
+            long unsigned int failed_current_node_manifold_id = action_nodes[previous_node_id].out_state.manifold_id;
+            long unsigned int failed_current_node_foliation_id = action_nodes[previous_node_id].out_state.foliation_id;
+            bool failed_current_node_is_in_manipulation_manifold = action_nodes[previous_node_id].out_state.is_in_manipulation_manifold;
+            
+
+            // loop through all action nodes
+            for(int j = 0; j < action_nodes.size(); j++)
+            {
+                if(action_nodes[j].in_state.manifold_id == failed_pre_node_manifold_id &&
+                   action_nodes[j].in_state.foliation_id == failed_pre_node_foliation_id &&
+                   action_nodes[j].in_state.is_in_manipulation_manifold == failed_pre_node_is_in_manipulation_manifold)
+                {
+                    // find all next nodes of this node
+                    for(int k = 0; k < action_nodes[j].next_action_node_ids.size(); k++)
+                    {
+                        if(action_nodes[j].next_action_success_probabilities[k] == 1.0) // if there is a solution, then skip.
+                            continue;
+                        if(
+                            action_nodes[action_nodes[j].next_action_node_ids[k]].out_state.manifold_id == failed_next_node_manifold_id &&
+                            action_nodes[action_nodes[j].next_action_node_ids[k]].out_state.foliation_id == failed_next_node_foliation_id &&
+                            action_nodes[action_nodes[j].next_action_node_ids[k]].out_state.is_in_manipulation_manifold == failed_next_node_is_in_manipulation_manifold
+                        )
+                        {
+                            if(action_nodes[j].out_state.manifold_id == failed_current_node_foliation_id &&
+                               action_nodes[j].out_state.foliation_id == failed_current_node_foliation_id &&
+                               action_nodes[j].out_state.is_in_manipulation_manifold == failed_current_node_is_in_manipulation_manifold)
+                            {
+                                // the edge in the same manifold and share two edge end
+                                action_nodes[j].next_action_success_probabilities[k] *= 0.8;
+                            }
+                            else{
+                                // the edge in different manifold and share two edge end
+                                action_nodes[j].next_action_success_probabilities[k] *= 0.9;
+                            }
+                        }
+                    }
+                }
+
+                // in opposite direction
+                if(action_nodes[j].in_state.manifold_id == failed_next_node_manifold_id &&
+                   action_nodes[j].in_state.foliation_id == failed_next_node_foliation_id &&
+                   action_nodes[j].in_state.is_in_manipulation_manifold == failed_next_node_is_in_manipulation_manifold)
+                {
+                    // find all next nodes of this node
+                    for(int k = 0; k < action_nodes[j].next_action_node_ids.size(); k++)
+                    {
+                        if(action_nodes[j].next_action_success_probabilities[k] == 1.0) // if there is a solution, then skip.
+                            continue;
+                        if(
+                            action_nodes[action_nodes[j].next_action_node_ids[k]].out_state.manifold_id == failed_pre_node_manifold_id &&
+                            action_nodes[action_nodes[j].next_action_node_ids[k]].out_state.foliation_id == failed_pre_node_foliation_id &&
+                            action_nodes[action_nodes[j].next_action_node_ids[k]].out_state.is_in_manipulation_manifold == failed_pre_node_is_in_manipulation_manifold
+                        )
+                        {
+                            if(action_nodes[j].out_state.manifold_id == failed_current_node_foliation_id &&
+                               action_nodes[j].out_state.foliation_id == failed_current_node_foliation_id &&
+                               action_nodes[j].out_state.is_in_manipulation_manifold == failed_current_node_is_in_manipulation_manifold)
+                            {
+                                // the edge in the same manifold and share two edge end
+                                action_nodes[j].next_action_success_probabilities[k] *= 0.8;
+                            }
+                            else{
+                                // the edge in different manifold and share two edge end
+                                action_nodes[j].next_action_success_probabilities[k] *= 0.9;
+                            }
+                        }
+                    }
+                }
+            }
 
             // only update the first failure task.
             break;
