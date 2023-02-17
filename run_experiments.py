@@ -36,16 +36,17 @@ for i in range(5):
     # restart simulation and moveit
     sim.startSimulation()
     # start moveit in a separate process,do not print its output
-    subprocess.Popen("roslaunch fetch_moveit_config move_group.launch", shell=True,
+    subprocess.Popen("roslaunch fetch_moveit_config move_group.launch", shell=True,cwd=WS_BASE,
         stdin=None, stdout=None, stderr=None, close_fds=True, preexec_fn=os.setsid)
 
     # wait for simulation to start
     print("Waiting for simulation to start...")
     time.sleep(1)
+    # TODO: make objects in the scene non-dynamic before the arm resets
 
     # start the main pipeline
-    main_output = subprocess.Popen("rosrun manipulation_test main_pipeline", shell=True, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    # TODO: automatic object selection
+    main_output = subprocess.Popen("rosrun manipulation_test main_pipeline", shell=True, cwd=WS_BASE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+    # TODO: re-enable object dynamics after the arm resets
     # wait until the pipeline asks for user input, read the output of the pipeline every 0.5 seconds
     while True:
         # check if the pipeline is still running
