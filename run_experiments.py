@@ -1,18 +1,81 @@
+
+'''
+This script acts as an experiment monitor, it runs the main pipeline and monitors the output of the pipeline.
+'''
+
 import os
 import sys
 import subprocess
+import pickle
+import rospy
+import numpy as np
+print(sys.version)
+import time
+
+def get_object_pose(object_name):
+    # because tf doesn't play nice with python3, we have to directly call the tf_echo command
+    # the tf_echo command returns a string with the pose of the object, we only want the translation
+    tf_out = subprocess.Popen("rosrun tf tf_echo /world /{}".format(object_name), shell=True, stdout=subprocess.PIPE)
+    # we listen for a max of 1 second
+    current_time = time.time()
+    while time.time() - current_time < 1.0:
+        line = tf_out.stdout.readline()
+        # we look for the line that contains the translation
+        if b"Translation" in line:
+            # the translation is in square brackets, separated by commas
+            # we split the line by the square brackets and commas
+            # the translation is the second element in the list
+            translation = line.split(b"[")[1].split(b"]")[0].split(b",")
+            # convert the translation to a list of floats
+            translation = [float(x) for x in translation]
+            return translation
+            
+    return None
+
+
 # add the coppeliasim remote api path
 sys.path.append("/home/lambda/CoppeliaSim/programming/zmqRemoteApi/clients/python/")
 print(sys.path)
 
 # coppeliasim imports
-import time
 from zmqRemoteApi import RemoteAPIClient
 
 WS_BASE = "/home/lambda/catkin_ws"
 # change the working directory to the base of the workspace
 # os.chdir(WS_BASE)
 
+def parse_pose(pose_text):
+    # the pose consists of 7 numbers, the first 3 are the position, the last 4 are the orientation
+    # the position and orientation are separated by a semicolon
+    # the numbers are separated by a space
+    # print out the pose for debugging
+    # red text
+    print("\033[91m")
+    print("Pose: {}".format(pose_text))
+    # reset color
+    print("\033[0m")
+    position_text, orientation_text = pose_text.split(";")
+    position = [float(x) for x in position_text.split(" ")]
+    orientation = [float(x) for x in orientation_text.split(" ")]
+    return position, orientation
+
+
+
+def find_closest_object(target_object_position, obj_init_poses):
+    # find the object that is closest to the target object
+    # in turn, this object is most likely the object that was targeted
+    closest_distance = float("inf")
+    closest_object = None
+    for object_name, object_pose in obj_init_poses.items():
+        object_position = object_pose[0]
+        distance = np.linalg.norm(np.array(target_object_position) - np.array(object_position))
+        if distance < closest_distance:
+            closest_distance = distance
+            closest_object = object_name
+    return closest_object
+
+
+rospy.init_node("experiment_monitor")
 client = RemoteAPIClient()
 sim = client.getObject('sim')
 sim.stopSimulation()
@@ -20,29 +83,33 @@ time.sleep(1)
 # load scene TODO: make this a parameter or something
 scene_path = "/home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene"
 sim.loadScene(os.path.join(scene_path, "tableroom.ttt"))
-
+scene_metadata = pickle.load(open(os.path.join(scene_path, "tableroom.pkl"), "rb"))
 
 for i in range(5):
     sim.stopSimulation()
-    # make sure simulation is stopped
     # also stop the moveit package, if it is running
     if os.system("rosnode list | grep move_group") == 0:
         os.system("rosnode kill /move_group")
-    # make sure simulation is stopped
+    # as well as the main pipeline
+    if os.system("rosnode list | grep main_pipeline") == 0:
+        os.system("rosnode kill /main_pipeline")
+    # make sure everything is stopped
     time.sleep(1)
-
-
 
     # restart simulation and moveit
     sim.startSimulation()
-    # start moveit in a separate process,do not print its output
+    # start moveit in a separate process,do not print its output, it should not accept signals
     subprocess.Popen("roslaunch fetch_moveit_config move_group.launch", shell=True,cwd=WS_BASE,
-        stdin=None, stdout=None, stderr=None, close_fds=True, preexec_fn=os.setsid)
+        stdin=subprocess.PIPE, stdout=None, stderr=None, close_fds=True, preexec_fn=os.setsid)
 
     # wait for simulation to start
     print("Waiting for simulation to start...")
     time.sleep(1)
-    # TODO: make objects in the scene non-dynamic before the arm resets
+    # TODO: make objects in the scene non-dynamic before the arm resets (workaround: reset arm after each run instead of before, would require changes to the pipeline)
+    # get initial pose of the objects from tf
+    obj_init_poses = {}
+    for object_name in scene_metadata["objects"]:
+        obj_init_poses[object_name] = get_object_pose(object_name)
 
     # start the main pipeline
     main_output = subprocess.Popen("rosrun manipulation_test main_pipeline", shell=True, cwd=WS_BASE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -64,16 +131,59 @@ for i in range(5):
                 main_output.stdin.flush()
                 break
     # print the output of the pipeline until it finishes
+    target_object_name = None
     while True:
         output = main_output.stdout.readline()
         # convert bytestring to string
         output = output.decode("utf-8")
+        # check for the line that indicates the pose of the target object
+        if "target object transform: " in output:
+            print(output)
+            # get the pose of the target object
+            target_object_pose_text = output.split("target object transform: ")[1]
+            target_object_position, target_object_orientation = parse_pose(target_object_pose_text)
+            # print out the pose of the target object in red for debugging
+            # red
+            print("\033[91m")
+            print("Target object position: {}".format(target_object_position))
+            print("Target object orientation: {}".format(target_object_orientation))
+            # reset color
+            print("\033[0m")
+            # pin down which object is the target object
+            # target_object_name = find_closest_object(target_object_position, obj_init_poses)
+            
         print(output)
         if output == '' and main_output.poll() is not None:
             break
         
     print("Run {} for scene {} finished".format(i, "tableroom.ttt") )
-    # TODO: devise a way to getthe result of the run and log it
+    # check for success
+    if target_object_name is not None:
+        # get the pose of the target object from tf
+        target_object_position, target_object_orientation = get_object_pose(target_object_name)
+        # get the pose of the finger from tf
+        finger_position, finger_orientation = get_object_pose("l_gripper_finger_link")
+        # check the distance between the finger and the target object, they should be close
+        distance = np.linalg.norm(np.array(target_object_position) - np.array(finger_position))
+        # also check if the target object has been lifted
+        z_diff_from_init = target_object_position[2] - obj_init_poses[target_object_name][0][2]
+        success = distance < 0.1 and z_diff_from_init > 0.1
+        if success:
+            # green text
+            print("\033[92m")
+            print("Run {} for scene {} succeeded".format(i, "tableroom.ttt") )
+            print("Distance between finger and target object: {}".format(distance))
+            print("Z difference between target object and initial pose: {}".format(z_diff_from_init))
+            # reset color
+            print("\033[0m")
+        else:
+            # red text
+            print("\033[91m")
+            print("Run {} for scene {} failed".format(i, "tableroom.ttt") )
+            print("Distance between finger and target object: {}".format(distance))
+            print("Z difference between target object and initial pose: {}".format(z_diff_from_init))
+            # reset color
+            print("\033[0m")
 
 
 

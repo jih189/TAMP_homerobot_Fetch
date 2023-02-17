@@ -250,9 +250,8 @@ int main(int argc, char** argv)
 
     move_group.setJointValueTarget(home_joint_values);
     move_group.setCleanPlanningContextFlag(true);
+    move_group.setMaxVelocityScalingFactor(1.0);
     moveit::planning_interface::MoveGroupInterface::Plan home_plan;
-    // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
-    // move_group.plan(home_plan, experience);
     move_group.plan(home_plan);
     move_group.execute(home_plan);
 
@@ -476,6 +475,10 @@ int main(int argc, char** argv)
                                                             obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.y, 
                                                             obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.z, 
                                                             obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.w));
+        // print out the the target object transform
+        std::cout << "target object transform: ";
+        std::cout << target_object_transform.getOrigin().getX() << " " << target_object_transform.getOrigin().getY() << " " << target_object_transform.getOrigin().getZ() << ";";
+        std::cout << target_object_transform.getRotation().getX() << " " << target_object_transform.getRotation().getY() << " " << target_object_transform.getRotation().getZ() << " " << target_object_transform.getRotation().getW() << std::endl;
 
         // we need to extract the grasped object point cloud with full point cloud.
         ros_tensorflow_msgs::Predict grasp_prediction_srv;
