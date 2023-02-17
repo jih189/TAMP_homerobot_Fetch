@@ -15,11 +15,18 @@ import time
 def get_object_pose(object_name):
     # because tf doesn't play nice with python3, we have to directly call the tf_echo command
     # the tf_echo command returns a string with the pose of the object, we only want the translation
-    tf_out = subprocess.Popen("rosrun tf tf_echo /world /{}".format(object_name), shell=True, stdout=subprocess.PIPE)
+    tf_out = subprocess.Popen("rosrun tf tf_echo /base_link /{}".format(object_name), shell=True, stdout=subprocess.PIPE)
     # we listen for a max of 1 second
     current_time = time.time()
+    # print out the object name in blue for debugging
+    # blue text
+    print("\033[34m{}\033[0m".format(object_name))
+
     while time.time() - current_time < 1.0:
         line = tf_out.stdout.readline()
+        # print out the line in yellow for debugging
+        # yellow text
+        print("\033[33m{}\033[0m".format(line))
         # we look for the line that contains the translation
         if b"Translation" in line:
             # the translation is in square brackets, separated by commas
@@ -28,6 +35,9 @@ def get_object_pose(object_name):
             translation = line.split(b"[")[1].split(b"]")[0].split(b",")
             # convert the translation to a list of floats
             translation = [float(x) for x in translation]
+            # print out the translation in green for debugging
+            # green text
+            print("\033[32m{}\033[0m".format(translation))
             return translation
             
     return None
@@ -49,8 +59,8 @@ def parse_pose(pose_text):
     # the position and orientation are separated by a semicolon
     # the numbers are separated by a space
     # print out the pose for debugging
-    # red text
-    print("\033[91m")
+    # yellow text
+    print("\033[33m")
     print("Pose: {}".format(pose_text))
     # reset color
     print("\033[0m")
@@ -66,9 +76,16 @@ def find_closest_object(target_object_position, obj_init_poses):
     # in turn, this object is most likely the object that was targeted
     closest_distance = float("inf")
     closest_object = None
-    for object_name, object_pose in obj_init_poses.items():
-        object_position = object_pose[0]
+    for object_name, object_position in obj_init_poses.items():
         distance = np.linalg.norm(np.array(target_object_position) - np.array(object_position))
+        # print out the distance for debugging
+        # yellow text
+        print("\033[33m")
+        print("Target object position: {}".format(target_object_position))
+        print("Object position: {}".format(object_position))
+        print("Distance to {}: {}".format(object_name, distance))
+        # reset color
+        print("\033[0m")
         if distance < closest_distance:
             closest_distance = distance
             closest_object = object_name
@@ -132,25 +149,28 @@ for i in range(5):
                 break
     # print the output of the pipeline until it finishes
     target_object_name = None
+    identified_target_object = False
     while True:
         output = main_output.stdout.readline()
         # convert bytestring to string
         output = output.decode("utf-8")
         # check for the line that indicates the pose of the target object
-        if "target object transform: " in output:
-            print(output)
+        if not identified_target_object and "target object transform: " in output:
             # get the pose of the target object
             target_object_pose_text = output.split("target object transform: ")[1]
             target_object_position, target_object_orientation = parse_pose(target_object_pose_text)
-            # print out the pose of the target object in red for debugging
-            # red
-            print("\033[91m")
+            # print out the pose of the target object in yellow for debugging
+            # yellow
+            print("\033[93m")
             print("Target object position: {}".format(target_object_position))
             print("Target object orientation: {}".format(target_object_orientation))
             # reset color
-            print("\033[0m")
             # pin down which object is the target object
-            # target_object_name = find_closest_object(target_object_position, obj_init_poses)
+            target_object_name = find_closest_object(target_object_position, obj_init_poses)
+            print("Target object name: {}".format(target_object_name))
+
+            print("\033[0m")
+            identified_target_object = True
             
         print(output)
         if output == '' and main_output.poll() is not None:
@@ -160,14 +180,24 @@ for i in range(5):
     # check for success
     if target_object_name is not None:
         # get the pose of the target object from tf
-        target_object_position, target_object_orientation = get_object_pose(target_object_name)
+        target_object_position = get_object_pose(target_object_name)
+        # print out the initial pose of the target object and the final pose in yellow for debugging
+        # yellow
+        print("\033[93m")
+        print("Target object name: {}".format(target_object_name))
+        print("Initial pose of target object: {}".format(obj_init_poses[target_object_name]))
+        print("Final pose of target object: {}".format(target_object_position))
+        # reset color
+        print("\033[0m")
+
         # get the pose of the finger from tf
-        finger_position, finger_orientation = get_object_pose("l_gripper_finger_link")
+        finger_position = get_object_pose("l_gripper_finger_link")
         # check the distance between the finger and the target object, they should be close
         distance = np.linalg.norm(np.array(target_object_position) - np.array(finger_position))
         # also check if the target object has been lifted
-        z_diff_from_init = target_object_position[2] - obj_init_poses[target_object_name][0][2]
-        success = distance < 0.1 and z_diff_from_init > 0.1
+        z_diff_from_init = target_object_position[2] - obj_init_poses[target_object_name][2]
+        # TODO: make this detection more robust
+        success = distance < 0.15 and z_diff_from_init > 0.05
         if success:
             # green text
             print("\033[92m")
