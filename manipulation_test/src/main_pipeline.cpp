@@ -243,18 +243,6 @@ int main(int argc, char** argv)
     KDL::JntArray random_joint_array(chain.getNrOfJoints());
     std::vector<std::string> joint_names = move_group.getActiveJoints();
 
-    std::cout << "setting arm to home position" << std::endl;
-    // reset the arm to home position
-    move_group.setPlannerId("RRTConnectkConfigDefault");
-    move_group.setStartState(*(move_group.getCurrentState()));
-
-    move_group.setJointValueTarget(home_joint_values);
-    move_group.setCleanPlanningContextFlag(true);
-    move_group.setMaxVelocityScalingFactor(1.0);
-    moveit::planning_interface::MoveGroupInterface::Plan home_plan;
-    move_group.plan(home_plan);
-    move_group.execute(home_plan);
-
     // init the moveit visual tools for visualization
     moveit_visual_tools::MoveItVisualToolsPtr trajectory_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link");
 
@@ -397,6 +385,16 @@ int main(int argc, char** argv)
             ROS_ERROR("Failed to call service visualize_obstacle");
             return 1;
         }
+
+        // print out the obstacle position with each ID
+        for(int i = 0; i < obstacle_srv.response.segmented_objects.objects.size(); i++)
+        {
+            std::cout << i << " obstacle position is: ";
+            std::cout << "[ " << obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.position.x;
+            std::cout << ", " << obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.position.y;
+            std::cout << ", " << obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.position.z << " ]" << std::endl;
+        }
+
 
         int grasped_object_id;
 
@@ -601,18 +599,6 @@ int main(int argc, char** argv)
         if(grasp_transforms_before_clustering.size() == 0)
         {
             ROS_ERROR("No lifting grasp found");
-            // here we need to add a function to move the arm back to the initial position
-            std::cout << "resetting arm to innocuous position" << std::endl;
-            // reset the arm to home position
-            move_group.setPlannerId("RRTConnectkConfigDefault");
-            move_group.setStartState(*(move_group.getCurrentState()));
-
-            move_group.setJointValueTarget(home_joint_values);
-            move_group.setCleanPlanningContextFlag(true);
-            moveit::planning_interface::MoveGroupInterface::Plan home_plan;
-            // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
-            // move_group.plan(home_plan, experience);
-            move_group.plan(home_plan);
             return 1;
         }
 
