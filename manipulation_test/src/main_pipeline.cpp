@@ -171,6 +171,28 @@ int main(int argc, char** argv)
     bool is_execute = true; // if true, the robot is executed.
     bool re_analyze = true; // if true, replanning will be run for each re-grasping.
     //////////////////////////////////////////
+    std::string param_buffer;
+    if(node_handle.getParam("use_regrasp", param_buffer))
+    {
+        if(param_buffer == "true")
+            use_regrasp = true;
+        else if(param_buffer == "false")
+            use_regrasp = false;
+    }
+    if(node_handle.getParam("is_execute", param_buffer))
+    {
+        if(param_buffer == "true")
+            is_execute = true;
+        else if(param_buffer == "false")
+            is_execute = false;
+    }
+    if(node_handle.getParam("re_analyze", param_buffer))
+    {
+        if(param_buffer == "true")
+            re_analyze = true;
+        else if(param_buffer == "false")
+            re_analyze = false;
+    }
     if(!is_execute) // re-analyze must be used when is_execute is true.
         re_analyze = false;
 
@@ -246,17 +268,15 @@ int main(int argc, char** argv)
     // init the moveit visual tools for visualization
     moveit_visual_tools::MoveItVisualToolsPtr trajectory_visuals = std::make_shared<moveit_visual_tools::MoveItVisualTools>("base_link");
 
+    // initialize the ros server clients
     // init the state validity checker for the robot
     ros::ServiceClient validity_client =  node_handle.serviceClient<moveit_msgs::GetStateValidity>("/check_state_validity");
     validity_client.waitForExistence();
-
-    //******************************************** search for the table and add it ad the obstacle in the planning scene
     ros::ServiceClient table_client = node_handle.serviceClient<rail_segmentation::SearchTable>("table_searcher/search_table");
     table_client.waitForExistence();
     ros::ServiceClient table_visualizer = node_handle.serviceClient<manipulation_test::VisualizeTable>("visualize_table");
     table_visualizer.waitForExistence();
-    // initialize the ros server clients
-    // init the obstavle searcher.
+    // init the obstacle searcher.
     ros::ServiceClient obstacle_client = node_handle.serviceClient<rail_manipulation_msgs::SegmentObjects>("table_searcher/segment_objects");
     obstacle_client.waitForExistence();
     ros::ServiceClient obstacle_visualizer = node_handle.serviceClient<manipulation_test::VisualizeObstacle>("visualize_obstacle");
@@ -268,12 +288,12 @@ int main(int argc, char** argv)
     ros::ServiceClient com_prediction_client = node_handle.serviceClient<ros_tensorflow_msgs::ComPredict>("CoMPredict");
     com_prediction_client.waitForExistence();
     // show the grasp prediction result
-    ros::ServiceClient regrasp_poses_visualizer = node_handle.serviceClient<manipulation_test::VisualizeRegrasp>("visualize_regrasp");
-    regrasp_poses_visualizer.waitForExistence();
+    ros::ServiceClient grasp_poses_visualizer = node_handle.serviceClient<manipulation_test::VisualizeRegrasp>("visualize_regrasp");
+    grasp_poses_visualizer.waitForExistence();
     // visualize the random target object poses
     ros::ServiceClient intermediate_placements_visualizer = node_handle.serviceClient<manipulation_test::VisualizeIntermediatePlacements>("visualize_intermediate_placements");
     intermediate_placements_visualizer.waitForExistence();
-
+    // visualize the center of mass prediction
     ros::ServiceClient com_predict_visualizer = node_handle.serviceClient<manipulation_test::VisualizeCom>("visualize_point_cloud");
     com_predict_visualizer.waitForExistence();
 
@@ -297,6 +317,8 @@ int main(int argc, char** argv)
     bool hasTargetObject = false;
     tf::Transform target_object_transform;
 
+    int num_of_trials = 5;
+
     //////////////// here is the point to re-analyze the object for re-grasping ////////////////
     do
     {
@@ -312,14 +334,12 @@ int main(int argc, char** argv)
                                     tf::Vector3(table_srv.response.center.x, table_srv.response.center.y, table_srv.response.center.z));
 
         // visualize the table
-
         manipulation_test::VisualizeTable table_visualize_srv;
         table_visualize_srv.request.width = table_srv.response.width;
         table_visualize_srv.request.depth = table_srv.response.depth;
         table_visualize_srv.request.height = 0.001;
         table_visualize_srv.request.center = table_srv.response.center;
         table_visualize_srv.request.orientation = table_srv.response.orientation;
-
         if (not table_visualizer.call(table_visualize_srv))
         {
             ROS_ERROR("Failed to call service visualize_table");
@@ -329,9 +349,7 @@ int main(int argc, char** argv)
         // init the table as the collision object.
         moveit_msgs::CollisionObject collision_object_table;
         collision_object_table.header.frame_id = move_group.getPlanningFrame();
-
         collision_object_table.id = "table";
-
         shape_msgs::SolidPrimitive table_primitive;
         table_primitive.type = table_primitive.BOX;
         table_primitive.dimensions.resize(3);
@@ -343,7 +361,6 @@ int main(int argc, char** argv)
         table_pose.position.x = table_srv.response.center.x;
         table_pose.position.y = table_srv.response.center.y;
         table_pose.position.z = table_srv.response.center.z;
-
         table_pose.orientation.x = table_srv.response.orientation.x;
         table_pose.orientation.y = table_srv.response.orientation.y;
         table_pose.orientation.z = table_srv.response.orientation.z;
@@ -352,23 +369,23 @@ int main(int argc, char** argv)
         collision_object_table.primitives.push_back(table_primitive);
         collision_object_table.pose = table_pose;
 
+        // search for objects on the table.
         rail_manipulation_msgs::SegmentObjects obstacle_srv;
-
         if (not obstacle_client.call(obstacle_srv))
         {
             ROS_ERROR("Failed to call service segment_objects");
             return 1;
         }
-
         if(obstacle_srv.response.segmented_objects.objects.size() == 0)
         {
             ROS_INFO("No object found on the table");
             return 0;
         }
-
-        // visualize the obstacle
+        
+        // init a vector to indicate whether the object is the target object
         std::vector<bool> is_target(obstacle_srv.response.segmented_objects.objects.size(), false);
 
+        // visualize the obstacle
         manipulation_test::VisualizeObstacle obstacle_visualize_srv;
         for(int i = 0; i < obstacle_srv.response.segmented_objects.objects.size(); i++)
         {
@@ -379,7 +396,6 @@ int main(int argc, char** argv)
             obstacle_visualize_srv.request.obstacle_ids.push_back(i);
             obstacle_visualize_srv.request.is_target.push_back(is_target[i]);
         }
-
         if (not obstacle_visualizer.call(obstacle_visualize_srv))
         {
             ROS_ERROR("Failed to call service visualize_obstacle");
@@ -395,7 +411,7 @@ int main(int argc, char** argv)
             std::cout << ", " << obstacle_srv.response.segmented_objects.objects[i].bounding_volume.pose.pose.position.z << " ]" << std::endl;
         }
 
-
+        // need to decide which object is the target object
         int grasped_object_id;
 
         if(!hasTargetObject) // if the target object is not selected, then select the target object.
@@ -436,8 +452,7 @@ int main(int argc, char** argv)
         // need to analyze which obstacle should be moved away before grasping the targect object.
         int last_front_obstacle_id = grasped_object_id;
         int front_obstacle_id = last_front_obstacle_id;
-        
-        if(!use_regrasp)
+        if(use_regrasp) // if regrasp is used, then we need to move the obstacle in front of the target object.
         {
             do{
                 front_obstacle_id = last_front_obstacle_id;
@@ -473,19 +488,14 @@ int main(int argc, char** argv)
                                                             obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.y, 
                                                             obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.z, 
                                                             obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.w));
-        // print out the the target object transform
-        std::cout << "target object transform: ";
-        std::cout << target_object_transform.getOrigin().getX() << " " << target_object_transform.getOrigin().getY() << " " << target_object_transform.getOrigin().getZ() << ";";
-        std::cout << target_object_transform.getRotation().getX() << " " << target_object_transform.getRotation().getY() << " " << target_object_transform.getRotation().getZ() << " " << target_object_transform.getRotation().getW() << std::endl;
 
         // we need to extract the grasped object point cloud with full point cloud.
         ros_tensorflow_msgs::Predict grasp_prediction_srv;
-
         grasp_prediction_srv.request.full_point_cloud = table_srv.response.full_point_cloud;
         grasp_prediction_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
         grasp_prediction_srv.request.camera_stamped_transform = camera_stamped_transform;
 
-        // prepare pcs for CoM prediction
+        // prepare croppped table pcs for CoM prediction
         sensor_msgs::PointCloud2 cropped_table_point_cloud;
         generatePointCloudOfPlane(target_object_transform, 
                             obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y * 1.7,
@@ -499,123 +509,108 @@ int main(int argc, char** argv)
         com_predict_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
         com_predict_srv.request.camera_stamped_transform = camera_stamped_transform;
 
+        // init the variables for grasping
         std::vector<tf::Transform> grasp_transforms_before_clustering;
         std::vector<float> grasp_jawwidths_before_clustering;
         std::vector<int> grasp_types_before_clustering;
 
-        tf::Vector3 target_com;
-        tf::Vector3 target_com_in_object_frame;
-
+        // init the collision object for target object
         moveit_msgs::CollisionObject collision_object_target;
         collision_object_target.header.frame_id = move_group.getPlanningFrame();
         collision_object_target.id =  "target_object";
 
-        int grasp_prediction_attempts = 0;
-
-        do{
-            std::cout << "grasp prediction attempts: " << grasp_prediction_attempts << std::endl;
-            if (not grasp_prediction_client.call(grasp_prediction_srv))
-            {
-                ROS_ERROR("Failed to call service grasp prediction");
-                return 1;
-            }
-
-            // find the com of the object.
-            /************************************************************************************/
-            // sensor_msgs::PointCloud2 cropped_table_point_cloud;
-            // generatePointCloudOfPlane(target_object_transform, 
-            //                     obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y * 1.7,
-            //                     obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z * 1.7,
-            //                     obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x,
-            //                     0.005,
-            //                     cropped_table_point_cloud);
-
-            // ros_tensorflow_msgs::ComPredict com_predict_srv;
-            // com_predict_srv.request.table_point_cloud = cropped_table_point_cloud;
-            // com_predict_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
-            // com_predict_srv.request.camera_stamped_transform = camera_stamped_transform;
-            if (not com_prediction_client.call(com_predict_srv))
-            {
-                ROS_ERROR("Failed to call service center of mass prediction");
-                return 1;
-            }
-            // otherwise, store the result in the target_com
-            target_com.setX(com_predict_srv.response.com.x);
-            target_com.setY(com_predict_srv.response.com.y);
-            target_com.setZ(com_predict_srv.response.com.z);
-
-            target_com_in_object_frame = target_object_transform.inverse() * target_com;
-
-            // get object pose from tf TODO: delete if COMpredict is working
-            // std::vector<std::string> object_names = {"can", "book", "bottle", "hammer"};
-            // for(std::string ob: object_names)
-            // {   
-            //     try{
-            //         tf::StampedTransform object_transform_temp;
-            //         ros::Time now = ros::Time::now();
-            //         listener.waitForTransform("/base_link", "/" + ob, ros::Time(0), ros::Duration(1.0));
-            //         listener.lookupTransform("/base_link", "/" + ob, ros::Time(0), object_transform_temp);
-
-            //         tf::Vector3 distanceToCom = target_object_transform.inverse() * object_transform_temp.getOrigin();
-
-            //         if(abs(distanceToCom.x()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x / 2.0 &&
-            //         abs(distanceToCom.y()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y / 2.0 &&
-            //         abs(distanceToCom.z()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z / 2.0)
-            //         {
-            //             target_com.setX(object_transform_temp.getOrigin().x());
-            //             target_com.setY(object_transform_temp.getOrigin().y());
-            //             target_com.setZ(object_transform_temp.getOrigin().z());
-            //             break;
-            //         }
-            //     }
-            //     catch(tf::TransformException ex){
-            //         ROS_ERROR("%s", ex.what());
-            //         ros::Duration(1.0).sleep();
-            //     }
-            // }
-
-            // manipulation_test::VisualizeCom com_visualize_srv;
-            // // com_visualize_srv.request.com = com_predict_srv.response.com;
-            // std::cout << "predicted com: " << target_com.x() << ", " << target_com.y() << ", " << target_com.z() << std::endl;
-            // geometry_msgs::Point com_point;
-            // com_point.x = target_com.x();
-            // com_point.y = target_com.y();
-            // com_point.z = target_com.z();
-            // com_visualize_srv.request.com = com_point;
-            // com_visualize_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
-            // std::cout << "segmented point cloud size: " << obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud.data.size() << std::endl;
-            // com_visualize_srv.request.table_point_cloud = cropped_table_point_cloud;
-            // std::cout << "table point cloud size: " << cropped_table_point_cloud.data.size() << std::endl;
-
-            // com_predict_visualizer.call(com_visualize_srv);
-
-            /************************************************************************************/
+        if (not grasp_prediction_client.call(grasp_prediction_srv))
+        {
+            ROS_ERROR("Failed to call service grasp prediction");
+            return 1;
+        }
         
-            grasp_transforms_before_clustering.clear();
-            grasp_jawwidths_before_clustering.clear();
-            grasp_types_before_clustering.clear();
+        if (not com_prediction_client.call(com_predict_srv))
+        {
+            ROS_ERROR("Failed to call service center of mass prediction");
+            return 1;
+        }
 
-            // add the lifting grasp poses first
-            for(int i = 0; i < grasp_prediction_srv.response.predicted_grasp_poses.size(); i++){
-                if(grasp_prediction_srv.response.scores[i] < 0.5)
-                    continue;
-                tf::Stamped<tf::Transform> predicted_grasp_transform;
-                tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
-                if(lift_torque_test(target_com, 1.0, predicted_grasp_transform))
-                {
-                    // if we just want to use contact grasp net alone, we can to here directly
-                    grasp_transforms_before_clustering.push_back(target_object_transform.inverse() * predicted_grasp_transform);
-                    grasp_jawwidths_before_clustering.push_back(0.08);
-                    grasp_types_before_clustering.push_back(0);
-                }
+        tf::Vector3 target_com;
+        target_com.setX(com_predict_srv.response.com.x);
+        target_com.setY(com_predict_srv.response.com.y);
+        target_com.setZ(com_predict_srv.response.com.z);
+
+        tf::Vector3 target_com_in_object_frame = target_object_transform.inverse() * target_com;
+
+        // get object pose from tf TODO: delete if COMpredict is working
+        // std::vector<std::string> object_names = {"can", "book", "bottle", "hammer"};
+        // for(std::string ob: object_names)
+        // {   
+        //     try{
+        //         tf::StampedTransform object_transform_temp;
+        //         ros::Time now = ros::Time::now();
+        //         listener.waitForTransform("/base_link", "/" + ob, ros::Time(0), ros::Duration(1.0));
+        //         listener.lookupTransform("/base_link", "/" + ob, ros::Time(0), object_transform_temp);
+
+        //         tf::Vector3 distanceToCom = target_object_transform.inverse() * object_transform_temp.getOrigin();
+
+        //         if(abs(distanceToCom.x()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x / 2.0 &&
+        //         abs(distanceToCom.y()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y / 2.0 &&
+        //         abs(distanceToCom.z()) < obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z / 2.0)
+        //         {
+        //             target_com.setX(object_transform_temp.getOrigin().x());
+        //             target_com.setY(object_transform_temp.getOrigin().y());
+        //             target_com.setZ(object_transform_temp.getOrigin().z());
+        //             break;
+        //         }
+        //     }
+        //     catch(tf::TransformException ex){
+        //         ROS_ERROR("%s", ex.what());
+        //         ros::Duration(1.0).sleep();
+        //     }
+        // }
+
+        // manipulation_test::VisualizeCom com_visualize_srv;
+        // // com_visualize_srv.request.com = com_predict_srv.response.com;
+        // std::cout << "predicted com: " << target_com.x() << ", " << target_com.y() << ", " << target_com.z() << std::endl;
+        // geometry_msgs::Point com_point;
+        // com_point.x = target_com.x();
+        // com_point.y = target_com.y();
+        // com_point.z = target_com.z();
+        // com_visualize_srv.request.com = com_point;
+        // com_visualize_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
+        // std::cout << "segmented point cloud size: " << obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud.data.size() << std::endl;
+        // com_visualize_srv.request.table_point_cloud = cropped_table_point_cloud;
+        // std::cout << "table point cloud size: " << cropped_table_point_cloud.data.size() << std::endl;
+
+        // com_predict_visualizer.call(com_visualize_srv);
+
+        /************************************************************************************/
+
+        // add the lifting grasp poses first
+        for(int i = 0; i < grasp_prediction_srv.response.predicted_grasp_poses.size(); i++){
+            if(grasp_prediction_srv.response.scores[i] < 0.5)
+                continue;
+            tf::Stamped<tf::Transform> predicted_grasp_transform;
+            tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
+            if(lift_torque_test(target_com, 1.0, predicted_grasp_transform))
+            {
+                // if we just want to use contact grasp net alone, we can to here directly
+                grasp_transforms_before_clustering.push_back(target_object_transform.inverse() * predicted_grasp_transform);
+                grasp_jawwidths_before_clustering.push_back(0.08);
+                grasp_types_before_clustering.push_back(0);
             }
-            grasp_prediction_attempts++;
-        }while(grasp_transforms_before_clustering.size() == 0 and grasp_prediction_attempts < 5); // if no lifting grasp found, try again
+        }
 
         if(grasp_transforms_before_clustering.size() == 0)
         {
-            ROS_ERROR("No lifting grasp found");
-            return 1;
+            if(num_of_trials == 0)
+            {
+                ROS_ERROR("No lifting grasp found by Contact Grasp Net, breaking");
+                return 1;
+            }
+            else{
+                num_of_trials--;
+                hasTargetObject = true;
+                ROS_INFO("No lifting grasp found by Contact Grasp Net, trying again");
+                continue;
+            }
         }
 
         // then add sliding grasp poses
@@ -656,7 +651,8 @@ int main(int argc, char** argv)
             }
         }
 
-        manipulation_test::VisualizeRegrasp regrasp_poses_visualize_srv;
+        // grasp pose visualization
+        manipulation_test::VisualizeRegrasp grasp_poses_visualize_srv;
         for(int i = 0; i < grasp_transforms.size(); i++){
             tf::Transform grasp_transform_in_world = target_object_transform * grasp_transforms[i];
             geometry_msgs::PoseStamped grasp_pose_msg;
@@ -670,12 +666,11 @@ int main(int argc, char** argv)
             grasp_pose_msg.pose.orientation.z = grasp_transform_in_world.getRotation().z();
             grasp_pose_msg.pose.orientation.w = grasp_transform_in_world.getRotation().w();
 
-            regrasp_poses_visualize_srv.request.grasp_poses.push_back(grasp_pose_msg);
-            regrasp_poses_visualize_srv.request.grasp_jawwidths.push_back(grasp_jawwidths[i]);
-            regrasp_poses_visualize_srv.request.grasp_types.push_back(grasp_types[i]);
+            grasp_poses_visualize_srv.request.grasp_poses.push_back(grasp_pose_msg);
+            grasp_poses_visualize_srv.request.grasp_jawwidths.push_back(grasp_jawwidths[i]);
+            grasp_poses_visualize_srv.request.grasp_types.push_back(grasp_types[i]);
         }
-
-        if (!regrasp_poses_visualizer.call(regrasp_poses_visualize_srv))
+        if (!grasp_poses_visualizer.call(grasp_poses_visualize_srv))
         {
             ROS_ERROR("Failed to call service visualize_regrasp");
             return 1;
@@ -751,6 +746,7 @@ int main(int argc, char** argv)
             }
         }
 
+        // need to re-visualize the obstacles on the table by different color for the target object
         if (not obstacle_visualizer.call(obstacle_visualize_srv))
         {
             ROS_ERROR("Failed to call service visualize_obstacle");
@@ -1063,7 +1059,7 @@ int main(int argc, char** argv)
                         break;
                 }
                 
-                // find all feasible re-grasp poses
+                // find all feasible re-grasp poses in those intermediate placements
                 for(tf::Transform intermedaite_placement_transform: random_target_object_transforms)
                 {
                     int number_of_feable_grasp_poses = 0;
@@ -1212,12 +1208,21 @@ int main(int argc, char** argv)
             }
             else
             {
-                std::cout << "no way to grasp the object" << std::endl;
-                return 0;
+                if(num_of_trials == 0){
+                    ROS_INFO("grasps from Contact GraspNet are not approachable.");
+                    return 0;
+                }
+                else{
+                    num_of_trials--;
+                    hasTargetObject = true;
+                    ROS_INFO("grasps from Contact GraspNet are not approachable, try again");
+                    continue;
+                }
             }
         
             moveit::core::RobotState current_state = *(move_group.getCurrentState());
 
+            // count the number of grasps to lift the object.
             int num_of_lifting_grasps = 0;
 
             //init the task planner.
@@ -1254,12 +1259,20 @@ int main(int argc, char** argv)
 
             if(num_of_lifting_grasps == 0) // if there is not grasp pose to lift up the object, then return failure.
             {
-                std::cout << "no way to lift the object" << std::endl;
-                return 0;
+                if(num_of_trials == 0){
+                    ROS_INFO("no way to lift the object");
+                    return 0;
+                }
+                else{
+                    num_of_trials--;
+                    hasTargetObject = true;
+                    ROS_INFO("no way to lift the object, try again");
+                    continue;
+                }
             }
 
             // visualize the all re-grasping poses.
-            // manipulation_test::VisualizeRegrasp regrasp_poses_visualize_srv;
+            manipulation_test::VisualizeRegrasp regrasp_poses_visualize_srv;
             for(int i = 0; i < feasible_regrasp_transforms.size(); i++)
             {
                 for(int j = 0; j < feasible_regrasp_transforms[i].size(); j++)
@@ -1272,7 +1285,7 @@ int main(int argc, char** argv)
                 }
             }
 
-            if (!regrasp_poses_visualizer.call(regrasp_poses_visualize_srv))
+            if (!grasp_poses_visualizer.call(regrasp_poses_visualize_srv))
             {
                 ROS_ERROR("Failed to call service visualize_regrasp");
                 return 1;
@@ -1727,7 +1740,7 @@ int main(int argc, char** argv)
                         move_group.setJointValueTarget(target_joint_positions_double);
 
                         // 5. plan and execute the motion
-                        move_group.setMaxVelocityScalingFactor(1.0);
+                        move_group.setMaxVelocityScalingFactor(0.6);
                         moveit::planning_interface::MoveGroupInterface::Plan regrasp_plan;
                         // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
                         // bool success = (move_group.plan(regrasp_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -1964,7 +1977,7 @@ int main(int argc, char** argv)
 
                         move_group.setPositionTarget(0.248, -0.71, 0.721);
                         move_group.setCleanPlanningContextFlag(true);
-                        move_group.setMaxVelocityScalingFactor(1.0);
+                        move_group.setMaxVelocityScalingFactor(0.6);
                         moveit::planning_interface::MoveGroupInterface::Plan re_analyze_plan;
                         // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
                         // bool success = (move_group.plan(re_analyze_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -1990,6 +2003,8 @@ int main(int argc, char** argv)
 
                         target_object_transform = target_object_transform_during_regrasp;
                         hasTargetObject = true;
+
+                        // is_execute = false;
 
                         break;
                     }

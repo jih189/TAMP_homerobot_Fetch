@@ -45,10 +45,10 @@ class RosInterface():
         # convert to camera frame
         table_point_cloud_in_camera = np.dot(np.linalg.inv(camera_pose_mat), table_point_cloud_in_world.T).T[:, :3]
         segmented_point_cloud_in_camera = np.dot(np.linalg.inv(camera_pose_mat), segmented_point_cloud_in_world.T).T[:, :3]
-        print("segmented_point_cloud_in_camera.shape: ", segmented_point_cloud_in_camera.shape)
+        # print("segmented_point_cloud_in_camera.shape: ", segmented_point_cloud_in_camera.shape)
 
-        print(segmented_point_cloud_in_camera)
-        print(table_point_cloud_in_camera)
+        # print(segmented_point_cloud_in_camera)
+        # print(table_point_cloud_in_camera)
 
         # concate the two point clouds and create a 2d label array
         labels = np.zeros((table_point_cloud_in_camera.shape[0] + segmented_point_cloud_in_camera.shape[0], 1))

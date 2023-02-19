@@ -114,15 +114,15 @@ def find_closest_object(target_object_position, obj_positions):
     return closest_object
 
 
-def main():
+def run_for_scene(scene_name):
     client = RemoteAPIClient()
     sim = client.getObject('sim')
     sim.stopSimulation()
     time.sleep(1)
     # load scene TODO: make this a parameter or something
     scene_path = "/home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene"
-    sim.loadScene(os.path.join(scene_path, "tableroom.ttt"))
-    scene_metadata = pickle.load(open(os.path.join(scene_path, "tableroom.pkl"), "rb"))
+    sim.loadScene(os.path.join(scene_path, scene_name+".ttt"))
+    scene_metadata = pickle.load(open(os.path.join(scene_path, scene_name+".pkl"), "rb"))
 
     joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'forearm_roll_joint', 'wrist_flex_joint', 'wrist_roll_joint']
     robot_controller_client = actionlib.SimpleActionClient("/arm_controller/follow_joint_trajectory", FollowJointTrajectoryAction)
@@ -132,7 +132,8 @@ def main():
     # log the scene name in experiments.log
     logging_file = open(os.path.join(WS_BASE, "src/jiaming_manipulation/experiments.log"), "a")
     # log scene name and time date
-    logging_file.write("Scene: {}\n".format(scene_path))
+    logging_file.write("Scene: {}\n".format(scene_name))
+    logging_file.write("Scene path: {}\n".format(os.path.join(scene_path, scene_name+".ttt")))
     logging_file.write("Date: {}\n".format(datetime.datetime.now()))
     for i in range(5):
         sim.stopSimulation()
@@ -234,7 +235,7 @@ def main():
             if output == '' and main_output.poll() is not None:
                 break
             
-        print("Run {} for scene {} finished".format(i, "tableroom.ttt") )
+        print("Run {} for scene {} finished".format(i, scene_name) )
         # check for success
         if target_object_name is not None:
             # get the pose of the target object from tf
@@ -259,7 +260,7 @@ def main():
             if success:
                 # green text
                 print("\033[92m")
-                print("Run {} for scene {} succeeded".format(i, "tableroom.ttt") )
+                print("Run {} for scene {} succeeded".format(i, scene_name) )
                 print("Distance between finger and target object: {}".format(distance))
                 print("Z difference between target object and initial pose: {}".format(z_diff_from_init))
                 # reset color
@@ -267,7 +268,7 @@ def main():
             else:
                 # red text
                 print("\033[91m")
-                print("Run {} for scene {} failed".format(i, "tableroom.ttt") )
+                print("Run {} for scene {} failed".format(i, scene_name) )
                 print("Distance between finger and target object: {}".format(distance))
                 print("Z difference between target object and initial pose: {}".format(z_diff_from_init))
                 # reset color
@@ -276,7 +277,7 @@ def main():
                 for log in logs:
                     if "controller fail" in log:
                         CONTROLLER_FAILURE_FLAG = True
-                    if "No lifting grasp" or "no way to grasp the object" in log:
+                    if "No lifting grasp found by Contact Grasp Net, breaking" or "no way to grasp the object" in log:
                         NO_GRASP_FLAG = True
                     if "no solution is found" in log:
                         NO_SOLUTION_FLAG = True
@@ -312,7 +313,7 @@ def main():
 
 if __name__ == "__main__":
     rospy.init_node("experiment_monitor")
-    main()
+    run_for_scene("tableroom")
 
         
 
