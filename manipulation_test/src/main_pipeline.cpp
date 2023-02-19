@@ -483,12 +483,6 @@ int main(int argc, char** argv)
 
         grasp_prediction_srv.request.full_point_cloud = table_srv.response.full_point_cloud;
         grasp_prediction_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
-        // print out the first 10 points of the segmented point cloud
-        std::cout << "segmented point cloud: ";
-        for(int i = 0; i < 10; i++)
-        {
-            std::cout << obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud.data[i] << " ";
-        }
         grasp_prediction_srv.request.camera_stamped_transform = camera_stamped_transform;
 
         // prepare pcs for CoM prediction
