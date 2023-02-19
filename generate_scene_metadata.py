@@ -7,7 +7,7 @@ import os
 
 scene_metadata = {
     "objects": ['bottle', 'can', 'book', 'hammer'],
-    "target_object_ids": [1,3],
+    "target_object_names": ["hammer", "can"],
 }
 
 SCENE_DIR = "/home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene"

@@ -164,39 +164,36 @@ void generatePointCloudOfPlane(tf::Transform planePose, double planeWidth, doubl
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "main_pipeline");
+    bool param_bool;
     ros::NodeHandle node_handle;
+    ros::NodeHandle private_node_handle("~");
 
     //////////////////////////////////////////
     bool use_regrasp = true; // if true, the regrasp is used.
     bool is_execute = true; // if true, the robot is executed.
     bool re_analyze = true; // if true, replanning will be run for each re-grasping.
     //////////////////////////////////////////
-    std::string param_buffer;
-    if(node_handle.getParam("use_regrasp", param_buffer))
+    if (private_node_handle.getParam("use_regrasp", param_bool))
     {
-        if(param_buffer == "true")
-            use_regrasp = true;
-        else if(param_buffer == "false")
-            use_regrasp = false;
+        use_regrasp = param_bool;
     }
-    if(node_handle.getParam("is_execute", param_buffer))
+    if (private_node_handle.getParam("is_execute", param_bool))
     {
-        if(param_buffer == "true")
-            is_execute = true;
-        else if(param_buffer == "false")
-            is_execute = false;
+        is_execute = param_bool;
     }
-    if(node_handle.getParam("re_analyze", param_buffer))
+    if (private_node_handle.getParam("re_analyze", param_bool))
     {
-        if(param_buffer == "true")
-            re_analyze = true;
-        else if(param_buffer == "false")
-            re_analyze = false;
+        re_analyze = param_bool;
     }
+
+
     if(!is_execute) // re-analyze must be used when is_execute is true.
         re_analyze = false;
 
+    std::cout<< "main_pipeline configuration" << std::endl;
     std::cout << "use regrasp: " << use_regrasp << std::endl;
+    std::cout << "is execute: " << is_execute << std::endl;
+    std::cout << "re analyze: " << re_analyze << std::endl;
 
     ros::AsyncSpinner spinner(1);
     spinner.start();
