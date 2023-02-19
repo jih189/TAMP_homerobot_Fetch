@@ -761,79 +761,79 @@ int main(int argc, char** argv)
             for(int g = 0; g < grasp_transforms.size(); g++)
             {
                 robot_action_trajectory_execution_list.clear();
-                if(grasp_types[g] == 0)
-                {
-                    // calculate the pre-grasp, grasp and lift-grasp poses
-                    tf::Transform pre_grasp_pose_in_world_frame = target_object_transform * grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.1, 0, 0));
-                    tf::Transform grasp_pose_in_world_frame = target_object_transform * grasp_transforms[g];
-                    tf::Transform lift_grasp_pose_in_world_frame = tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(0, 0, 0.1)) * target_object_transform * grasp_transforms[g];
-                    geometry_msgs::Pose pre_grasp_pose;
-                    geometry_msgs::Pose grasp_pose;
-                    geometry_msgs::Pose lift_grasp_pose;
-                    transformTFToGeoPose(pre_grasp_pose_in_world_frame, pre_grasp_pose);
-                    transformTFToGeoPose(grasp_pose_in_world_frame, grasp_pose);
-                    transformTFToGeoPose(lift_grasp_pose_in_world_frame, lift_grasp_pose);
+                // if(grasp_types[g] == 0)
+                // {
+                // calculate the pre-grasp, grasp and lift-grasp poses
+                tf::Transform pre_grasp_pose_in_world_frame = target_object_transform * grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.1, 0, 0));
+                tf::Transform grasp_pose_in_world_frame = target_object_transform * grasp_transforms[g];
+                tf::Transform lift_grasp_pose_in_world_frame = tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(0, 0, 0.1)) * target_object_transform * grasp_transforms[g];
+                geometry_msgs::Pose pre_grasp_pose;
+                geometry_msgs::Pose grasp_pose;
+                geometry_msgs::Pose lift_grasp_pose;
+                transformTFToGeoPose(pre_grasp_pose_in_world_frame, pre_grasp_pose);
+                transformTFToGeoPose(grasp_pose_in_world_frame, grasp_pose);
+                transformTFToGeoPose(lift_grasp_pose_in_world_frame, lift_grasp_pose);
 
-                    // refresh the current state
-                    moveit::core::RobotState current_state = *(move_group.getCurrentState());
+                // refresh the current state
+                moveit::core::RobotState current_state = *(move_group.getCurrentState());
 
-                    // plan to pre-grasp pose
-                    move_group.setStartState(current_state);
-                    move_group.setPoseTarget(pre_grasp_pose);
-                    moveit::planning_interface::MoveGroupInterface::Plan pregrasp_plan;
-                    if(move_group.plan(pregrasp_plan) != moveit::planning_interface::MoveItErrorCode::SUCCESS)
-                        continue;
-                    robot_trajectory::RobotTrajectory pregrasp_trajectory = 
-                                    robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, pregrasp_plan.trajectory_);                
-                    robot_action_trajectory_execution_list.push_back(std::make_pair("arm", pregrasp_trajectory));
-                    current_state = pregrasp_trajectory.getLastWayPoint();
+                // plan to pre-grasp pose
+                move_group.setStartState(current_state);
+                move_group.setPoseTarget(pre_grasp_pose);
+                moveit::planning_interface::MoveGroupInterface::Plan pregrasp_plan;
+                if(move_group.plan(pregrasp_plan) != moveit::planning_interface::MoveItErrorCode::SUCCESS)
+                    continue;
+                robot_trajectory::RobotTrajectory pregrasp_trajectory = 
+                                robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, pregrasp_plan.trajectory_);                
+                robot_action_trajectory_execution_list.push_back(std::make_pair("arm", pregrasp_trajectory));
+                current_state = pregrasp_trajectory.getLastWayPoint();
 
-                    // open the gripper
-                    end_effector_move_group.setStartState(current_state);
-                    for(int i = 0; i < finger_joint_names.size(); i++)
-                        end_effector_move_group.setJointValueTarget(finger_joint_names[i], 0.04);
-                    moveit::planning_interface::MoveGroupInterface::Plan open_gripper_plan;
-                    if(end_effector_move_group.plan(open_gripper_plan) != moveit::planning_interface::MoveItErrorCode::SUCCESS)
-                        continue;
-                    robot_trajectory::RobotTrajectory open_gripper_trajectory = 
-                                    robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group).setRobotTrajectoryMsg(current_state, open_gripper_plan.trajectory_);
-                    robot_action_trajectory_execution_list.push_back(std::make_pair("open", open_gripper_trajectory));
-                    current_state = open_gripper_trajectory.getLastWayPoint();
+                // open the gripper
+                end_effector_move_group.setStartState(current_state);
+                for(int i = 0; i < finger_joint_names.size(); i++)
+                    end_effector_move_group.setJointValueTarget(finger_joint_names[i], 0.04);
+                moveit::planning_interface::MoveGroupInterface::Plan open_gripper_plan;
+                if(end_effector_move_group.plan(open_gripper_plan) != moveit::planning_interface::MoveItErrorCode::SUCCESS)
+                    continue;
+                robot_trajectory::RobotTrajectory open_gripper_trajectory = 
+                                robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group).setRobotTrajectoryMsg(current_state, open_gripper_plan.trajectory_);
+                robot_action_trajectory_execution_list.push_back(std::make_pair("open", open_gripper_trajectory));
+                current_state = open_gripper_trajectory.getLastWayPoint();
 
-                    // approach the object
-                    move_group.setStartState(current_state);
-                    moveit_msgs::RobotTrajectory approach_trajectory_msg;    
-                    if(move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{grasp_pose}, 0.005, 5.0, approach_trajectory_msg, true) < 0.95)
-                        continue;
-                    robot_trajectory::RobotTrajectory approach_trajectory = 
-                                    robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, approach_trajectory_msg);
-                    robot_action_trajectory_execution_list.push_back(std::make_pair("arm", approach_trajectory));
-                    current_state = approach_trajectory.getLastWayPoint();
+                // approach the object
+                move_group.setStartState(current_state);
+                moveit_msgs::RobotTrajectory approach_trajectory_msg;    
+                if(move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{grasp_pose}, 0.005, 5.0, approach_trajectory_msg, true) < 0.95)
+                    continue;
+                robot_trajectory::RobotTrajectory approach_trajectory = 
+                                robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, approach_trajectory_msg);
+                robot_action_trajectory_execution_list.push_back(std::make_pair("arm", approach_trajectory));
+                current_state = approach_trajectory.getLastWayPoint();
 
-                    // close the gripper
-                    end_effector_move_group.setStartState(current_state);
-                    for(int i = 0; i < finger_joint_names.size(); i++)
-                        end_effector_move_group.setJointValueTarget(finger_joint_names[i], 0.0);
-                    moveit::planning_interface::MoveGroupInterface::Plan close_gripper_plan;
-                    if(end_effector_move_group.plan(close_gripper_plan) != moveit::planning_interface::MoveItErrorCode::SUCCESS)
-                        continue;
-                    robot_trajectory::RobotTrajectory close_gripper_trajectory = 
-                                    robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group).setRobotTrajectoryMsg(current_state, close_gripper_plan.trajectory_);
-                    robot_action_trajectory_execution_list.push_back(std::make_pair("close", close_gripper_trajectory));
-                    current_state = close_gripper_trajectory.getLastWayPoint();
+                // close the gripper
+                end_effector_move_group.setStartState(current_state);
+                for(int i = 0; i < finger_joint_names.size(); i++)
+                    end_effector_move_group.setJointValueTarget(finger_joint_names[i], 0.0);
+                moveit::planning_interface::MoveGroupInterface::Plan close_gripper_plan;
+                if(end_effector_move_group.plan(close_gripper_plan) != moveit::planning_interface::MoveItErrorCode::SUCCESS)
+                    continue;
+                robot_trajectory::RobotTrajectory close_gripper_trajectory = 
+                                robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group).setRobotTrajectoryMsg(current_state, close_gripper_plan.trajectory_);
+                robot_action_trajectory_execution_list.push_back(std::make_pair("close", close_gripper_trajectory));
+                current_state = close_gripper_trajectory.getLastWayPoint();
 
-                    // plan to lift the object
-                    move_group.setStartState(current_state);
-                    moveit_msgs::RobotTrajectory lift_trajectory_msg;
-                    if(move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{lift_grasp_pose}, 0.005, 5.0, lift_trajectory_msg, true) < 0.95)
-                        continue;
-                    robot_trajectory::RobotTrajectory lifting_trajectory = 
-                                    robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, lift_trajectory_msg);
-                    robot_action_trajectory_execution_list.push_back(std::make_pair("arm", lifting_trajectory));
-                    current_state = lifting_trajectory.getLastWayPoint();
+                // plan to lift the object
+                move_group.setStartState(current_state);
+                moveit_msgs::RobotTrajectory lift_trajectory_msg;
+                if(move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{lift_grasp_pose}, 0.005, 5.0, lift_trajectory_msg, true) < 0.95)
+                    continue;
+                robot_trajectory::RobotTrajectory lifting_trajectory = 
+                                robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, lift_trajectory_msg);
+                robot_action_trajectory_execution_list.push_back(std::make_pair("lift", lifting_trajectory));
+                current_state = lifting_trajectory.getLastWayPoint();
 
-                    break;
-                } 
+                break;
+                // } 
             }
         }
         else{
@@ -1688,12 +1688,13 @@ int main(int argc, char** argv)
                             current_state = cartesian_trajectory.getLastWayPoint();
                         }
                         else{
+                            // if the action is to the next foliation, then we need to lift the object.
                             // 6. execute the cartesian motion
                             robot_trajectory::RobotTrajectory cartesian_trajectory = 
                                             robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
 
                             // 7. add the cartesian trajectory into the total trajectory.
-                            robot_action_trajectory_execution_list.push_back(std::make_pair("arm", cartesian_trajectory));
+                            robot_action_trajectory_execution_list.push_back(std::make_pair("lift", cartesian_trajectory));
                             current_state = cartesian_trajectory.getLastWayPoint();
                         }
                         
@@ -1947,6 +1948,20 @@ int main(int argc, char** argv)
                     iter.second.getRobotTrajectoryMsg(plan.trajectory_);
                     move_group.execute(plan);
                 }
+                else if(iter.first.compare("lift") == 0){
+
+                    std::cout << "move arm to lift object" << std::endl;
+
+                    // remove duplicate waypoints
+                    for(int t = 0; t < iter.second.getWayPointCount(); t++)
+                        if(iter.second.getWayPointDurationFromPrevious(t) == 0.0)
+                            iter.second.setWayPointDurationFromPrevious(t, 0.05);
+                        
+                    moveit::planning_interface::MoveGroupInterface::Plan plan;
+                    iter.second.getRobotTrajectoryMsg(plan.trajectory_);
+                    move_group.execute(plan);
+
+                }
                 else if(iter.first.compare("after_slide") == 0){
 
                     std::cout << "move arm" << std::endl;
@@ -2053,6 +2068,10 @@ int main(int argc, char** argv)
                 }
                 else if(iter.first.compare("after_slide") == 0){
                     std::cout << "visual move arm" << std::endl;
+                    total_trajectory_for_visual.append(iter.second, 0.01);
+                }
+                else if(iter.first.compare("lift") == 0){
+                    std::cout << "visual move arm to lift object" << std::endl;
                     total_trajectory_for_visual.append(iter.second, 0.01);
                 }
                 else if(iter.first.compare("open") == 0){

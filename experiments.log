@@ -77,3 +77,15 @@ Z difference between target object and initial pose: 0.09300000000000008
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
+Run 2: True
+Distance between finger and target object: 0.05970762095411277
+Z difference between target object and initial pose: 0.134
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 3: False
+Distance between finger and target object: 0.9679431801505707
+Z difference between target object and initial pose: -0.0010000000000000009
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
