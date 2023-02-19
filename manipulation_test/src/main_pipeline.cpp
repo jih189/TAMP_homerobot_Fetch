@@ -483,7 +483,27 @@ int main(int argc, char** argv)
 
         grasp_prediction_srv.request.full_point_cloud = table_srv.response.full_point_cloud;
         grasp_prediction_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
+        // print out the first 10 points of the segmented point cloud
+        std::cout << "segmented point cloud: ";
+        for(int i = 0; i < 10; i++)
+        {
+            std::cout << obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud.data[i] << " ";
+        }
         grasp_prediction_srv.request.camera_stamped_transform = camera_stamped_transform;
+
+        // prepare pcs for CoM prediction
+        sensor_msgs::PointCloud2 cropped_table_point_cloud;
+        generatePointCloudOfPlane(target_object_transform, 
+                            obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y * 1.7,
+                            obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z * 1.7,
+                            obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x,
+                            0.005,
+                            cropped_table_point_cloud);
+
+        ros_tensorflow_msgs::ComPredict com_predict_srv;
+        com_predict_srv.request.table_point_cloud = cropped_table_point_cloud;
+        com_predict_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
+        com_predict_srv.request.camera_stamped_transform = camera_stamped_transform;
 
         std::vector<tf::Transform> grasp_transforms_before_clustering;
         std::vector<float> grasp_jawwidths_before_clustering;
@@ -508,18 +528,18 @@ int main(int argc, char** argv)
 
             // find the com of the object.
             /************************************************************************************/
-            sensor_msgs::PointCloud2 cropped_table_point_cloud;
-            generatePointCloudOfPlane(target_object_transform, 
-                                obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y * 1.7,
-                                obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z * 1.7,
-                                obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x,
-                                0.005,
-                                cropped_table_point_cloud);
+            // sensor_msgs::PointCloud2 cropped_table_point_cloud;
+            // generatePointCloudOfPlane(target_object_transform, 
+            //                     obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.y * 1.7,
+            //                     obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.z * 1.7,
+            //                     obstacle_srv.response.segmented_objects.objects[front_obstacle_id].bounding_volume.dimensions.x,
+            //                     0.005,
+            //                     cropped_table_point_cloud);
 
-            ros_tensorflow_msgs::ComPredict com_predict_srv;
-            com_predict_srv.request.table_point_cloud = cropped_table_point_cloud;
-            com_predict_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
-            com_predict_srv.request.camera_stamped_transform = camera_stamped_transform;
+            // ros_tensorflow_msgs::ComPredict com_predict_srv;
+            // com_predict_srv.request.table_point_cloud = cropped_table_point_cloud;
+            // com_predict_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
+            // com_predict_srv.request.camera_stamped_transform = camera_stamped_transform;
             if (not com_prediction_client.call(com_predict_srv))
             {
                 ROS_ERROR("Failed to call service center of mass prediction");
@@ -560,18 +580,20 @@ int main(int argc, char** argv)
             //     }
             // }
 
-            manipulation_test::VisualizeCom com_visualize_srv;
-            // com_visualize_srv.request.com = com_predict_srv.response.com;
-            std::cout << "predicted com: " << target_com.x() << ", " << target_com.y() << ", " << target_com.z() << std::endl;
-            geometry_msgs::Point com_point;
-            com_point.x = target_com.x();
-            com_point.y = target_com.y();
-            com_point.z = target_com.z();
-            com_visualize_srv.request.com = com_point;
-            com_visualize_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
-            com_visualize_srv.request.table_point_cloud = cropped_table_point_cloud;
+            // manipulation_test::VisualizeCom com_visualize_srv;
+            // // com_visualize_srv.request.com = com_predict_srv.response.com;
+            // std::cout << "predicted com: " << target_com.x() << ", " << target_com.y() << ", " << target_com.z() << std::endl;
+            // geometry_msgs::Point com_point;
+            // com_point.x = target_com.x();
+            // com_point.y = target_com.y();
+            // com_point.z = target_com.z();
+            // com_visualize_srv.request.com = com_point;
+            // com_visualize_srv.request.segmented_point_cloud = obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud;
+            // std::cout << "segmented point cloud size: " << obstacle_srv.response.segmented_objects.objects[front_obstacle_id].point_cloud.data.size() << std::endl;
+            // com_visualize_srv.request.table_point_cloud = cropped_table_point_cloud;
+            // std::cout << "table point cloud size: " << cropped_table_point_cloud.data.size() << std::endl;
 
-            com_predict_visualizer.call(com_visualize_srv);
+            // com_predict_visualizer.call(com_visualize_srv);
 
             /************************************************************************************/
         

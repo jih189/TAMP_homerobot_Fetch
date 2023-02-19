@@ -14,6 +14,20 @@ from scipy.spatial.transform import Rotation as R
 
 import numpy as np
 
+def PC2_to_numpyxyzarray1(point_cloud):
+    # create numpy array to store the point cloud
+    point_cloud_array = np.zeros((point_cloud.width * point_cloud.height, 3))
+    print("point_cloud_array.shape: ", point_cloud_array.shape)
+    points = pc2.read_points(point_cloud, skip_nans=True)
+    for i, p in enumerate(points):
+        print("p: ", p)
+        point_cloud_array[i, 0] = p[0]
+        point_cloud_array[i, 1] = p[1]
+        point_cloud_array[i, 2] = p[2]
+        print(i)
+    
+    return point_cloud_array
+
 def PC2_to_numpyxyzarray(point_cloud):
     # create numpy array to store the point cloud
     point_cloud_array = np.zeros((point_cloud.width * point_cloud.height, 3))
@@ -22,6 +36,7 @@ def PC2_to_numpyxyzarray(point_cloud):
         point_cloud_array[i, 0] = p[0]
         point_cloud_array[i, 1] = p[1]
         point_cloud_array[i, 2] = p[2]
+    
     return point_cloud_array
 
 
@@ -41,7 +56,11 @@ class RosInterface():
     def predict_cb(self, req):
         rospy.loginfo("Prediction from service")
         table_point_cloud_in_world = PC2_to_numpyxyzarray(req.table_point_cloud)
-        segmented_point_cloud_in_world = PC2_to_numpyxyzarray(req.segmented_point_cloud)
+        segmented_point_cloud_in_world = PC2_to_numpyxyzarray1(req.segmented_point_cloud)
+        print("segmented_point_cloud_in_world.shape: ", segmented_point_cloud_in_world.shape)
+        print(segmented_point_cloud_in_world)
+        print("table_point_cloud_in_world.shape: ", table_point_cloud_in_world.shape)
+        print(table_point_cloud_in_world)
         # convert point clouds to homogeneous coordinates
         table_point_cloud_in_world = np.concatenate((table_point_cloud_in_world, np.ones((table_point_cloud_in_world.shape[0], 1))), axis=1)
         segmented_point_cloud_in_world = np.concatenate((segmented_point_cloud_in_world, np.ones((segmented_point_cloud_in_world.shape[0], 1))), axis=1)
@@ -55,6 +74,11 @@ class RosInterface():
         # convert to camera frame
         table_point_cloud_in_camera = np.dot(np.linalg.inv(camera_pose_mat), table_point_cloud_in_world.T).T[:, :3]
         segmented_point_cloud_in_camera = np.dot(np.linalg.inv(camera_pose_mat), segmented_point_cloud_in_world.T).T[:, :3]
+        print("segmented_point_cloud_in_camera.shape: ", segmented_point_cloud_in_camera.shape)
+
+        print(segmented_point_cloud_in_camera)
+        print(table_point_cloud_in_camera)
+
         # concate the two point clouds and create a 2d label array
         labels = np.zeros((table_point_cloud_in_camera.shape[0] + segmented_point_cloud_in_camera.shape[0], 1))
         labels[:table_point_cloud_in_camera.shape[0]] = 1

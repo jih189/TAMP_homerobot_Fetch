@@ -3,6 +3,7 @@
 This script acts as an experiment monitor, it runs the main pipeline and monitors the output of the pipeline.
 '''
 
+import datetime
 import os
 import sys
 import subprocess
@@ -57,7 +58,7 @@ def get_object_pose(object_name):
             # green text
             print("\033[32m{}\033[0m".format(translation))
             break
-    # kill the tf_echo process
+    # kill the tf_echo node
     tf_out.kill()
     return translation
 
@@ -128,7 +129,11 @@ def main():
     init_position = [-1.57, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     
     robot_controller_client.wait_for_server()
-
+    # log the scene name in experiments.log
+    logging_file = open(os.path.join(WS_BASE, "src/jiaming_manipulation/experiments.log"), "a")
+    # log scene name and time date
+    logging_file.write("Scene: {}\n".format(scene_path))
+    logging_file.write("Date: {}\n".format(datetime.datetime.now()))
     for i in range(5):
         sim.stopSimulation()
         # also stop the moveit package, if it is running
@@ -139,11 +144,15 @@ def main():
             os.system("rosnode kill /main_pipeline")
         # make sure everything is stopped
         time.sleep(1)
+        # experiment flags
+        NO_GRASP_FLAG = False
+        CONTROLLER_FAILURE_FLAG = False
+        NO_SOLUTION_FLAG = False
 
         # restart simulation and moveit
         sim.startSimulation()
         # start moveit in a separate process,do not print its output, it should not accept signals
-        subprocess.Popen("roslaunch fetch_moveit_config move_group.launch", shell=True,cwd=WS_BASE,
+        planner = subprocess.Popen("roslaunch fetch_moveit_config move_group.launch", shell=True,cwd=WS_BASE,
             stdin=subprocess.PIPE, stdout=None, stderr=None, close_fds=True, preexec_fn=os.setsid)
 
         # wait for simulation to start
@@ -203,31 +212,25 @@ def main():
                     main_output.stdin.flush()
                     break
         # print the output of the pipeline until it finishes
-        # target_object_name = None
-        # identified_target_object = False
+        # if there are no outputs for 10 seconds, assume the pipeline is stuck, see if it succeeded and then kill it
+        logs = []
+        last_output_time = time.time()
         while True:
             output = main_output.stdout.readline()
             # convert bytestring to string
             output = output.decode("utf-8")
-            # # check for the line that indicates the pose of the target object
-            # if not identified_target_object and "target object transform: " in output:
-            #     # get the pose of the target object
-            #     target_object_pose_text = output.split("target object transform: ")[1]
-            #     target_object_position, target_object_orientation = parse_pose(target_object_pose_text)
-            #     # print out the pose of the target object in yellow for debugging
-            #     # yellow
-            #     print("\033[93m")
-            #     print("Target object position: {}".format(target_object_position))
-            #     print("Target object orientation: {}".format(target_object_orientation))
-            #     # reset color
-            #     # pin down which object is the target object
-            #     target_object_name = find_closest_object(target_object_position, obj_init_poses)
-            #     print("Target object name: {}".format(target_object_name))
-
-            #     print("\033[0m")
-            #     identified_target_object = True
-                
+            # log for checking if the there is a failure in the pipeline    
             print(output)
+            # planner_output = planner.stdout.readline()
+            # planner_output = planner_output.decode("utf-8")
+            # print(planner_output)
+            # if output == '' and planner_output == '':
+            #     if time.time() - last_output_time > 10:
+            #         break
+            # else:
+            #     last_output_time = time.time()
+            # logs.append(planner_output)
+            logs.append(output)
             if output == '' and main_output.poll() is not None:
                 break
             
@@ -269,16 +272,42 @@ def main():
                 print("Z difference between target object and initial pose: {}".format(z_diff_from_init))
                 # reset color
                 print("\033[0m")
+                # check in logs if there was a controller failure
+                for log in logs:
+                    if "controller fail" in log:
+                        CONTROLLER_FAILURE_FLAG = True
+                    if "No lifting grasp" or "no way to grasp the object" in log:
+                        NO_GRASP_FLAG = True
+                    if "no solution is found" in log:
+                        NO_SOLUTION_FLAG = True
+            # log the result
+            logging_file.write("Run {}: {}\n".format(i, success))
+            logging_file.write("Target object name: {}\n".format(target_object_name))
+            logging_file.write("Distance between finger and target object: {}\n".format(distance))
+            logging_file.write("Z difference between target object and initial pose: {}\n".format(z_diff_from_init))
+            logging_file.write("CONTROLLER_FAILURE_FLAG: {}\n".format(CONTROLLER_FAILURE_FLAG))
+            logging_file.write("NO_GRASP_FLAG: {}\n".format(NO_GRASP_FLAG))
+            logging_file.write("NO_SOLUTION_FLAG: {}\n".format(NO_SOLUTION_FLAG))
+            logging_file.flush()
+        
+        else:
+            print("No target object found")
+            logging_file.write("Run {}: {}\n".format(i, False))
+            logging_file.write("No target object found\n")
+            logging_file.flush()
+
             
-            # reset the arm with joint trajectory controller
-            goal = FollowJointTrajectoryGoal()
-            goal.trajectory.joint_names = joint_names
-            point = JointTrajectoryPoint()
-            # point.velocities.append(0.1)
-            point.positions = init_position
-            point.time_from_start = rospy.Duration(1)
-            goal.trajectory.points.append(point)
-            robot_controller_client.send_goal_and_wait(goal)
+        # reset the arm with joint trajectory controller
+        goal = FollowJointTrajectoryGoal()
+        goal.trajectory.joint_names = joint_names
+        point = JointTrajectoryPoint()
+        # point.velocities.append(0.1)
+        point.positions = init_position
+        point.time_from_start = rospy.Duration(1)
+        goal.trajectory.points.append(point)
+        robot_controller_client.send_goal_and_wait(goal)
+        # wait for 5 seconds
+        time.sleep(5)
 
 
 if __name__ == "__main__":

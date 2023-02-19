@@ -1,0 +1,44 @@
+Run 0: False
+Target object name: hammer
+Distance between finger and target object: 0.7805299481762377
+Z difference between target object and initial pose: -0.0010000000000000009
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 1: False
+Target object name: hammer
+Distance between finger and target object: 0.9545878691875359
+Z difference between target object and initial pose: -0.0010000000000000009
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 2: True
+Target object name: hammer
+Distance between finger and target object: 0.09678842906050282
+Z difference between target object and initial pose: 0.1060000000000001
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 3: True
+Target object name: hammer
+Distance between finger and target object: 0.05770615218501407
+Z difference between target object and initial pose: 0.15400000000000003
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 4: False
+Target object name: hammer
+Distance between finger and target object: 0.837713554862281
+Z difference between target object and initial pose: -0.0010000000000000009
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Scene: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene
+Date: 2023-02-18 17:29:06.652763
+Run 0: False
+Target object name: hammer
+Distance between finger and target object: 1.2677732447090055
+Z difference between target object and initial pose: -0.0010000000000000009
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
