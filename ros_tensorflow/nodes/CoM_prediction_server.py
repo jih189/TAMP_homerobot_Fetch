@@ -10,20 +10,10 @@ from CoM_prediction.model import ModelWrapper, BATCH_SIZE, NUM_POINT
 from geometry_msgs.msg import Point
 from sensor_msgs.msg import PointCloud2
 import sensor_msgs.point_cloud2 as pc2
+from rosnumpy_Com import pointcloud2_to_xyz_array
 from scipy.spatial.transform import Rotation as R
 
 import numpy as np
-
-def PC2_to_numpyxyzarray(point_cloud):
-    # create numpy array to store the point cloud
-    point_cloud_array = np.zeros((point_cloud.width * point_cloud.height, 3))
-    points = pc2.read_points(point_cloud, skip_nans=True)
-    for i, p in enumerate(points):
-        point_cloud_array[i, 0] = p[0]
-        point_cloud_array[i, 1] = p[1]
-        point_cloud_array[i, 2] = p[2]
-    return point_cloud_array
-
 
 class RosInterface():
     def __init__(self):
@@ -40,8 +30,8 @@ class RosInterface():
 
     def predict_cb(self, req):
         rospy.loginfo("Prediction from service")
-        table_point_cloud_in_world = PC2_to_numpyxyzarray(req.table_point_cloud)
-        segmented_point_cloud_in_world = PC2_to_numpyxyzarray(req.segmented_point_cloud)
+        table_point_cloud_in_world = pointcloud2_to_xyz_array(req.table_point_cloud)
+        segmented_point_cloud_in_world = pointcloud2_to_xyz_array(req.segmented_point_cloud)
         # convert point clouds to homogeneous coordinates
         table_point_cloud_in_world = np.concatenate((table_point_cloud_in_world, np.ones((table_point_cloud_in_world.shape[0], 1))), axis=1)
         segmented_point_cloud_in_world = np.concatenate((segmented_point_cloud_in_world, np.ones((segmented_point_cloud_in_world.shape[0], 1))), axis=1)
