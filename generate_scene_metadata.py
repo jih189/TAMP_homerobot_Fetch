@@ -22,7 +22,7 @@ scene_metadatem0 = {
     "scene_name": "tableroom",
     "objects": ['bottle', 'can', 'book', 'hammer'],
     "target_object_names": ["hammer", "can"],
-    "target_object_weights": {"hammer": [], "can": []},
+    "target_object_weights": {"hammer": ("object_hammer_respondable", []), "can": ("object_can_respondable", [])},
 }
 scene_metadata.append(scene_metadatem0)
 
@@ -30,8 +30,8 @@ scene_metadata.append(scene_metadatem0)
 scene_metadatem1 = {
     "scene_name": "stub",
     "objects": ['stub', 'stub', 'stub', 'stub'],
-    "target_object_names": ["stub", "stub"],
-    "target_object_weights": {"stub": [], "stub": []},
+    "target_object_names": ["stub"],
+    "target_object_weights": {"stub": ("object_stub_respondable", [])},
 }
 scene_metadata.append(scene_metadatem1)
 
