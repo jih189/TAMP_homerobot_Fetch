@@ -52,7 +52,9 @@ class ObjectSegmentation:
         except CvBridgeError, e:
             print(e)
 
-object_names = ['hammer_visual', 'can_visual', 'bottle_visual', 'book_visual', 'Cuboid']
+object_names = ['hammer_visual', 'can_visual', 'bottle_visual', 'book_visual', 'pan_visual', 'cereal_visual', 'remote_visual', 'dispenser_visual', 'teapot_visual', 'wrench_visual', \
+                'stable_visual', 'lego_visual', 'tissue_visual', 'candy_visual', 'clock_visual', 'laptop_visual', 'light_visual', 'hairdryer_visual', 'mic_visual', 'earphone_visual', \
+                'Cuboid']
 
 
 if __name__ == '__main__':
