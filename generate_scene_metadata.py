@@ -40,7 +40,7 @@ SCENE_DIR = "/home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/s
 
 for scene in scene_metadata:
     scene_name = scene["scene_name"]
-    scene_path = os.path.join(SCENE_DIR, scene_name)
+    scene_path = SCENE_DIR
     scene_file = os.path.join(scene_path, scene_name + ".pkl")
     with open(scene_file, 'wb') as f:
         pickle.dump(scene, f)

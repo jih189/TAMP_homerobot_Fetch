@@ -173,7 +173,7 @@ def run_one_trial(sim, scene_metadata, target_object_name, scene_name, trial_num
             print("\033[31m")
             print("Pipeline is not running")
             print("\033[0m")
-            return
+            return 1
         output = main_output.stdout.readline()
         # convert bytestring to string
         output = output.decode("utf-8")
@@ -301,8 +301,23 @@ def run_one_trial(sim, scene_metadata, target_object_name, scene_name, trial_num
         logging_file.write("Run {}: {}\n".format(i, False))
         logging_file.write("No target object found\n")
         logging_file.flush()
+        return 1
+    return 0
 
-def run_for_scene(scene_name):
+def reset_arm(joint_names, init_position, robot_controller_client):
+    # reset the arm with joint trajectory controller
+    goal = FollowJointTrajectoryGoal()
+    goal.trajectory.joint_names = joint_names
+    point = JointTrajectoryPoint()
+    # point.velocities.append(0.1)
+    point.positions = init_position
+    point.time_from_start = rospy.Duration(1)
+    goal.trajectory.points.append(point)
+    robot_controller_client.send_goal_and_wait(goal)
+    # wait for 5 seconds
+    time.sleep(5)
+
+def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
     # ascii box with scene name in the middle
     print("+" + "-" * len(scene_name) + "+")
     print("|" + "\033[96m{}\033[0m".format(scene_name) + "|")
@@ -327,105 +342,96 @@ def run_for_scene(scene_name):
     logging_file.write("Scene path: {}\n".format(os.path.join(scene_path, scene_name+".ttt")))
     logging_file.write("Date: {}\n".format(datetime.datetime.now()))
     logging_file.flush()
+    start_time = time.time()
     # non-weight varying grasp task
-    # log the experiment type in experiments.log
-    logging_file.write("Experiment type: Constant weight\n")
-    for target_object_name in scene_metadata["target_object_names"]:
-        # Green text
-        print("\033[32m")
-        print("===========================================")
-        print("Target object: {}".format(target_object_name))
-        # reset color
-        print("\033[0m")
-        # log the target object name in experiments.log
-        logging_file.write("Target object: {}\n".format(target_object_name))
-        for i in range(2):
-            use_regrasp = False
-            if i == 0:
-                # Green text
-                print("\033[32m")
-                print("No regrasp")
-                # reset color
-                print("\033[0m")
-                # log the experiment type in experiments.log
-                logging_file.write("Experiment type: No regrasp\n")
-                use_regrasp = False
-            else:
-                # Green text
-                print("\033[32m")
-                print("With regrasp")
-                # reset color
-                print("\033[0m")
-                # log the experiment type in experiments.log
-                logging_file.write("Experiment type: With rerasp\n")
-                use_regrasp = True
-
-            for i in range(5):
-                # Green text
-                print("\033[32m")
-                print("Run {}".format(i))
-                # reset color
-                print("\033[0m")
-                run_one_trial(sim, scene_metadata, target_object_name, scene_name, i, use_regrasp, logging_file)
-                # reset the arm with joint trajectory controller
-                goal = FollowJointTrajectoryGoal()
-                goal.trajectory.joint_names = joint_names
-                point = JointTrajectoryPoint()
-                # point.velocities.append(0.1)
-                point.positions = init_position
-                point.time_from_start = rospy.Duration(1)
-                goal.trajectory.points.append(point)
-                robot_controller_client.send_goal_and_wait(goal)
-                # wait for 5 seconds
-                time.sleep(5)
-    
-    #reset scene
-    sim.stopSimulation()
-    time.sleep(1)
-    sim.loadScene(os.path.join(scene_path, scene_name+".ttt"))
-    # weight varying grasp task
-    # log the experiment type in experiments.log
-    logging_file.write("Experiment type: Weight varying\n")
-    for target_object_name in scene_metadata["target_object_weights"]:
-        # log the target object name in experiments.log
-        logging_file.write("Target object: {}\n".format(target_object_name))
-        handle_name = scene_metadata["target_object_weights"][target_object_name][0]
-        obj_handle = sim.getObjectHandle(handle_name)
-        weights = scene_metadata["target_object_weights"][target_object_name][1]
-        # if weights is empty, use default weight scaling scheme
-        if len(weights) == 0:
-            original_weight = sim.getShapeMassAndInertia(obj_handle)[0]
-            weights = [original_weight, original_weight *1.5, original_weight * 2.0]
-        # set the weight of the target object
-        for weight in weights:
-            # debugging print 
-            # green text
+    if constant_weights:
+        # log the experiment type in experiments.log
+        logging_file.write("Experiment type: Constant weight\n")
+        for target_object_name in scene_metadata["target_object_names"]:
+            # Green text
             print("\033[32m")
             print("===========================================")
-            print("Target object: {}".format(target_object_name) + " Weight: {}".format(weight))
+            print("Target object: {}".format(target_object_name))
             # reset color
             print("\033[0m")
-            # run 1 trial(s) for each weight with no regrasp and regrasp
-            obj_handle.setMass(weight)
-            run_one_trial(sim, scene_metadata, target_object_name, scene_name, 0, False, logging_file)
-            run_one_trial(sim, scene_metadata, target_object_name, scene_name, 0, True, logging_file)
-            # reset the arm with joint trajectory controller
-            goal = FollowJointTrajectoryGoal()
-            goal.trajectory.joint_names = joint_names
-            point = JointTrajectoryPoint()
-            # point.velocities.append(0.1)
-            point.positions = init_position
-            point.time_from_start = rospy.Duration(1)
-            goal.trajectory.points.append(point)
-            robot_controller_client.send_goal_and_wait(goal)
-            # wait for 5 seconds
-            time.sleep(5)
+            # log the target object name in experiments.log
+            logging_file.write("Target object: {}\n".format(target_object_name))
+            for i in range(2):
+                use_regrasp = False
+                if i == 0:
+                    # Green text
+                    print("\033[32m")
+                    print("No regrasp")
+                    # reset color
+                    print("\033[0m")
+                    # log the experiment type in experiments.log
+                    logging_file.write("Experiment type: No regrasp\n")
+                    use_regrasp = False
+                else:
+                    # Green text
+                    print("\033[32m")
+                    print("With regrasp")
+                    # reset color
+                    print("\033[0m")
+                    # log the experiment type in experiments.log
+                    logging_file.write("Experiment type: With rerasp\n")
+                    use_regrasp = True
+
+                for i in range(5):
+                    # Green text
+                    print("\033[32m")
+                    print("Run {}".format(i))
+                    # reset color
+                    print("\033[0m")
+                    retval = run_one_trial(sim, scene_metadata, target_object_name, scene_name, i, use_regrasp, logging_file)
+                    if retval == 1:
+                        return 1
+                    reset_arm(joint_names, init_position, robot_controller_client)
+    if variable_weights:
+        #reset scene
+        sim.stopSimulation()
+        time.sleep(1)
+        sim.loadScene(os.path.join(scene_path, scene_name+".ttt"))
+        # weight varying grasp task
+        # log the experiment type in experiments.log
+        logging_file.write("Experiment type: Weight varying\n")
+        for target_object_name in scene_metadata["target_object_weights"]:
+            # log the target object name in experiments.log
+            logging_file.write("Target object: {}\n".format(target_object_name))
+            handle_name = scene_metadata["target_object_weights"][target_object_name][0]
+            obj_handle = sim.getObjectHandle(handle_name)
+            weights = scene_metadata["target_object_weights"][target_object_name][1]
+            # if weights is empty, use default weight scaling scheme
+            if len(weights) == 0:
+                original_weight = sim.getShapeMassAndInertia(obj_handle)[0]
+                weights = [original_weight, original_weight *1.5, original_weight * 2.0]
+            # set the weight of the target object
+            for weight in weights:
+                # debugging print 
+                # green text
+                print("\033[32m")
+                print("===========================================")
+                print("Target object: {}".format(target_object_name) + " Weight: {}".format(weight))
+                # reset color
+                print("\033[0m")
+                # run 1 trial(s) for each weight with no regrasp and regrasp
+                sim.setShapeMass(obj_handle, weight)
+                # TODO: make sure this actually works, as inertia is not set
+                retval = run_one_trial(sim, scene_metadata, target_object_name, scene_name, 0, False, logging_file)
+                if retval == 1:
+                    return 1
+                reset_arm(joint_names, init_position, robot_controller_client)
+                retval = run_one_trial(sim, scene_metadata, target_object_name, scene_name, 0, True, logging_file)
+                if retval == 1:
+                    return 1
+                reset_arm(joint_names, init_position, robot_controller_client)
     
     # all experiments are done, print the end of the experiment
     # green text
     print("\033[32m")
     print("===========================================")
     print("All experiments are done for scene {}".format(scene_name))
+    print("took {} minutes".format((time.time() - start_time)/60.0))
     # reset color
     print("\033[0m")
     # log the end of the experiment in experiments.log

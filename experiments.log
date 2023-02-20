@@ -147,3 +147,39 @@ Difference in rotation: 0.017998569121448364
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-19 16:31:07.514022
+Experiment type: Weight varying
+Target object: hammer
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-19 16:34:36.039858
+Experiment type: Weight varying
+Target object: hammer
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-19 16:35:16.946249
+Experiment type: Weight varying
+Target object: hammer
+Run 0: False
+Distance between finger and target object: 0.18905290264896757
+Z difference between target object and initial pose: 0.061000000000000054
+Difference in rotation: 0.07599040401339713
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 0: False
+Distance between finger and target object: 0.2222543587874037
+Z difference between target object and initial pose: 0.0
+Difference in rotation: None
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 0: False
+Distance between finger and target object: 0.2222543587874037
+Z difference between target object and initial pose: 0.0
+Difference in rotation: None
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
