@@ -37,11 +37,19 @@ scene_metadata.append(scene_metadatem1)
 
 scene_metadatem2 = {
     "scene_name": "tableroom_2",
-    "objects": ['candy', 'stable', 'lego', 'teapot', 'pan'],
-    "target_object_names": ["pan"],
+    "objects": ['candy', 'stable', 'lego', 'tissue', 'clock'],
+    "target_object_names": ["clock"],
     "target_object_weights": {},
 }
-scene_metadata.append(scene_metadatem1)
+scene_metadata.append(scene_metadatem2)
+
+scene_metadatem3 = {
+    "scene_name": "tableroom_3",
+    "objects": ['candy', 'stable', 'lego', 'tissue', 'clock'],
+    "target_object_names": ["clock"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem3)
 
 scene_metadatem4 = {
     "scene_name": "tableroom_4",
@@ -58,6 +66,6 @@ for scene in scene_metadata:
     scene_name = scene["scene_name"]
     scene_path = SCENE_DIR
     scene_file = os.path.join(scene_path, scene_name + ".pkl")
-    with open(scene_file, 'wb') as f:
+    with open(scene_file, 'w+b') as f:
         pickle.dump(scene, f)
 

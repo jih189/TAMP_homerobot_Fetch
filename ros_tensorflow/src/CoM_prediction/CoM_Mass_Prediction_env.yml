@@ -1,6 +1,7 @@
 name: CoM_Mass_Prediction_env
 channels:
   - nvidia/label/cuda-11.3.0
+  - anaconda
   - conda-forge
   - defaults
 dependencies:

@@ -15,4 +15,4 @@ Issues and solutions:
 Other possible issues:
 1. grasp_prediction_server returns error related to GPU allocation: check line 32 in contact_graspnet/model.py, force it to use gpu:0
 2. OOM error: try restarting CoM_prediction_server after starting grasp_prediction_server.If this still doesn't work, then there is no workaround :(
-3. Always predicting CoMs very close to (0,0,0): check if the server is getting the pointcloud and parsing them correctly. Check node/rsonumpy_Com.py for more details
+3. Always predicting CoMs very close to (0,0,0): check if the server is getting the pointcloud and parsing them correctly. Check node/rosnumpy_Com.py for more details

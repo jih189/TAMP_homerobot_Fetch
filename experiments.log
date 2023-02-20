@@ -183,3 +183,15 @@ Difference in rotation: None
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-20 15:28:58.061376
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-20 15:35:56.014397
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp

@@ -1951,7 +1951,8 @@ int main(int argc, char** argv)
                 else if(iter.first.compare("lift") == 0){
 
                     std::cout << "move arm to lift object" << std::endl;
-
+                    // wait for 1 s
+                    ors::Duration(1.0).sleep();
                     // remove duplicate waypoints
                     for(int t = 0; t < iter.second.getWayPointCount(); t++)
                         if(iter.second.getWayPointDurationFromPrevious(t) == 0.0)

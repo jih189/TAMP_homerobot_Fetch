@@ -329,12 +329,13 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
     scene_path = "/home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene"
     sim.loadScene(os.path.join(scene_path, scene_name+".ttt"))
     scene_metadata = pickle.load(open(os.path.join(scene_path, scene_name+".pkl"), "rb"))
-
+    print(scene_metadata)
     joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'forearm_roll_joint', 'wrist_flex_joint', 'wrist_roll_joint']
     robot_controller_client = actionlib.SimpleActionClient("/arm_controller/follow_joint_trajectory", FollowJointTrajectoryAction)
     init_position = [-1.57, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    
+    print("Waiting for controller to start")
     robot_controller_client.wait_for_server()
+    print("Controller started")
     # log the scene name in experiments.log
     logging_file = open(os.path.join(WS_BASE, "src/jiaming_manipulation/experiments.log"), "a")
     # log scene name and time date
@@ -445,7 +446,7 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
 
 if __name__ == "__main__":
     rospy.init_node("experiment_monitor")
-    run_for_scene("tableroom")
+    run_for_scene("tableroom_1", constant_weights=True, variable_weights=False)
 
         
 
