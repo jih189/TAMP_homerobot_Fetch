@@ -216,6 +216,7 @@ def run_one_trial(sim, scene_metadata, target_object_name, scene_name, trial_num
         # log for checking if the there is a failure in the pipeline    
         print(output, end="")
         logs.append(output)
+        # TODO: need to modify the main pipeline so that it waits for ~1 second before it starts moving the arm
         if "move arm to lift object" in output:
             # get the pose of the target object from tf
             target_object_pose_after_grasp = get_object_pose(target_object_name)
@@ -325,7 +326,10 @@ def run_for_scene(scene_name):
     logging_file.write("Scene: {}\n".format(scene_name))
     logging_file.write("Scene path: {}\n".format(os.path.join(scene_path, scene_name+".ttt")))
     logging_file.write("Date: {}\n".format(datetime.datetime.now()))
-
+    logging_file.flush()
+    # non-weight varying grasp task
+    # log the experiment type in experiments.log
+    logging_file.write("Experiment type: Constant weight\n")
     for target_object_name in scene_metadata["target_object_names"]:
         # Green text
         print("\033[32m")
@@ -374,8 +378,62 @@ def run_for_scene(scene_name):
                 robot_controller_client.send_goal_and_wait(goal)
                 # wait for 5 seconds
                 time.sleep(5)
-                
-
+    
+    #reset scene
+    sim.stopSimulation()
+    time.sleep(1)
+    sim.loadScene(os.path.join(scene_path, scene_name+".ttt"))
+    # weight varying grasp task
+    # log the experiment type in experiments.log
+    logging_file.write("Experiment type: Weight varying\n")
+    for target_object_name in scene_metadata["target_object_weights"]:
+        # log the target object name in experiments.log
+        logging_file.write("Target object: {}\n".format(target_object_name))
+        handle_name = scene_metadata["target_object_weights"][target_object_name][0]
+        obj_handle = sim.getObjectHandle(handle_name)
+        weights = scene_metadata["target_object_weights"][target_object_name][1]
+        # if weights is empty, use default weight scaling scheme
+        if len(weights) == 0:
+            original_weight = sim.getShapeMassAndInertia(obj_handle)[0]
+            weights = [original_weight, original_weight *1.5, original_weight * 2.0]
+        # set the weight of the target object
+        for weight in weights:
+            # debugging print 
+            # green text
+            print("\033[32m")
+            print("===========================================")
+            print("Target object: {}".format(target_object_name) + " Weight: {}".format(weight))
+            # reset color
+            print("\033[0m")
+            # run 1 trial(s) for each weight with no regrasp and regrasp
+            obj_handle.setMass(weight)
+            run_one_trial(sim, scene_metadata, target_object_name, scene_name, 0, False, logging_file)
+            run_one_trial(sim, scene_metadata, target_object_name, scene_name, 0, True, logging_file)
+            # reset the arm with joint trajectory controller
+            goal = FollowJointTrajectoryGoal()
+            goal.trajectory.joint_names = joint_names
+            point = JointTrajectoryPoint()
+            # point.velocities.append(0.1)
+            point.positions = init_position
+            point.time_from_start = rospy.Duration(1)
+            goal.trajectory.points.append(point)
+            robot_controller_client.send_goal_and_wait(goal)
+            # wait for 5 seconds
+            time.sleep(5)
+    
+    # all experiments are done, print the end of the experiment
+    # green text
+    print("\033[32m")
+    print("===========================================")
+    print("All experiments are done for scene {}".format(scene_name))
+    # reset color
+    print("\033[0m")
+    # log the end of the experiment in experiments.log
+    logging_file.write("All experiments are done for scene {}\n".format(scene_name))
+    # also, log the time date
+    logging_file.write("Date: {}\n".format(datetime.datetime.now()))
+    logging_file.write("===========================================")
+    logging_file.flush()
 
 if __name__ == "__main__":
     rospy.init_node("experiment_monitor")
