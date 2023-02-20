@@ -1,32 +1,32 @@
 name: CoM_Mass_Prediction_env
 channels:
   - nvidia/label/cuda-11.3.0
-  - anaconda
   - conda-forge
   - defaults
 dependencies:
-  - _libgcc_mutex=0.1=main
-  - _openmp_mutex=5.1=1_gnu
-  - ca-certificates=2023.01.10=h06a4308_0
-  - certifi=2022.12.7=py38h06a4308_0
+  - _libgcc_mutex=0.1=conda_forge
+  - _openmp_mutex=4.5=2_gnu
+  - ca-certificates=2022.12.7=ha878542_0
+  - certifi=2022.12.7=pyhd8ed1ab_0
   - cuda-nvcc=11.3.58=h2467b9f_0
   - cudatoolkit=11.2.2=hbe64b41_10
   - cudnn=8.1.0.77=h90431f1_0
-  - libedit=3.1.20221030=h5eee18b_0
-  - libffi=3.2.1=hf484d3e_1007
-  - libgcc-ng=11.2.0=h1234567_1
-  - libgomp=11.2.0=h1234567_1
-  - libstdcxx-ng=11.2.0=h1234567_1
-  - ncurses=6.4=h6a678d5_0
-  - openssl=1.1.1s=h7f8727e_0
+  - libedit=3.1.20191231=he28a2e2_2
+  - libffi=3.2.1=he1b5a44_1007
+  - libgcc-ng=12.2.0=h65d4601_19
+  - libgomp=12.2.0=h65d4601_19
+  - libstdcxx-ng=12.2.0=h46fd767_19
+  - libzlib=1.2.13=h166bdaf_4
+  - ncurses=6.3=h27087fc_1
+  - openssl=1.1.1t=h0b41bf4_0
   - python=3.8.0=h0371630_2
-  - readline=7.0=h7b6447c_5
-  - setuptools=65.6.3=py38h06a4308_0
+  - readline=7.0=hf8c457e_1001
+  - setuptools=67.3.2=pyhd8ed1ab_0
   - sqlite=3.33.0=h62c20be_0
-  - tk=8.6.12=h1ccaba5_0
-  - wheel=0.37.1=pyhd3eb1b0_0
-  - xz=5.2.10=h5eee18b_1
-  - zlib=1.2.13=h5eee18b_0
+  - tk=8.6.12=h27826a3_0
+  - wheel=0.38.4=pyhd8ed1ab_0
+  - xz=5.2.6=h166bdaf_0
+  - zlib=1.2.13=h166bdaf_4
   - pip:
       - absl-py==1.4.0
       - asttokens==2.2.1
