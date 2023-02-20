@@ -29,8 +29,13 @@ class ModelWrapper():
         global_config = config_utils.load_config(checkpoint_dir, batch_size=1, arg_configs=[])
         print(str(global_config))
         print('pid: %s'%(str(os.getpid())))
-        # use GPU 1
-        with tf.device('/gpu:1'):
+        # use GPU 1, if possible
+        device_name = '/gpu:0'
+        # check if there are more than 1 gpu
+        for device in tf.config.list_physical_devices():
+            if "GPU:1" in device.name:
+                device_name = '/gpu:1'
+        with tf.device(device_name):
             self.grasp_estimator = GraspEstimator(global_config)
             self.grasp_estimator.build_network()
 

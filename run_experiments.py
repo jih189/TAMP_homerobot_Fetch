@@ -417,10 +417,12 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
                 # run 1 trial(s) for each weight with no regrasp and regrasp
                 sim.setShapeMass(obj_handle, weight)
                 # TODO: make sure this actually works, as inertia is not set
+                logging_file.write("No regrasp")
                 retval = run_one_trial(sim, scene_metadata, target_object_name, scene_name, 0, False, logging_file)
                 if retval == 1:
                     return 1
                 reset_arm(joint_names, init_position, robot_controller_client)
+                logging_file.write("With regrasp")
                 retval = run_one_trial(sim, scene_metadata, target_object_name, scene_name, 0, True, logging_file)
                 if retval == 1:
                     return 1

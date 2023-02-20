@@ -21,19 +21,35 @@ scene_metadata = []
 scene_metadatem0 = {
     "scene_name": "tableroom",
     "objects": ['bottle', 'can', 'book', 'hammer'],
-    "target_object_names": ["hammer", "can"],
-    "target_object_weights": {"hammer": ("object_hammer_respondable", []), "can": ("object_can_respondable", [])},
+    "target_object_names": ["hammer"],
+    "target_object_weights": {},
 }
 scene_metadata.append(scene_metadatem0)
 
 # TODO: fill in the rest of the 19 scenes here
 scene_metadatem1 = {
-    "scene_name": "stub",
-    "objects": ['stub', 'stub', 'stub', 'stub'],
-    "target_object_names": ["stub"],
-    "target_object_weights": {"stub": ("object_stub_respondable", [])},
+    "scene_name": "tableroom_1",
+    "objects": ['cereal', 'remote', 'dispenser', 'teapot', 'pan'],
+    "target_object_names": ["pan"],
+    "target_object_weights": {},
 }
 scene_metadata.append(scene_metadatem1)
+
+scene_metadatem2 = {
+    "scene_name": "tableroom_2",
+    "objects": ['candy', 'stable', 'lego', 'teapot', 'pan'],
+    "target_object_names": ["pan"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem1)
+
+scene_metadatem4 = {
+    "scene_name": "tableroom_4",
+    "objects": ['oil', 'holetool', 'measuretool', 'weight', 'pen'],
+    "target_object_names": ["pen"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem4)
 
 
 SCENE_DIR = "/home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene"
