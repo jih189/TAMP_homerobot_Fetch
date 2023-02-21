@@ -60,7 +60,7 @@ scene_metadatem4 = {
 scene_metadata.append(scene_metadatem4)
 
 
-SCENE_DIR = "/home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene"
+SCENE_DIR = os.path.expanduser('~') + "/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene"
 
 for scene in scene_metadata:
     scene_name = scene["scene_name"]

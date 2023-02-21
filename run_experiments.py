@@ -22,13 +22,13 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from sensor_msgs.msg import JointState
 
 # add the coppeliasim remote api path
-sys.path.append("/home/lambda/CoppeliaSim/programming/zmqRemoteApi/clients/python/")
+sys.path.append(os.path.expanduser('~') + "/CoppeliaSim/programming/zmqRemoteApi/clients/python/")
 print(sys.path)
 
 # coppeliasim imports
 from zmqRemoteApi import RemoteAPIClient
 
-WS_BASE = "/home/lambda/catkin_ws"
+WS_BASE = os.path.expanduser('~') +  "/catkin_ws"
 
 def get_object_pose(object_name):
     # because tf doesn't play nice with python3, we have to directly call the tf_echo command
@@ -326,7 +326,7 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
     sim = client.getObject('sim')
     sim.stopSimulation()
     time.sleep(1)
-    scene_path = "/home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene"
+    scene_path = os.path.expanduser('~') + "/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene"
     sim.loadScene(os.path.join(scene_path, scene_name+".ttt"))
     scene_metadata = pickle.load(open(os.path.join(scene_path, scene_name+".pkl"), "rb"))
     print(scene_metadata)

@@ -25,7 +25,7 @@ from visualization_utils import visualize_grasps, show_image
 class ModelWrapper():
     def __init__(self):
 
-        checkpoint_dir = '/home/lambda/catkin_ws/src/jiaming_manipulation/ros_tensorflow/src/contact_graspnet/checkpoints/scene_test_2048_bs3_hor_sigma_001'
+        checkpoint_dir = os.path.expanduser('~') + '/catkin_ws/src/jiaming_manipulation/ros_tensorflow/src/contact_graspnet/checkpoints/scene_test_2048_bs3_hor_sigma_001'
         global_config = config_utils.load_config(checkpoint_dir, batch_size=1, arg_configs=[])
         print(str(global_config))
         print('pid: %s'%(str(os.getpid())))

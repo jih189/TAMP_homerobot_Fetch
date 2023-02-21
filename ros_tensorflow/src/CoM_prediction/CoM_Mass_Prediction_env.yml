@@ -157,4 +157,3 @@ dependencies:
       - xatlas==0.0.7
       - xxhash==3.2.0
       - zipp==3.12.0
-prefix: /home/lambda/miniconda3/envs/CoM_Mass_Prediction_env
