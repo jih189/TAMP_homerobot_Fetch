@@ -45,20 +45,99 @@ scene_metadata.append(scene_metadatem2)
 
 scene_metadatem3 = {
     "scene_name": "tableroom_3",
-    "objects": ['candy', 'stable', 'lego', 'tissue', 'clock'],
-    "target_object_names": ["clock"],
+    "objects": ['laptop', 'hairdryer', 'mic', 'earphone'],
+    "target_object_names": ["earphone"],
     "target_object_weights": {},
 }
 scene_metadata.append(scene_metadatem3)
 
 scene_metadatem4 = {
     "scene_name": "tableroom_4",
-    "objects": ['oil', 'holetool', 'measuretool', 'weight', 'pen'],
-    "target_object_names": ["pen"],
+    "objects": ['oil', 'holetool', 'measuretool', 'weight'],
+    "target_object_names": ["measuretool"],
     "target_object_weights": {},
 }
 scene_metadata.append(scene_metadatem4)
 
+scene_metadatem5 = {
+    "scene_name": "tableroom_5",
+    "objects": ['light', 'wrench', 'hammer'],
+    "target_object_names": ["wrench"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem5)
+
+scene_metadatem6 = {
+    "scene_name": "tableroom_6",
+    "objects": ['stable', 'lego', 'tissue', "clock", "pen"],
+    "target_object_names": ["pen"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem6)
+
+scene_metadatem7 = {
+    "scene_name": "tableroom_7",
+    "objects": ['oil', 'holetool', 'measuretool', "weight"],
+    "target_object_names": ["weight"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem7)
+
+scene_metadatem8 = {
+    "scene_name": "tableroom_8",
+    "objects": ['cereal', 'remote', 'dispenser', 'teapot'],
+    "target_object_names": ["cereal"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem8)
+
+scene_metadatem9 = {
+    "scene_name": "tableroom_9",
+    "objects": ['book', 'candy', 'bottle', 'can'],
+    "target_object_names": ["candy"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem9)
+
+scene_metadatem10 = {
+    "scene_name": "tableroom_10",
+    "objects": ['stable', 'tissue', "clock", "pen"],
+    "target_object_names": ["clock"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem10)
+
+scene_metadatem11 = {
+    "scene_name": "tableroom_11",
+    "objects": ['laptop', 'hairdryer', 'mic', 'earphone', 'holetool'],
+    "target_object_names": ["mic"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem11)
+
+scene_metadatem12 = {
+    "scene_name": "tableroom_12",
+    "objects": ['light', 'wrench', 'hammer', 'holetool'],
+    "target_object_names": ["holetool"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem12)
+
+scene_metadatem13 = {
+    "scene_name": "tableroom_13",
+    "objects": ['oil', 'holetool', 'measuretool', 'weight'],
+    "target_object_names": ["weight"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem13)
+
+scene_metadatem14 = {
+    "scene_name": "tableroom_14",
+    "objects": ['stable', 'lego', 'clock'],
+    "target_object_names": ["lego"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem14)
 
 SCENE_DIR = os.path.expanduser('~') + "/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene"
 
