@@ -486,6 +486,14 @@ int main(int argc, char** argv)
                                                             obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.z, 
                                                             obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.pose.pose.orientation.w));
 
+        // initialize the target object as the attached object.
+        shapes::Shape* target_object_shape = new shapes::Box(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.x,
+                                                            obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.y,
+                                                            obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.z);
+        std::vector<shapes::ShapeConstPtr> target_object_shapes;
+        target_object_shapes.push_back(shapes::ShapeConstPtr(target_object_shape));
+        EigenSTL::vector_Isometry3d shape_poses{Eigen::Isometry3d::Identity()};
+
         // we need to extract the grasped object point cloud with full point cloud.
         ros_tensorflow_msgs::Predict grasp_prediction_srv;
         grasp_prediction_srv.request.full_point_cloud = table_srv.response.full_point_cloud;
@@ -761,8 +769,7 @@ int main(int argc, char** argv)
             for(int g = 0; g < grasp_transforms.size(); g++)
             {
                 robot_action_trajectory_execution_list.clear();
-                // if(grasp_types[g] == 0)
-                // {
+
                 // calculate the pre-grasp, grasp and lift-grasp poses
                 tf::Transform pre_grasp_pose_in_world_frame = target_object_transform * grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.1, 0, 0));
                 tf::Transform grasp_pose_in_world_frame = target_object_transform * grasp_transforms[g];
@@ -832,8 +839,82 @@ int main(int argc, char** argv)
                 robot_action_trajectory_execution_list.push_back(std::make_pair("lift", lifting_trajectory));
                 current_state = lifting_trajectory.getLastWayPoint();
 
+                // need to move to the position for placing
+                geometry_msgs::Pose current_in_hand_pose_for_placing;
+                transformTFToGeoPose(grasp_transforms[g].inverse(), current_in_hand_pose_for_placing);
+                collision_object_table.operation = collision_object_table.ADD;
+                planning_scene_interface.applyCollisionObject(collision_object_table);
+
+                // need to place the object with constrained based rrt planning.
+                move_group.setPlannerId("CBIRRTConfigDefault");
+                move_group.setStartState(current_state);
+
+                // set the placing constraints
+                moveit_msgs::Constraints placing_constraints;
+                placing_constraints.name = "use_equality_constraints";
+                placing_constraints.in_hand_pose = current_in_hand_pose_for_placing;
+                
+
+                // define the orientation constraint on the object
+                moveit_msgs::OrientationConstraint orientation_constraint;
+                orientation_constraint.parameterization = moveit_msgs::OrientationConstraint::ROTATION_VECTOR;
+                orientation_constraint.header.frame_id = "base_link";
+                orientation_constraint.header.stamp = ros::Time(0);
+                orientation_constraint.link_name = "wrist_roll_link";
+                geometry_msgs::Quaternion constrained_quaternion;
+                constrained_quaternion.x = target_object_transform.getRotation().x();
+                constrained_quaternion.y = target_object_transform.getRotation().y();
+                constrained_quaternion.z = target_object_transform.getRotation().z();
+                constrained_quaternion.w = target_object_transform.getRotation().w();
+                orientation_constraint.orientation = constrained_quaternion;
+                orientation_constraint.weight = 1.0;
+                orientation_constraint.absolute_x_axis_tolerance = 2 * 3.1415;
+                orientation_constraint.absolute_y_axis_tolerance = 0.1;
+                orientation_constraint.absolute_z_axis_tolerance = 0.1;
+                placing_constraints.orientation_constraints.push_back(orientation_constraint);
+
+                // calculate current target object pose.
+                tf::Transform placing_transform;
+                Eigen::Isometry3d placing_eigen_transform;
+                GeoPoseTotransformTF(current_in_hand_pose_for_placing, placing_transform);
+                tf::transformTFToEigen(placing_transform, placing_eigen_transform);
+                current_state.attachBody("target_object", placing_eigen_transform, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link"}, "wrist_roll_link");
+
+                move_group.setPathConstraints(placing_constraints);
+                move_group.setInHandPose(current_in_hand_pose_for_placing);
+
+                move_group.setPositionTarget(0.248, -0.658, 0.721);
+                move_group.setCleanPlanningContextFlag(true);
+                moveit::planning_interface::MoveGroupInterface::Plan placing_plan;
+                // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
+                // bool success = (move_group.plan(placing_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                bool success = (move_group.plan(placing_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+
+                move_group.clearPathConstraints();
+                move_group.clearInHandPose();
+                move_group.clearAction();
+                // move_group.clearExperience();
+                move_group.clearPoseTargets();
+                move_group.clearInHandPose();
+
+                if(!success)
+                {
+                    std::cout << "placing plan failed" << std::endl;
+                    break;
+                }
+                std::cout << "placing plan success" << std::endl;
+                robot_trajectory::RobotTrajectory placing_trajectory = 
+                                robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, placing_plan.trajectory_);
+
+                robot_action_trajectory_execution_list.push_back(std::make_pair("arm", placing_trajectory));
+                current_state = placing_trajectory.getLastWayPoint();
+
+                current_state.clearAttachedBody("target_object");
+
+                collision_object_table.operation = collision_object_table.REMOVE;
+                planning_scene_interface.applyCollisionObject(collision_object_table);
+
                 break;
-                // } 
             }
         }
         else{
@@ -1457,14 +1538,6 @@ int main(int argc, char** argv)
             // setup the motion planner
             move_group.setPlannerId("CLazyPRMConfigDefault");
             move_group.setPlanningTime(0.4);
-
-            // initialize the target object as the attached object.
-            shapes::Shape* target_object_shape = new shapes::Box(obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.x,
-                                                                obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.y,
-                                                                obstacle_srv.response.segmented_objects.objects[grasped_object_id].bounding_volume.dimensions.z);
-            std::vector<shapes::ShapeConstPtr> target_object_shapes;
-            target_object_shapes.push_back(shapes::ShapeConstPtr(target_object_shape));
-            EigenSTL::vector_Isometry3d shape_poses{Eigen::Isometry3d::Identity()};
 
             for(int planning_verify_number = 0; planning_verify_number < 50; planning_verify_number++)
             {
