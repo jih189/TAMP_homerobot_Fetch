@@ -582,7 +582,7 @@ int main(int argc, char** argv)
 
         // add the lifting grasp poses first
         for(int i = 0; i < grasp_prediction_srv.response.predicted_grasp_poses.size(); i++){
-            if(grasp_prediction_srv.response.scores[i] < 0.5)
+            if(grasp_prediction_srv.response.scores[i] < 0.3)
                 continue;
             tf::Stamped<tf::Transform> predicted_grasp_transform;
             tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
@@ -612,7 +612,7 @@ int main(int argc, char** argv)
 
         // then add sliding grasp poses
         for(int i = 0; i < grasp_prediction_srv.response.predicted_grasp_poses.size(); i++){
-            if(grasp_prediction_srv.response.scores[i] < 0.5)
+            if(grasp_prediction_srv.response.scores[i] < 0.3)
                 continue;
             tf::Stamped<tf::Transform> predicted_grasp_transform;
             tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
@@ -1952,7 +1952,7 @@ int main(int argc, char** argv)
 
                     std::cout << "move arm to lift object" << std::endl;
                     // wait for 1 s
-                    ors::Duration(1.0).sleep();
+                    // ros::Duration(1.0).sleep();
                     // remove duplicate waypoints
                     for(int t = 0; t < iter.second.getWayPointCount(); t++)
                         if(iter.second.getWayPointDurationFromPrevious(t) == 0.0)
