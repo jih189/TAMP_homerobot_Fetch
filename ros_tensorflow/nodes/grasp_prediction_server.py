@@ -38,7 +38,7 @@ class RosInterface():
         predict_result = PredictResponse()
         to_fetch_pose = np.eye(4)
         to_fetch_pose[:3, :3] = R.from_quat([0.5, -0.5, 0.5, 0.5]).as_matrix()
-        to_fetch_pose[:3, 3] = np.array([0.0, 0.0, -0.09])
+        to_fetch_pose[:3, 3] = np.array([0.0, 0.0, -0.085])
         for grasp_pose_in_cam, score in zip(grasp_poses_in_cam, grasp_scores):
             grasp_pose_in_world_Panda = np.dot(camera_pose_mat, grasp_pose_in_cam)
 
