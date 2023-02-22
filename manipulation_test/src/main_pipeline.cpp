@@ -1624,8 +1624,6 @@ int main(int argc, char** argv)
                 robot_action_trajectory_execution_list.clear();
                 need_to_reanalyze = true;
 
-                geometry_msgs::Pose current_in_hand_pose_for_placing;
-
                 // check the action sequence
                 for(int i = 0; i < action_sequence.getActionSize(); i++)
                 {
@@ -1705,18 +1703,22 @@ int main(int argc, char** argv)
                         robot_action_trajectory_execution_list.push_back(std::make_pair("arm", solution_trajectory));
                         current_state = solution_trajectory.getLastWayPoint();
 
-                        // need to open gripper no matter sliding or re-grasping------------------------------
-                        end_effector_move_group.setStartState(current_state);
-                        for(int i = 0; i < finger_joint_names.size(); i++)
-                            end_effector_move_group.setJointValueTarget(finger_joint_names[i], 0.04);
-                        
-                        moveit::planning_interface::MoveGroupInterface::Plan open_gripper_plan;
-                        if(end_effector_move_group.plan(open_gripper_plan) != moveit::planning_interface::MoveItErrorCode::SUCCESS)
-                            break;
-                        robot_trajectory::RobotTrajectory open_gripper_trajectory = 
-                                        robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group).setRobotTrajectoryMsg(current_state, open_gripper_plan.trajectory_);
-                        robot_action_trajectory_execution_list.push_back(std::make_pair("open", open_gripper_trajectory));
-                        current_state = open_gripper_trajectory.getLastWayPoint();
+                        // if action is to lift the object then do not open gripper
+                        if(!action_sequence.isToNextFoliationAt(i))
+                        {
+                            // need to open gripper no matter sliding or re-grasping------------------------------
+                            end_effector_move_group.setStartState(current_state);
+                            for(int i = 0; i < finger_joint_names.size(); i++)
+                                end_effector_move_group.setJointValueTarget(finger_joint_names[i], 0.04);
+                            
+                            moveit::planning_interface::MoveGroupInterface::Plan open_gripper_plan;
+                            if(end_effector_move_group.plan(open_gripper_plan) != moveit::planning_interface::MoveItErrorCode::SUCCESS)
+                                break;
+                            robot_trajectory::RobotTrajectory open_gripper_trajectory = 
+                                            robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group).setRobotTrajectoryMsg(current_state, open_gripper_plan.trajectory_);
+                            robot_action_trajectory_execution_list.push_back(std::make_pair("open", open_gripper_trajectory));
+                            current_state = open_gripper_trajectory.getLastWayPoint();
+                        }
 
                         if(!m.is_in_manipulation_manifold)// if we want to re-grasping, then we need to close the gripper
                         {
@@ -1744,6 +1746,7 @@ int main(int argc, char** argv)
                             // get the cartesian trajectory
                             robot_trajectory::RobotTrajectory cartesian_trajectory = 
                                             robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, action_sequence.getCartesianMotionAt(i));
+
                             if(!action_sequence.isToNextFoliationAt(i)){
                                 robot_action_trajectory_execution_list.push_back(std::make_pair("after_slide", cartesian_trajectory));
                                 if(need_to_reanalyze) // only record the object transform at the before the first regrasping
@@ -1760,8 +1763,6 @@ int main(int argc, char** argv)
                                 robot_action_trajectory_execution_list.push_back(std::make_pair("arm", cartesian_trajectory));
                             
                             current_state = cartesian_trajectory.getLastWayPoint();
-
-                            current_in_hand_pose_for_placing = action_sequence.getInHandPoseAt(i);
                         }
                         continue;
                     }
@@ -1828,8 +1829,6 @@ int main(int argc, char** argv)
                             // set the trajectory to current state
                             robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).addSuffixWayPoint(current_state, 0.01).getRobotTrajectoryMsg(slide_plan.trajectory_);
                         }
-
-                        current_in_hand_pose_for_placing = manipulation_manifold_constraints[m.manifold_id].in_hand_pose;
 
                         std::cout << "slide plan success" << std::endl;
                         robot_trajectory::RobotTrajectory slide_trajectory = 
