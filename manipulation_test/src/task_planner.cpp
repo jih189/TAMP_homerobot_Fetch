@@ -191,6 +191,39 @@ void TaskPlanner::addActionBetweenManifolds(moveit_msgs::RobotTrajectory motion_
     current_configuration_id++;
 }
 
+void TaskPlanner::addGoalInManifolds(long unsigned int goal_manipulation_id, long unsigned int goal_foliation_id, float reward)
+{
+    TaskPlanner::ActionNode goal_action_node;
+
+    // action node 1 is from manipulation manifold to intermediate manifold
+    goal_action_node.action_node_id = current_action_node_id;
+    goal_action_node.configuration_id = current_configuration_id;
+
+    goal_action_node.in_state.foliation_id = goal_foliation_id;
+    goal_action_node.in_state.manifold_id = goal_manipulation_id;
+    goal_action_node.in_state.is_in_manipulation_manifold = true;
+    goal_action_node.in_state.joint_values.clear();
+
+    goal_action_node.out_state.foliation_id = goal_foliation_id;
+    goal_action_node.out_state.manifold_id = goal_manipulation_id;
+    goal_action_node.out_state.is_in_manipulation_manifold = true;
+    goal_action_node.out_state.joint_values.clear();
+
+    goal_action_node.in_state.value = 0.0;
+    goal_action_node.out_state.value = 0.0;
+
+    goal_action_node.isBetweenFoliations = false;
+
+    goal_action_node.reward = reward;
+
+    action_nodes.push_back(goal_action_node);
+
+    manipulation_manifold_in_nodes[goal_foliation_id][goal_manipulation_id].push_back(current_action_node_id);
+
+    current_action_node_id++;
+    current_configuration_id++;
+}
+
 bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector<float> &current_joint_value)
 {
     if(init_action_node_ids.size() == 0)
@@ -238,23 +271,40 @@ bool TaskPlanner::planActions(ActionSequence &action_sequence, const std::vector
         int last_action_node_id = current_action_node_id;
         current_action_node_id = action_nodes[current_action_node_id].next_action_node_ids[policy];
 
-        action_sequence.addActionTask(action_nodes[last_action_node_id].out_state.joint_values, 
-                                     action_nodes[current_action_node_id].in_state.joint_values, 
-                                     action_nodes[current_action_node_id].in_state.foliation_id,
-                                     action_nodes[current_action_node_id].in_state.manifold_id,
-                                     action_nodes[current_action_node_id].in_state.is_in_manipulation_manifold,
-                                     action_nodes[current_action_node_id].motion_trajectory,
-                                     action_nodes[current_action_node_id].in_state.foliation_id != action_nodes[current_action_node_id].out_state.foliation_id,
-                                     last_action_node_id,
-                                     current_action_node_id, 
-                                     false,
-                                     geometry_msgs::Pose());
-
-        // if solution exists in this step, then reuse this solution.
-        if(action_nodes[last_action_node_id].has_solution[policy])
+        // if the current action node is target action node
+        if(action_nodes[current_action_node_id].isBetweenFoliations == false && 
+           action_nodes[current_action_node_id].in_state.is_in_manipulation_manifold == true &&
+           action_nodes[current_action_node_id].out_state.is_in_manipulation_manifold == true)
         {
-            int current_index = action_sequence.getActionSize() - 1;
-            action_sequence.setSolutionForActionTaskAt(current_index, action_nodes[last_action_node_id].solution_trajectories[policy], action_nodes[last_action_node_id].in_hand_poses[policy]);
+            action_sequence.addGoalActionTask(action_nodes[last_action_node_id].out_state.joint_values,
+                                        action_nodes[current_action_node_id].in_state.foliation_id,
+                                        action_nodes[current_action_node_id].in_state.manifold_id,
+                                        action_nodes[current_action_node_id].in_state.is_in_manipulation_manifold,
+                                        action_nodes[current_action_node_id].in_state.foliation_id != action_nodes[current_action_node_id].out_state.foliation_id,
+                                        last_action_node_id,
+                                        current_action_node_id, 
+                                        false,
+                                        geometry_msgs::Pose());
+        }
+        else{
+            action_sequence.addActionTask(action_nodes[last_action_node_id].out_state.joint_values, 
+                                        action_nodes[current_action_node_id].in_state.joint_values, 
+                                        action_nodes[current_action_node_id].in_state.foliation_id,
+                                        action_nodes[current_action_node_id].in_state.manifold_id,
+                                        action_nodes[current_action_node_id].in_state.is_in_manipulation_manifold,
+                                        action_nodes[current_action_node_id].motion_trajectory,
+                                        action_nodes[current_action_node_id].in_state.foliation_id != action_nodes[current_action_node_id].out_state.foliation_id,
+                                        last_action_node_id,
+                                        current_action_node_id, 
+                                        false,
+                                        geometry_msgs::Pose());
+
+            // if solution exists in this step, then reuse this solution.
+            if(action_nodes[last_action_node_id].has_solution[policy])
+            {
+                int current_index = action_sequence.getActionSize() - 1;
+                action_sequence.setSolutionForActionTaskAt(current_index, action_nodes[last_action_node_id].solution_trajectories[policy], action_nodes[last_action_node_id].in_hand_poses[policy]);
+            }            
         }
 
         policy = action_nodes[current_action_node_id].policy;
@@ -396,6 +446,14 @@ void TaskPlanner::updateTaskPlanner(const ActionSequence &action_sequence)
             // set the current edge in task graph has solution.
             std::vector<long unsigned int>::iterator itr = std::find(action_nodes[previous_node_id].next_action_node_ids.begin(), action_nodes[previous_node_id].next_action_node_ids.end(), next_node_id);
             int policyIndexForNextNode = std::distance(action_nodes[previous_node_id].next_action_node_ids.begin(), itr);
+
+            // if the next action node is a goal action node, then do not set solution here.
+            if(action_nodes[next_node_id].isBetweenFoliations == false && action_nodes[next_node_id].in_state.is_in_manipulation_manifold == true && action_nodes[next_node_id].out_state.is_in_manipulation_manifold == true)
+            {
+                action_nodes[previous_node_id].next_action_success_probabilities[policyIndexForNextNode] = 1.0;
+                action_nodes[previous_node_id].in_hand_poses[policyIndexForNextNode] = action_sequence.getInHandPoseAt(i);
+                continue;
+            }
             
             // if current edge in task graph has solution then skip
             if(action_nodes[previous_node_id].has_solution[policyIndexForNextNode])
@@ -438,8 +496,8 @@ void TaskPlanner::constructMDPGraph()
     for(int i = 0; i < action_nodes.size(); i++)
     {
         action_nodes[i].next_action_node_ids.clear();
-        
-        if(action_nodes[i].isBetweenFoliations == false && action_nodes[i].in_state.is_in_manipulation_manifold == true)
+
+        if(action_nodes[i].isBetweenFoliations == false && action_nodes[i].in_state.is_in_manipulation_manifold == true && action_nodes[i].out_state.is_in_manipulation_manifold == false)
         {// if the action node is from manipulation manifold to intermediate manifold
             for(long unsigned int possible_action_node_id: intermediate_manifold_in_nodes[action_nodes[i].out_state.foliation_id][action_nodes[i].out_state.manifold_id])
             {
@@ -452,8 +510,8 @@ void TaskPlanner::constructMDPGraph()
                     action_nodes[i].has_solution.push_back(false);
                 }
             }
-        } 
-        else if(action_nodes[i].isBetweenFoliations == false && action_nodes[i].in_state.is_in_manipulation_manifold == false) 
+        }
+        else if(action_nodes[i].isBetweenFoliations == false && action_nodes[i].in_state.is_in_manipulation_manifold == false)
         {// if the action node is to manipulation manifold
             for(long unsigned int possible_action_node_id: manipulation_manifold_in_nodes[action_nodes[i].out_state.foliation_id][action_nodes[i].out_state.manifold_id])
             {

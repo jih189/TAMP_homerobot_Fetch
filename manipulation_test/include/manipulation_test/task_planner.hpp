@@ -35,6 +35,36 @@ class ActionSequence
         in_hand_poses.clear();
     }
 
+    void addGoalActionTask(const std::vector<float> &start_joint_values,
+                       long unsigned int foliation_id,
+                       long unsigned int manifold_id,
+                       bool is_in_manipulation_manifold,
+                       bool isToNextFoliation,
+                       int previous_node_id, 
+                       int next_node_id, 
+                       bool has_solution,
+                       const geometry_msgs::Pose &in_hand_pose)
+    {
+        MotionTask motion_task;
+        for(int i = 0; i < start_joint_values.size(); i++)
+            motion_task.start_joint_values.push_back(start_joint_values[i]);
+        motion_task.target_joint_values.clear();
+
+        motion_task.foliation_id = foliation_id;
+        motion_task.manifold_id = manifold_id;
+        motion_task.is_in_manipulation_manifold = is_in_manipulation_manifold;
+
+        motion_tasks.push_back(motion_task);
+
+        isToNextFoliations.push_back(isToNextFoliation);
+
+        previous_node_ids.push_back(previous_node_id);
+        next_node_ids.push_back(next_node_id);
+        has_solutions.push_back(has_solution);
+
+        in_hand_poses.push_back(in_hand_pose);
+    }
+
     void addActionTask(const std::vector<float> &start_joint_values,
                        const std::vector<float> &target_joint_values,
                        long unsigned int foliation_id,
@@ -168,6 +198,8 @@ class TaskPlanner
     // if the action is between two manifolds, the motion trajectory should be start from intermediate manifold and end at the next manipulation manifold.
     void addActionBetweenManifolds(moveit_msgs::RobotTrajectory motion_trajectory, long unsigned int intermedaite_manifold_id, long unsigned int manipulation_manifold_id, long unsigned int foliation_id, bool is_init_action, float reward);
     
+    void addGoalInManifolds(long unsigned int goal_manipulation_id, long unsigned int goal_foliation_id, float reward);
+
     void policyIteration();
 
     void policyEvaluation();
