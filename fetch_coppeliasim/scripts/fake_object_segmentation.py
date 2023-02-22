@@ -54,7 +54,7 @@ class ObjectSegmentation:
 
 object_names = ['hammer_visual', 'can_visual', 'bottle_visual', 'book_visual', 'pan_visual', 'cereal_visual', 'remote_visual', 'dispenser_visual', 'teapot_visual', 'wrench_visual', \
                 'stable_visual', 'lego_visual', 'tissue_visual', 'candy_visual', 'clock_visual', 'laptop_visual', 'light_visual', 'hairdryer_visual', 'mic_visual', 'earphone_visual', \
-                'oil_visual', 'holetool_visual', 'measuretool_visual', 'weight_visual', 'pen_visual', \
+                'oil_visual', 'holetool_visual', 'measuretool_visual', 'weight_visual', 'pen_visual', 'bar_visual', 'axe_visual', 'drill_visual', \
                 'Cuboid']
 
 
