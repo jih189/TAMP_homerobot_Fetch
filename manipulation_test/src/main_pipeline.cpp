@@ -320,10 +320,12 @@ int main(int argc, char** argv)
     tf::Transform target_object_transform;
 
     int num_of_trials = 5;
+    bool retry = false;
 
     //************************************* the main loop to manipulate the object ****************************************************************//
     do
     {
+        retry = false;
         // search and visualize the table, and prepare it for the planning scene vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
         rail_segmentation::SearchTable table_srv;
         if (not table_client.call(table_srv))
@@ -625,6 +627,7 @@ int main(int argc, char** argv)
             }
             else{
                 num_of_trials--;
+                retry = true;
                 hasTargetObject = true;
                 ROS_INFO("No lifting grasp found by Contact Grasp Net, trying again");
                 continue;
@@ -1311,6 +1314,7 @@ int main(int argc, char** argv)
                 }
                 else{
                     num_of_trials--;
+                    retry = true;
                     hasTargetObject = true;
                     ROS_INFO("grasps from Contact GraspNet are not approachable, try again");
                     continue;
@@ -1362,6 +1366,7 @@ int main(int argc, char** argv)
                 }
                 else{
                     num_of_trials--;
+                    retry = true;
                     hasTargetObject = true;
                     ROS_INFO("no way to lift the object, try again");
                     continue;
@@ -2002,6 +2007,7 @@ int main(int argc, char** argv)
                 }
                 else{
                     num_of_trials--;
+                    retry = true;
                     hasTargetObject = true;
                     ROS_INFO("no plan found, try again");
                     continue;
@@ -2195,6 +2201,6 @@ int main(int argc, char** argv)
         }
         // remove all collision objects
         planning_scene_interface.removeCollisionObjects(planning_scene_interface.getKnownObjectNames());
-    }while(re_analyze);
+    }while(re_analyze || retry);
     return 0;
 }
