@@ -38,7 +38,7 @@ scene_metadata.append(scene_metadatem1)
 scene_metadatem2 = {
     "scene_name": "tableroom_2",
     "objects": ['candy', 'stable', 'lego', 'tissue', 'clock'],
-    "target_object_names": ["clock"],
+    "target_object_names": ["candy"],
     "target_object_weights": {},
 }
 scene_metadata.append(scene_metadatem2)
@@ -46,7 +46,7 @@ scene_metadata.append(scene_metadatem2)
 scene_metadatem3 = {
     "scene_name": "tableroom_3",
     "objects": ['laptop', 'hairdryer', 'mic', 'earphone'],
-    "target_object_names": ["earphone"],
+    "target_object_names": ["mic"],
     "target_object_weights": {},
 }
 scene_metadata.append(scene_metadatem3)
@@ -61,7 +61,7 @@ scene_metadata.append(scene_metadatem4)
 
 scene_metadatem5 = {
     "scene_name": "tableroom_5",
-    "objects": ['light', 'wrench', 'hammer'],
+    "objects": ['light', 'wrench', 'hammer', 'drill', 'laptop'],
     "target_object_names": ["wrench"],
     "target_object_weights": {},
 }
@@ -70,7 +70,7 @@ scene_metadata.append(scene_metadatem5)
 scene_metadatem6 = {
     "scene_name": "tableroom_6",
     "objects": ['stable', 'lego', 'tissue', "clock", "pen"],
-    "target_object_names": ["pen"],
+    "target_object_names": ["tissue"],
     "target_object_weights": {},
 }
 scene_metadata.append(scene_metadatem6)
@@ -85,7 +85,7 @@ scene_metadata.append(scene_metadatem7)
 
 scene_metadatem8 = {
     "scene_name": "tableroom_8",
-    "objects": ['cereal', 'remote', 'dispenser', 'teapot'],
+    "objects": ['cereal', 'remote', 'dispenser'],
     "target_object_names": ["cereal"],
     "target_object_weights": {},
 }
@@ -94,7 +94,7 @@ scene_metadata.append(scene_metadatem8)
 scene_metadatem9 = {
     "scene_name": "tableroom_9",
     "objects": ['book', 'candy', 'bottle', 'can'],
-    "target_object_names": ["candy"],
+    "target_object_names": ["can"],
     "target_object_weights": {},
 }
 scene_metadata.append(scene_metadatem9)

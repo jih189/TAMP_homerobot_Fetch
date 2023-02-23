@@ -164,6 +164,7 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "main_pipeline");
     bool param_bool;
+    float param_float;
     ros::NodeHandle node_handle;
     ros::NodeHandle private_node_handle("~");
 
@@ -171,6 +172,7 @@ int main(int argc, char** argv)
     bool use_regrasp = true; // if true, the regrasp is used.
     bool is_execute = true; // if true, the robot is executed.
     bool re_analyze = true; // if true, replanning will be run for each re-grasping.
+    float obj_mass = 1.0; // expected mass of the object to be grasped
     //////////////////////////////////////////
     if (private_node_handle.getParam("use_regrasp", param_bool))
     {
@@ -184,6 +186,10 @@ int main(int argc, char** argv)
     {
         re_analyze = param_bool;
     }
+    if (private_node_handle.getParam("obj_mass", param_float))
+    {
+        obj_mass = param_float;
+    } 
 
 
     if(!is_execute) // re-analyze must be used when is_execute is true.
@@ -609,7 +615,7 @@ int main(int argc, char** argv)
                 continue;
             tf::Stamped<tf::Transform> predicted_grasp_transform;
             tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
-            if(lift_torque_test(target_com, 1.0, predicted_grasp_transform))
+            if(lift_torque_test(target_com, obj_mass, predicted_grasp_transform))
             {
                 // if we just want to use contact grasp net alone, we can to here directly
                 grasp_transforms_before_clustering.push_back(target_object_transform.inverse() * predicted_grasp_transform);
@@ -640,7 +646,7 @@ int main(int argc, char** argv)
                 continue;
             tf::Stamped<tf::Transform> predicted_grasp_transform;
             tf::poseStampedMsgToTF(grasp_prediction_srv.response.predicted_grasp_poses[i], predicted_grasp_transform);
-            if(!lift_torque_test(target_com, 1.0, predicted_grasp_transform))
+            if(!lift_torque_test(target_com, obj_mass, predicted_grasp_transform))
             {
                 grasp_transforms_before_clustering.push_back(target_object_transform.inverse() * predicted_grasp_transform);
                 grasp_jawwidths_before_clustering.push_back(0.08);
@@ -1604,7 +1610,6 @@ int main(int argc, char** argv)
 
             for(int planning_verify_number = 0; planning_verify_number < 50; planning_verify_number++)
             {
-                std::cout << "check" << std::endl;
                 // run policy interation for the task.
                 task_planner.policyIteration();
                 std::cout << "verify the action sequence at time " << planning_verify_number << std::endl;
@@ -1662,7 +1667,7 @@ int main(int argc, char** argv)
 
                         moveit::planning_interface::MoveGroupInterface::Plan place_plan;
                             
-                        move_group.setPositionTarget(0.248, -0.658, 0.721);
+                        move_group.setPositionTarget(0.248, -0.65, 0.721);
 
                         // 5. plan and execute the motion
                         bool success = (move_group.plan(place_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -1760,7 +1765,7 @@ int main(int argc, char** argv)
                                 }
                             }
                             else
-                                robot_action_trajectory_execution_list.push_back(std::make_pair("arm", cartesian_trajectory));
+                                robot_action_trajectory_execution_list.push_back(std::make_pair("lift", cartesian_trajectory));
                             
                             current_state = cartesian_trajectory.getLastWayPoint();
                         }
@@ -2080,7 +2085,7 @@ int main(int argc, char** argv)
 
                     std::cout << "move arm to lift object" << std::endl;
                     // wait for 1 s
-                    // ros::Duration(1.0).sleep();
+                    ros::Duration(1.0).sleep();
                     // remove duplicate waypoints
                     for(int t = 0; t < iter.second.getWayPointCount(); t++)
                         if(iter.second.getWayPointDurationFromPrevious(t) == 0.0)
@@ -2116,7 +2121,7 @@ int main(int argc, char** argv)
                         move_group.setPlannerId("RRTConnectkConfigDefault");
                         move_group.setStartState(*(move_group.getCurrentState()));
 
-                        move_group.setPositionTarget(0.248, -0.71, 0.721);
+                        move_group.setPositionTarget(0.248, -0.76, 0.721);
                         move_group.setCleanPlanningContextFlag(true);
                         move_group.setMaxVelocityScalingFactor(0.6);
                         moveit::planning_interface::MoveGroupInterface::Plan re_analyze_plan;

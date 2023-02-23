@@ -287,3 +287,349 @@ Difference in rotation: 0.02200042901254866
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 18:51:53.087404
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 18:52:48.334354
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 18:53:22.519753
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 18:53:37.834927
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 18:56:51.534803
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 18:58:12.338970
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 18:58:45.463485
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 19:00:13.425540
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 19:00:49.788172
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 19:02:03.634151
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 19:06:16.103277
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 19:11:22.923804
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Run 0: False
+Distance between finger and target object: 0.27088927627353576
+Z difference between target object and initial pose: -0.004999999999999893
+Difference in rotation: 0.12098867244326494
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 1: False
+Distance between finger and target object: 0.1874806656698231
+Z difference between target object and initial pose: 0.07000000000000006
+Difference in rotation: 0.2118992172110198
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 2: False
+Distance between finger and target object: 0.2324930106476321
+Z difference between target object and initial pose: 0.0
+Difference in rotation: 0.0
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 19:15:55.629817
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 19:16:20.870287
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 19:17:00.632235
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 19:18:27.859046
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 19:19:06.986759
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 19:23:23.430362
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 19:24:05.368737
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 19:37:27.785891
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 19:37:59.358178
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 19:38:38.213141
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 19:39:39.287384
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 19:40:01.367505
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 19:40:41.051161
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 19:44:16.793537
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 19:44:43.029899
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 20:08:48.574909
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 20:09:29.830220
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 20:14:27.072771
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 20:14:53.914955
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 20:17:02.659787
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 20:20:05.022686
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 20:21:09.862482
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 20:29:46.376754
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 20:31:13.651848
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 20:48:18.071896
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 20:48:59.027996
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 20:49:55.460900
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Run 0: False
+Distance between finger and target object: 0.706921494934197
+Z difference between target object and initial pose: 0.0
+Difference in rotation: None
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 20:50:58.265957
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 20:53:15.676653
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 20:55:07.209280
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 20:56:04.697276
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 20:56:30.906413
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Run 0: False
+Distance between finger and target object: 0.4902631946210116
+Z difference between target object and initial pose: 0.0
+Difference in rotation: None
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-22 20:58:54.172233
+Experiment type: Constant weight
+Target object: hammer
+Experiment type: No regrasp
+Run 0: False
+Distance between finger and target object: 0.3492921413373051
+Z difference between target object and initial pose: 0.0
+Difference in rotation: None
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 1: False
+Distance between finger and target object: 1.3422481141726368
+Z difference between target object and initial pose: 0.0
+Difference in rotation: None
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 2: False
+Distance between finger and target object: 0.24249948453553466
+Z difference between target object and initial pose: 0.015000000000000013
+Difference in rotation: 0.18205442174575373
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 3: False
+Distance between finger and target object: 0.18292621463311376
+Z difference between target object and initial pose: 0.05800000000000005
+Difference in rotation: 0.16299068191785668
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-22 21:03:33.150294
+Experiment type: Constant weight
+Target object: pan
+Experiment type: No regrasp
+Run 0: False
+Distance between finger and target object: 0.19492819190666086
+Z difference between target object and initial pose: 0.05399999999999994
+Difference in rotation: 0.21305805937602476
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False

@@ -25,9 +25,6 @@ from sensor_msgs.msg import JointState
 sys.path.append(os.path.expanduser('~') + "/CoppeliaSim/programming/zmqRemoteApi/clients/python/")
 print(sys.path)
 
-# coppeliasim imports
-from zmqRemoteApi import RemoteAPIClient
-
 WS_BASE = os.path.expanduser('~') +  "/catkin_ws"
 
 def get_object_pose(object_name):
@@ -127,6 +124,7 @@ def find_closest_object(target_object_position, obj_positions):
     return closest_object
 
 def run_one_trial(sim, scene_metadata, target_object_name, scene_name, trial_number, use_regrasp, logging_file):
+    start_time = time.time()
     i = trial_number
     sim.stopSimulation()
     # also stop the moveit package, if it is running
@@ -166,7 +164,11 @@ def run_one_trial(sim, scene_metadata, target_object_name, scene_name, trial_num
     obj_positions = {}
 
     # wait until the pipeline asks for user input, read the output of the pipeline
+    # if one trial takes more than 10 minutes to run, end it prematurely
     while True:
+        # check if the time limit has been exceeded
+        if time.time() - start_time > 60*10:
+            break
         # check if the pipeline is still running
         if main_output.poll() is not None:
             # if the pipeline is not running, there is something wrong
@@ -210,6 +212,9 @@ def run_one_trial(sim, scene_metadata, target_object_name, scene_name, trial_num
     logs = []
     target_object_pose_after_grasp = None
     while True:
+        # check if the time limit has been exceeded
+        if time.time() - start_time > 60.0*10.0:
+            break
         output = main_output.stdout.readline()
         # convert bytestring to string
         output = output.decode("utf-8")
@@ -322,6 +327,9 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
     print("+" + "-" * len(scene_name) + "+")
     print("|" + "\033[96m{}\033[0m".format(scene_name) + "|")
     print("+" + "-" * len(scene_name) + "+")
+    
+    # coppeliasim imports
+    from zmqRemoteApi import RemoteAPIClient
     client = RemoteAPIClient()
     sim = client.getObject('sim')
     sim.stopSimulation()
@@ -330,12 +338,28 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
     sim.loadScene(os.path.join(scene_path, scene_name+".ttt"))
     scene_metadata = pickle.load(open(os.path.join(scene_path, scene_name+".pkl"), "rb"))
     print(scene_metadata)
+    # we need to start simulation before starting controllers and object segmentators
+    sim.startSimulation()
+    time.sleep(1)
+    # need to restart the fake object segmentation node, if it is running
+    if os.system("rosnode list | grep object_segmentation") == 0:
+        os.system("rosnode kill /object_segmentation")
+    # also make sure search table is running
+    if os.system("rosnode list | grep table_searcher") != 0:
+        subprocess.Popen("roslaunch rail_segmentation searchtable.launch", shell=True,cwd=WS_BASE,
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=None, close_fds=True)
+    obj_seg =subprocess.Popen("rosrun fetch_coppeliasim fake_object_segmentation.py", shell=True,cwd=WS_BASE,
+        stdin=subprocess.PIPE, stdout=None, stderr=None, close_fds=True)
+    # wait for object segmentation to start
+    print("Waiting for object segmentation to start")
+    time.sleep(5)
     joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'forearm_roll_joint', 'wrist_flex_joint', 'wrist_roll_joint']
     robot_controller_client = actionlib.SimpleActionClient("/arm_controller/follow_joint_trajectory", FollowJointTrajectoryAction)
     init_position = [-1.57, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     print("Waiting for controller to start")
     robot_controller_client.wait_for_server()
     print("Controller started")
+
     # log the scene name in experiments.log
     logging_file = open(os.path.join(WS_BASE, "src/jiaming_manipulation/experiments.log"), "a")
     # log scene name and time date
@@ -365,8 +389,8 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
                     print("No regrasp")
                     # reset color
                     print("\033[0m")
-                    # log the experiment type in experiments.log
-                    logging_file.write("Experiment type: No regrasp\n")
+                    # log the planner type in experiments.log
+                    logging_file.write("Planner type: No regrasp\n")
                     use_regrasp = False
                 else:
                     # Green text
@@ -374,8 +398,8 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
                     print("With regrasp")
                     # reset color
                     print("\033[0m")
-                    # log the experiment type in experiments.log
-                    logging_file.write("Experiment type: With rerasp\n")
+                    # log the Planner type in experiments.log
+                    logging_file.write("Planner type: With rerasp\n")
                     use_regrasp = True
 
                 for i in range(5):
@@ -386,6 +410,9 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
                     print("\033[0m")
                     retval = run_one_trial(sim, scene_metadata, target_object_name, scene_name, i, use_regrasp, logging_file)
                     if retval == 1:
+                        sim.stopSimulation()
+                        time.sleep(1)
+                        sim.closeScene()    
                         return 1
                     reset_arm(joint_names, init_position, robot_controller_client)
     if variable_weights:
@@ -418,14 +445,20 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
                 # run 1 trial(s) for each weight with no regrasp and regrasp
                 sim.setShapeMass(obj_handle, weight)
                 # TODO: make sure this actually works, as inertia is not set
-                logging_file.write("No regrasp")
+                logging_file.write("Planner type: No regrasp")
                 retval = run_one_trial(sim, scene_metadata, target_object_name, scene_name, 0, False, logging_file)
                 if retval == 1:
+                    sim.stopSimulation()
+                    time.sleep(1)
+                    sim.closeScene()    
                     return 1
                 reset_arm(joint_names, init_position, robot_controller_client)
-                logging_file.write("With regrasp")
+                logging_file.write("Planner type: With regrasp")
                 retval = run_one_trial(sim, scene_metadata, target_object_name, scene_name, 0, True, logging_file)
                 if retval == 1:
+                    sim.stopSimulation()
+                    time.sleep(1)
+                    sim.closeScene()    
                     return 1
                 reset_arm(joint_names, init_position, robot_controller_client)
     
@@ -443,9 +476,16 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
     logging_file.write("Date: {}\n".format(datetime.datetime.now()))
     logging_file.write("===========================================")
     logging_file.flush()
+    # close the scene
+    sim.stopSimulation()
+    time.sleep(1)
+    sim.closeScene()    
+    return 0
+
 
 if __name__ == "__main__":
     rospy.init_node("experiment_monitor")
+    run_for_scene("tableroom", constant_weights=True, variable_weights=False)
     run_for_scene("tableroom_1", constant_weights=True, variable_weights=False)
 
         

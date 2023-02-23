@@ -60,7 +60,7 @@ object_names = ['hammer_visual', 'can_visual', 'bottle_visual', 'book_visual', '
 
 if __name__ == '__main__':
     # main()
-    rospy.init_node('fake_object_segmentation')
+    rospy.init_node('object_segmentation')
     sim.simxFinish(-1) # just in case, close all opened connections
     clientID=sim.simxStart('127.0.0.1',19999,True,True,5000,5) # Connect to CoppeliaSim
     if clientID!=-1:
