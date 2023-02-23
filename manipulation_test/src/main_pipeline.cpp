@@ -905,7 +905,7 @@ int main(int argc, char** argv)
                 Eigen::Isometry3d placing_eigen_transform;
                 GeoPoseTotransformTF(current_in_hand_pose_for_placing, placing_transform);
                 tf::transformTFToEigen(placing_transform, placing_eigen_transform);
-                current_state.attachBody("target_object", placing_eigen_transform, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link"}, "wrist_roll_link");
+                current_state.attachBody("target_object", placing_eigen_transform, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"}, "wrist_roll_link");
 
                 move_group.setPathConstraints(placing_constraints);
                 move_group.setInHandPose(current_in_hand_pose_for_placing);
@@ -1653,7 +1653,7 @@ int main(int argc, char** argv)
                         tf::transformTFToEigen(grasp_transforms[m.manifold_id].inverse(), current_in_hand_pose);
 
                         // 1. attach the object to the end effector in the planning scene.
-                        current_state.attachBody("target_object", current_in_hand_pose, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link"}, "wrist_roll_link");
+                        current_state.attachBody("target_object", current_in_hand_pose, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"}, "wrist_roll_link");
                         
                         // 2. set the proper planner in the move group
                         move_group.setActionWithId("place", m.manifold_id);
@@ -1808,7 +1808,7 @@ int main(int argc, char** argv)
                                 
                             move_group.setJointValueTarget(target_joint_positions_double);
 
-                            current_state.attachBody("target_object", current_in_hand_pose, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link"}, "wrist_roll_link");
+                            current_state.attachBody("target_object", current_in_hand_pose, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"}, "wrist_roll_link");
                             move_group.setStartState(current_state);
 
                             // 5. plan and execute the motion

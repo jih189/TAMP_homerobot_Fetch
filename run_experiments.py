@@ -487,6 +487,18 @@ if __name__ == "__main__":
     rospy.init_node("experiment_monitor")
     run_for_scene("tableroom", constant_weights=True, variable_weights=False)
     run_for_scene("tableroom_1", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom_2", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom_3", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom_4", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom_5", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom_6", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom_8", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom_9", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom_10", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_11", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom_12", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_13", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom_14", constant_weights=True, variable_weights=False)
 
         
 
