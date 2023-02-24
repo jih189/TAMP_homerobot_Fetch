@@ -109,8 +109,8 @@ scene_metadata.append(scene_metadatem10)
 
 scene_metadatem11 = {
     "scene_name": "tableroom_11",
-    "objects": ['laptop', 'hairdryer', 'mic', 'earphone', 'holetool'],
-    "target_object_names": ["mic"],
+    "objects": ['laptop', 'teapot'],
+    "target_object_names": ["teapot"],
     "target_object_weights": {},
 }
 scene_metadata.append(scene_metadatem11)
@@ -125,8 +125,8 @@ scene_metadata.append(scene_metadatem12)
 
 scene_metadatem13 = {
     "scene_name": "tableroom_13",
-    "objects": ['oil', 'holetool', 'measuretool', 'weight'],
-    "target_object_names": ["weight"],
+    "objects": ['oil', 'holetool', 'measuretool', 'axe'],
+    "target_object_names": ["axe"],
     "target_object_weights": {},
 }
 scene_metadata.append(scene_metadatem13)

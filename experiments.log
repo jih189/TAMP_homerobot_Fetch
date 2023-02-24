@@ -1,151 +1,151 @@
 Scene: tableroom
 Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
-Date: 2023-02-23 13:44:46.790862
+Date: 2023-02-23 17:37:33.325289
 Experiment type: Constant weight
 Target object: hammer
 Planner type: No regrasp
 Run 0: False
-Distance between finger and target object: 0.29313819266687163
-Z difference between target object and initial pose: -0.007999999999999896
-Difference in rotation: 0.11803341916803742
+Distance between finger and target object: 0.2771678191998487
+Z difference between target object and initial pose: 0.020000000000000018
+Difference in rotation: 0.2694153657492781
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 Run 1: False
-Distance between finger and target object: 0.27318491905667114
-Z difference between target object and initial pose: -0.013999999999999901
-Difference in rotation: 0.09298321914979049
+Distance between finger and target object: 0.2683952309561405
+Z difference between target object and initial pose: 0.03700000000000003
+Difference in rotation: 0.23788840806191527
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 Run 2: False
-Distance between finger and target object: 0.2226679141681621
-Z difference between target object and initial pose: 0.03400000000000003
-Difference in rotation: 0.18703652159003478
+Distance between finger and target object: 0.2841760018017004
+Z difference between target object and initial pose: 0.06000000000000005
+Difference in rotation: 0.18769159233613827
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 Run 3: False
-Distance between finger and target object: 0.2123887944313447
-Z difference between target object and initial pose: 0.05600000000000005
-Difference in rotation: 0.20500171213601046
+Distance between finger and target object: 0.17384188218033075
+Z difference between target object and initial pose: 0.08200000000000007
+Difference in rotation: 0.2011409313007281
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 Run 4: False
-Distance between finger and target object: 0.2871550104037887
-Z difference between target object and initial pose: -0.013999999999999901
-Difference in rotation: 0.15103330436816165
+Distance between finger and target object: 0.2122922513894467
+Z difference between target object and initial pose: 0.02100000000000002
+Difference in rotation: 0.39394886372157234
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 Planner type: With rerasp
 Run 0: True
-Distance between finger and target object: 0.050547007824400435
-Z difference between target object and initial pose: 0.15100000000000002
-Difference in rotation: 0.024996459751596714
+Distance between finger and target object: 0.10247926619565545
+Z difference between target object and initial pose: 0.129
+Difference in rotation: 0.13249965133670089
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
-Run 1: True
-Distance between finger and target object: 0.09368564457802489
-Z difference between target object and initial pose: 0.132
-Difference in rotation: 0.07102784961617875
+Run 1: False
+Distance between finger and target object: 0.981389321319526
+Z difference between target object and initial pose: -0.0010000000000000009
+Difference in rotation: None
 CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
+NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 Run 2: True
-Distance between finger and target object: 0.09706183596038151
-Z difference between target object and initial pose: 0.134
-Difference in rotation: 0.036005039603333816
+Distance between finger and target object: 0.0672681202353685
+Z difference between target object and initial pose: 0.14800000000000002
+Difference in rotation: 0.02682063916711787
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
-Run 3: True
-Distance between finger and target object: 0.09049309365912966
-Z difference between target object and initial pose: 0.129
-Difference in rotation: 0.14206674734639788
+Run 3: False
+Distance between finger and target object: 0.7060276198563339
+Z difference between target object and initial pose: 0.0
+Difference in rotation: None
 CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
+NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
-Run 4: True
-Distance between finger and target object: 0.05600892785976179
-Z difference between target object and initial pose: 0.14400000000000002
-Difference in rotation: 0.03801342110689434
+Run 4: False
+Distance between finger and target object: 0.9441128110559669
+Z difference between target object and initial pose: -0.0010000000000000009
+Difference in rotation: None
 CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
+NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 All experiments are done for scene tableroom
-Date: 2023-02-23 14:08:45.746675
+Date: 2023-02-23 17:59:20.412610
 ===========================================Scene: tableroom_1
 Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
-Date: 2023-02-23 14:09:01.699059
+Date: 2023-02-23 17:59:36.257541
 Experiment type: Constant weight
 Target object: pan
 Planner type: No regrasp
-Run 0: False
-Distance between finger and target object: 0.18558825393865855
-Z difference between target object and initial pose: 0.07499999999999996
-Difference in rotation: 0.19695830130617997
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Run 1: False
-Distance between finger and target object: 0.26994999536951286
-Z difference between target object and initial pose: -0.07000000000000006
-Difference in rotation: 0.44178790460304423
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Run 2: False
-Distance between finger and target object: 0.24413316038588445
-Z difference between target object and initial pose: -0.030000000000000027
-Difference in rotation: 0.04302321628748644
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Run 3: False
-Distance between finger and target object: 0.20255369658438718
-Z difference between target object and initial pose: 0.05799999999999994
-Difference in rotation: 0.2919255608794264
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Run 4: False
-Distance between finger and target object: 0.2667545688455964
-Z difference between target object and initial pose: -0.041000000000000036
-Difference in rotation: 0.4030186759980766
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Planner type: With rerasp
 Run 0: True
-Distance between finger and target object: 0.08933644273195573
-Z difference between target object and initial pose: 0.1439999999999999
-Difference in rotation: 0.24813241397370947
+Distance between finger and target object: 0.1494021418855834
+Z difference between target object and initial pose: 0.08399999999999996
+Difference in rotation: 1.9801842060260224
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
 Run 1: False
+Distance between finger and target object: 0.15117208737065188
+Z difference between target object and initial pose: 0.09499999999999997
+Difference in rotation: 1.988303808535692
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 2: False
+Distance between finger and target object: 1.5980841654931695
+Z difference between target object and initial pose: 0.0
+Difference in rotation: None
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 3: False
+Distance between finger and target object: 0.2787794827457717
+Z difference between target object and initial pose: -0.08500000000000008
+Difference in rotation: 0.7644681202554197
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 4: False
+Distance between finger and target object: 0.2805369850839636
+Z difference between target object and initial pose: -0.08200000000000007
+Difference in rotation: 0.7565853984834207
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Planner type: With rerasp
+Run 0: False
 Distance between finger and target object: 1.5980841654931695
 Z difference between target object and initial pose: 0.0
 Difference in rotation: None
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: True
-Run 2: True
-Distance between finger and target object: 0.07865112840894277
-Z difference between target object and initial pose: 0.1409999999999999
-Difference in rotation: 0.06701330346123666
+Run 1: True
+Distance between finger and target object: 0.1028299567246821
+Z difference between target object and initial pose: 0.119
+Difference in rotation: 0.1518496115301378
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
-Run 3: True
-Distance between finger and target object: 0.07500666637039675
-Z difference between target object and initial pose: 0.1409999999999999
-Difference in rotation: 0.0059987823668711925
+Run 2: False
+Distance between finger and target object: 1.3104514489289558
+Z difference between target object and initial pose: -0.532
+Difference in rotation: 1.4162352592683995
 CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 3: False
+Distance between finger and target object: 0.9939044219642047
+Z difference between target object and initial pose: 0.0
+Difference in rotation: 0.5511884425212182
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 Run 4: False
 Distance between finger and target object: 1.5980841654931695
@@ -155,10 +155,10 @@ CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: True
 All experiments are done for scene tableroom_1
-Date: 2023-02-23 14:41:01.111416
+Date: 2023-02-23 18:27:06.356516
 ===========================================Scene: tableroom_2
 Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_2.ttt
-Date: 2023-02-23 14:41:17.683326
+Date: 2023-02-23 18:27:22.452248
 Experiment type: Constant weight
 Target object: candy
 Planner type: No regrasp
@@ -183,12 +183,12 @@ Difference in rotation: None
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
-Run 3: False
-Distance between finger and target object: 1.5154157845291174
-Z difference between target object and initial pose: 0.0
-Difference in rotation: None
+Run 3: True
+Distance between finger and target object: 0.11534730165894645
+Z difference between target object and initial pose: 0.07399999999999995
+Difference in rotation: 0.5714813693162848
 CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
+NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
 Run 4: False
 Distance between finger and target object: 1.5154157845291174
@@ -199,16 +199,16 @@ NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 Planner type: With rerasp
 Run 0: True
-Distance between finger and target object: 0.04854894437575347
-Z difference between target object and initial pose: 0.1529999999999999
-Difference in rotation: 1.2689673802797197
+Distance between finger and target object: 0.05205766033928152
+Z difference between target object and initial pose: 0.1489999999999999
+Difference in rotation: 0.07172444087811476
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
 Run 1: True
-Distance between finger and target object: 0.046658332589152765
-Z difference between target object and initial pose: 0.1469999999999999
-Difference in rotation: 1.3867662502735314
+Distance between finger and target object: 0.05314132102234572
+Z difference between target object and initial pose: 0.1379999999999999
+Difference in rotation: 0.3196039591538324
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
@@ -220,182 +220,182 @@ CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: True
 Run 3: True
-Distance between finger and target object: 0.058352377843580674
-Z difference between target object and initial pose: 0.1389999999999999
-Difference in rotation: 1.388770150191943
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
-NO_SOLUTION_FLAG: False
-Run 4: False
-Distance between finger and target object: 1.5154157845291174
-Z difference between target object and initial pose: 0.0
-Difference in rotation: None
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: True
-All experiments are done for scene tableroom_2
-Date: 2023-02-23 14:52:35.312531
-===========================================Scene: tableroom_3
-Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_3.ttt
-Date: 2023-02-23 14:52:55.031434
-Experiment type: Constant weight
-Target object: mic
-Planner type: No regrasp
-Run 0: True
-Distance between finger and target object: 0.047947888378947444
-Z difference between target object and initial pose: 0.138
-Difference in rotation: 0.01757688917269773
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
-NO_SOLUTION_FLAG: False
-Run 1: True
-Distance between finger and target object: 0.04239103678845323
-Z difference between target object and initial pose: 0.139
-Difference in rotation: 0.7291377712147376
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
-NO_SOLUTION_FLAG: False
-Run 2: True
-Distance between finger and target object: 0.0795235814082842
-Z difference between target object and initial pose: 0.125
-Difference in rotation: 1.0869489765454545
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
-NO_SOLUTION_FLAG: False
-Run 3: False
-Distance between finger and target object: 1.635226284035332
-Z difference between target object and initial pose: 0.0
-Difference in rotation: None
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Run 4: False
-Distance between finger and target object: 1.635226284035332
-Z difference between target object and initial pose: 0.0
-Difference in rotation: None
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Planner type: With rerasp
-Run 0: True
-Distance between finger and target object: 0.06601514977639605
-Z difference between target object and initial pose: 0.12
-Difference in rotation: 0.3901932050038324
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
-NO_SOLUTION_FLAG: False
-Run 1: True
-Distance between finger and target object: 0.06628725367670618
-Z difference between target object and initial pose: 0.14
-Difference in rotation: 0.011892289129599276
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
-NO_SOLUTION_FLAG: False
-Run 2: False
-Distance between finger and target object: 1.717434714916407
-Z difference between target object and initial pose: -0.5509999999999999
-Difference in rotation: 0.03482711652920012
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Run 3: True
-Distance between finger and target object: 0.07366817494685202
-Z difference between target object and initial pose: 0.128
-Difference in rotation: 0.40011156198285425
+Distance between finger and target object: 0.04565084884205334
+Z difference between target object and initial pose: 0.1499999999999999
+Difference in rotation: 1.9968832272948212
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
 Run 4: True
-Distance between finger and target object: 0.05489080068645375
-Z difference between target object and initial pose: 0.14600000000000002
-Difference in rotation: 0.3999310844591895
+Distance between finger and target object: 0.06702984409947559
+Z difference between target object and initial pose: 0.1339999999999999
+Difference in rotation: 0.26201854423733106
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
+All experiments are done for scene tableroom_2
+Date: 2023-02-23 18:42:59.941086
+===========================================Scene: tableroom_3
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_3.ttt
+Date: 2023-02-23 18:43:19.460557
+Experiment type: Constant weight
+Target object: mic
+Planner type: No regrasp
+Run 0: False
+Distance between finger and target object: 1.635226284035332
+Z difference between target object and initial pose: 0.0
+Difference in rotation: None
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 1: True
+Distance between finger and target object: 0.055018178813915644
+Z difference between target object and initial pose: 0.132
+Difference in rotation: 0.002998628127458104
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 2: True
+Distance between finger and target object: 0.041785164831552354
+Z difference between target object and initial pose: 0.14100000000000001
+Difference in rotation: 0.0750409395034146
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 3: True
+Distance between finger and target object: 0.06906518659932806
+Z difference between target object and initial pose: 0.128
+Difference in rotation: 0.06133771850689389
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 4: True
+Distance between finger and target object: 0.07765307463326868
+Z difference between target object and initial pose: 0.133
+Difference in rotation: 0.05627069921089718
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Planner type: With rerasp
+Run 0: True
+Distance between finger and target object: 0.052335456432518135
+Z difference between target object and initial pose: 0.137
+Difference in rotation: 0.015279003585776238
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 1: True
+Distance between finger and target object: 0.0696132171358285
+Z difference between target object and initial pose: 0.14200000000000002
+Difference in rotation: 0.0027890899559985275
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 2: True
+Distance between finger and target object: 0.037549966711037115
+Z difference between target object and initial pose: 0.14600000000000002
+Difference in rotation: 0.03733592969627565
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 3: True
+Distance between finger and target object: 0.0594810894318522
+Z difference between target object and initial pose: 0.138
+Difference in rotation: 0.04690008672256132
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 4: False
+Distance between finger and target object: 0.23377125571806304
+Z difference between target object and initial pose: -0.5509999999999999
+Difference in rotation: 0.2300426156655073
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
 All experiments are done for scene tableroom_3
-Date: 2023-02-23 15:16:50.281461
+Date: 2023-02-23 19:16:24.340625
 ===========================================Scene: tableroom_4
 Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_4.ttt
-Date: 2023-02-23 15:17:10.613355
+Date: 2023-02-23 19:16:43.428348
 Experiment type: Constant weight
 Target object: measuretool
 Planner type: No regrasp
 Run 0: False
-Distance between finger and target object: 1.2958954433132326
-Z difference between target object and initial pose: 0.0
-Difference in rotation: None
+Distance between finger and target object: 0.18870347108625218
+Z difference between target object and initial pose: 0.0019999999999998908
+Difference in rotation: 1.8540356848223642
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 Run 1: False
-Distance between finger and target object: 0.1837117307087383
-Z difference between target object and initial pose: -0.006000000000000005
-Difference in rotation: 0.5981137061671492
+Distance between finger and target object: 0.2004894012161241
+Z difference between target object and initial pose: -0.019000000000000017
+Difference in rotation: 1.855282610011698
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
-Run 2: False
-Distance between finger and target object: 0.1818268407029062
-Z difference between target object and initial pose: 0.010999999999999899
-Difference in rotation: 0.6619908065178699
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Run 3: True
-Distance between finger and target object: 0.10882095386459355
-Z difference between target object and initial pose: 0.09099999999999997
-Difference in rotation: 0.2171112277945047
+Run 2: True
+Distance between finger and target object: 0.11697008164483771
+Z difference between target object and initial pose: 0.08099999999999996
+Difference in rotation: 1.9640710356832518
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
+Run 3: False
+Distance between finger and target object: 0.173795857257876
+Z difference between target object and initial pose: 0.015999999999999903
+Difference in rotation: 1.9000291353235037
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
 Run 4: False
-Distance between finger and target object: 1.2958954433132326
-Z difference between target object and initial pose: 0.0
-Difference in rotation: None
+Distance between finger and target object: 0.17300578025025642
+Z difference between target object and initial pose: 0.019999999999999907
+Difference in rotation: 1.9053485828126098
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 Planner type: With rerasp
 Run 0: True
-Distance between finger and target object: 0.05278257288158663
-Z difference between target object and initial pose: 0.1359999999999999
-Difference in rotation: 0.37399118477432897
+Distance between finger and target object: 0.04687216658103186
+Z difference between target object and initial pose: 0.1489999999999999
+Difference in rotation: 0.017978376032546362
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
 Run 1: True
-Distance between finger and target object: 0.0523545604508337
-Z difference between target object and initial pose: 0.1279999999999999
-Difference in rotation: 0.24208428473791646
+Distance between finger and target object: 0.07105631569396204
+Z difference between target object and initial pose: 0.121
+Difference in rotation: 1.9672408874724319
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
 Run 2: True
-Distance between finger and target object: 0.06528399497579784
-Z difference between target object and initial pose: 0.1269999999999999
-Difference in rotation: 0.2470282635423251
+Distance between finger and target object: 0.042438190347845926
+Z difference between target object and initial pose: 0.1479999999999999
+Difference in rotation: 0.11888272827638693
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
 Run 3: True
-Distance between finger and target object: 0.045716517802649875
-Z difference between target object and initial pose: 0.1439999999999999
-Difference in rotation: 0.17890239856826554
+Distance between finger and target object: 0.047549973711875006
+Z difference between target object and initial pose: 0.1419999999999999
+Difference in rotation: 0.1463733012434055
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
 Run 4: True
-Distance between finger and target object: 0.043370496884402907
-Z difference between target object and initial pose: 0.1459999999999999
-Difference in rotation: 0.035992648064263416
+Distance between finger and target object: 0.043335897360040926
+Z difference between target object and initial pose: 0.1479999999999999
+Difference in rotation: 0.14874814998154798
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
 All experiments are done for scene tableroom_4
-Date: 2023-02-23 15:36:43.672575
+Date: 2023-02-23 19:41:18.000514
 ===========================================Scene: tableroom_5
 Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_5.ttt
-Date: 2023-02-23 15:36:59.246110
+Date: 2023-02-23 19:41:33.704039
 Experiment type: Constant weight
 Target object: wrench
 Planner type: No regrasp
@@ -436,258 +436,438 @@ NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 Planner type: With rerasp
 Run 0: True
-Distance between finger and target object: 0.03702701716314727
-Z difference between target object and initial pose: 0.15699999999999992
-Difference in rotation: 0.08393104531178686
+Distance between finger and target object: 0.04846648326421058
+Z difference between target object and initial pose: 0.1409999999999999
+Difference in rotation: 1.9476783854869881
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
 Run 1: False
-Distance between finger and target object: 0.5802292650323664
-Z difference between target object and initial pose: -0.551
-Difference in rotation: None
+Distance between finger and target object: 0.7985017219768534
+Z difference between target object and initial pose: -0.0010000000000000009
+Difference in rotation: 0.0
 CONTROLLER_FAILURE_FLAG: True
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 Run 2: False
-Distance between finger and target object: 1.2849906614446658
+Distance between finger and target object: 0.9088866816055784
 Z difference between target object and initial pose: 0.0
 Difference in rotation: None
-CONTROLLER_FAILURE_FLAG: False
+CONTROLLER_FAILURE_FLAG: True
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: True
 Run 3: False
-Distance between finger and target object: 0.9841285485138616
-Z difference between target object and initial pose: 0.0
+Distance between finger and target object: 0.9356211840269544
+Z difference between target object and initial pose: -0.0010000000000000009
 Difference in rotation: None
-CONTROLLER_FAILURE_FLAG: False
+CONTROLLER_FAILURE_FLAG: True
 NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: True
+NO_SOLUTION_FLAG: False
 Run 4: False
-Distance between finger and target object: 1.4393849380898773
-Z difference between target object and initial pose: -0.554
-Difference in rotation: None
+Distance between finger and target object: 0.22184228632071032
+Z difference between target object and initial pose: 0.10499999999999998
+Difference in rotation: 0.20102989772501048
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: True
 NO_SOLUTION_FLAG: False
 All experiments are done for scene tableroom_5
-Date: 2023-02-23 16:02:26.437846
-===========================================Scene: tableroom_4
-Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_4.ttt
-Date: 2023-02-23 16:24:13.834770
+Date: 2023-02-23 19:59:09.335408
+===========================================Scene: tableroom_6
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_6.ttt
+Date: 2023-02-23 19:59:25.600437
 Experiment type: Constant weight
-Target object: measuretool
+Target object: tissue
 Planner type: No regrasp
-Run 0: False
-Distance between finger and target object: 0.17140011668607466
-Z difference between target object and initial pose: 0.014999999999999902
-Difference in rotation: 0.2259652574843649
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Planner type: With rerasp
 Run 0: True
-Distance between finger and target object: 0.06328506932918701
-Z difference between target object and initial pose: 0.1259999999999999
-Difference in rotation: 1.1040873054397222
+Distance between finger and target object: 0.06064651680022527
+Z difference between target object and initial pose: 0.126
+Difference in rotation: 0.051246702867594175
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
-All experiments are done for scene tableroom_4
-Date: 2023-02-23 16:29:00.609828
-===========================================Scene: tableroom_4
-Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_4.ttt
-Date: 2023-02-23 16:30:54.727739
-Experiment type: Constant weight
-Target object: measuretool
-Planner type: No regrasp
-Run 0: True
-Distance between finger and target object: 0.06687301398920192
-Z difference between target object and initial pose: 0.123
-Difference in rotation: 1.6344533816345734
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
-NO_SOLUTION_FLAG: False
-Planner type: With rerasp
-Run 0: True
-Distance between finger and target object: 0.05234500931320961
-Z difference between target object and initial pose: 0.1469999999999999
-Difference in rotation: 0.057098041873883676
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
-NO_SOLUTION_FLAG: False
-All experiments are done for scene tableroom_4
-Date: 2023-02-23 16:35:49.432100
-===========================================Scene: tableroom_4
-Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_4.ttt
-Date: 2023-02-23 16:36:08.287369
-Experiment type: Constant weight
-Target object: measuretool
-Planner type: No regrasp
-Run 0: False
-Distance between finger and target object: 0.17427851273177658
-Z difference between target object and initial pose: 0.017999999999999905
-Difference in rotation: 1.7285492855644828
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Planner type: With rerasp
-Run 0: False
-Distance between finger and target object: 1.2958954433132326
-Z difference between target object and initial pose: 0.0
-Difference in rotation: None
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: True
-All experiments are done for scene tableroom_4
-Date: 2023-02-23 16:38:50.588626
-===========================================Scene: tableroom_4
-Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_4.ttt
-Date: 2023-02-23 16:39:09.127791
-Experiment type: Constant weight
-Target object: measuretool
-Planner type: No regrasp
-Run 0: False
-Distance between finger and target object: 0.19455076458343712
-Z difference between target object and initial pose: -0.030000000000000027
-Difference in rotation: 1.707098744641495
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Planner type: With rerasp
-Run 0: True
-Distance between finger and target object: 0.06086049621881178
-Z difference between target object and initial pose: 0.1339999999999999
-Difference in rotation: 1.5957849440503216
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
-NO_SOLUTION_FLAG: False
-All experiments are done for scene tableroom_4
-Date: 2023-02-23 16:41:41.661779
-===========================================Scene: tableroom_4
-Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_4.ttt
-Date: 2023-02-23 16:44:27.215058
-Experiment type: Constant weight
-Target object: measuretool
-Planner type: No regrasp
-Run 0: True
-Distance between finger and target object: 0.0715960892786749
-Z difference between target object and initial pose: 0.12
-Difference in rotation: 1.6185410621117522
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
-NO_SOLUTION_FLAG: False
-Planner type: With rerasp
-Run 0: False
-Distance between finger and target object: 0.8085264374156234
-Z difference between target object and initial pose: 0.0
-Difference in rotation: None
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-All experiments are done for scene tableroom_4
-Date: 2023-02-23 16:47:04.583905
-===========================================Scene: tableroom_4
-Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_4.ttt
-Date: 2023-02-23 16:47:22.729093
-Experiment type: Constant weight
-Target object: measuretool
-Planner type: No regrasp
-Scene: tableroom_4
-Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_4.ttt
-Date: 2023-02-23 16:48:20.883196
-Experiment type: Constant weight
-Target object: measuretool
-Planner type: No regrasp
-Run 0: False
-Distance between finger and target object: 0.1673140759171206
-Z difference between target object and initial pose: 0.0
-Difference in rotation: None
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Planner type: With rerasp
-Run 0: True
-Distance between finger and target object: 0.05904235767650205
-Z difference between target object and initial pose: 0.1319999999999999
-Difference in rotation: 0.38530749550162946
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
-NO_SOLUTION_FLAG: False
-All experiments are done for scene tableroom_4
-Date: 2023-02-23 16:53:13.709895
-===========================================Scene: tableroom_4
-Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_4.ttt
-Date: 2023-02-23 16:53:31.532981
-Experiment type: Constant weight
-Target object: measuretool
-Planner type: No regrasp
-Run 0: False
-Distance between finger and target object: 1.2958954433132326
-Z difference between target object and initial pose: 0.0
-Difference in rotation: None
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Planner type: With rerasp
-Scene: tableroom_4
-Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_4.ttt
-Date: 2023-02-23 16:54:31.885805
-Experiment type: Constant weight
-Target object: measuretool
-Planner type: No regrasp
-Run 0: False
-Distance between finger and target object: 1.2958954433132326
-Z difference between target object and initial pose: 0.0
-Difference in rotation: None
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Planner type: With rerasp
-Scene: tableroom_4
-Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_4.ttt
-Date: 2023-02-23 16:56:00.350350
-Experiment type: Constant weight
-Target object: measuretool
-Planner type: No regrasp
-Run 0: False
-Distance between finger and target object: 1.3066736394371778
-Z difference between target object and initial pose: 0.0
-Difference in rotation: None
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Planner type: With rerasp
-Run 0: True
-Distance between finger and target object: 0.04675467891024386
-Z difference between target object and initial pose: 0.1489999999999999
-Difference in rotation: 0.09346094924603983
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: False
-NO_SOLUTION_FLAG: False
-All experiments are done for scene tableroom_4
-Date: 2023-02-23 16:59:28.933987
-===========================================Scene: tableroom
-Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
-Date: 2023-02-23 16:59:58.472674
-Experiment type: Constant weight
-Target object: hammer
-Planner type: No regrasp
-Run 0: False
-Distance between finger and target object: 0.317872615995779
-Z difference between target object and initial pose: -0.10499999999999993
-Difference in rotation: 0.581682572555037
-CONTROLLER_FAILURE_FLAG: False
-NO_GRASP_FLAG: True
-NO_SOLUTION_FLAG: False
-Planner type: With rerasp
-Run 0: True
-Distance between finger and target object: 0.09977474630386195
+Run 1: True
+Distance between finger and target object: 0.05100000000000003
 Z difference between target object and initial pose: 0.128
-Difference in rotation: 0.17208458034390434
+Difference in rotation: 0.09616514830446844
 CONTROLLER_FAILURE_FLAG: False
 NO_GRASP_FLAG: False
 NO_SOLUTION_FLAG: False
-All experiments are done for scene tableroom
-Date: 2023-02-23 17:04:13.788523
+Run 2: True
+Distance between finger and target object: 0.0686221538571911
+Z difference between target object and initial pose: 0.126
+Difference in rotation: 1.9936482663146946
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 3: True
+Distance between finger and target object: 0.06724581771381773
+Z difference between target object and initial pose: 0.127
+Difference in rotation: 0.13642102435859074
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 4: True
+Distance between finger and target object: 0.08060397012554661
+Z difference between target object and initial pose: 0.11199999999999999
+Difference in rotation: 0.2849832172401919
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Planner type: With rerasp
+Run 0: True
+Distance between finger and target object: 0.0598999165274878
+Z difference between target object and initial pose: 0.125
+Difference in rotation: 0.0907080493945084
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 1: True
+Distance between finger and target object: 0.06305553108173785
+Z difference between target object and initial pose: 0.124
+Difference in rotation: 1.9962677899522399
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 2: True
+Distance between finger and target object: 0.07162401831787996
+Z difference between target object and initial pose: 0.124
+Difference in rotation: 0.11228324628020254
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 3: True
+Distance between finger and target object: 0.07286288492778754
+Z difference between target object and initial pose: 0.121
+Difference in rotation: 0.1859110682309443
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 4: True
+Distance between finger and target object: 0.07559100475585709
+Z difference between target object and initial pose: 0.12
+Difference in rotation: 0.21370031495365696
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+All experiments are done for scene tableroom_6
+Date: 2023-02-23 20:12:42.472547
 ===========================================
+
+Scene: tableroom_8
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_8.ttt
+Date: 2023-02-23 20:22:46.500910
+Experiment type: Constant weight
+Target object: cereal
+Planner type: No regrasp
+Run 0: False
+Distance between finger and target object: 0.15733721746617996
+Z difference between target object and initial pose: -0.026000000000000023
+Difference in rotation: 0.6290413656282787
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 1: False
+Distance between finger and target object: 0.17650495743746125
+Z difference between target object and initial pose: -0.013000000000000012
+Difference in rotation: 0.5066285369112499
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 2: False
+Distance between finger and target object: 0.6505797414614138
+Z difference between target object and initial pose: -0.548
+Difference in rotation: 1.4087311554358246
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 3: False
+Distance between finger and target object: 1.100425826668931
+Z difference between target object and initial pose: -0.04800000000000004
+Difference in rotation: 1.0290191958232
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 4: False
+Distance between finger and target object: 0.6710551393141998
+Z difference between target object and initial pose: -0.547
+Difference in rotation: 1.4338290673858878
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Planner type: With rerasp
+Run 0: False
+Distance between finger and target object: 0.2125535226713498
+Z difference between target object and initial pose: -0.617
+Difference in rotation: 1.8816582791176726
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 1: True
+Distance between finger and target object: 0.10658799181896626
+Z difference between target object and initial pose: 0.06699999999999995
+Difference in rotation: 0.038976468712342935
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 2: True
+Distance between finger and target object: 0.1403887459877037
+Z difference between target object and initial pose: 0.052999999999999936
+Difference in rotation: 0.18107112975060524
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 3: True
+Distance between finger and target object: 0.11600862036935024
+Z difference between target object and initial pose: 0.06299999999999994
+Difference in rotation: 0.17840750686975052
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 4: True
+Distance between finger and target object: 0.09513148795220232
+Z difference between target object and initial pose: 0.06999999999999995
+Difference in rotation: 0.08706557538211329
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+All experiments are done for scene tableroom_8
+Date: 2023-02-23 20:57:58.220573
+===========================================Scene: tableroom_9
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_9.ttt
+Date: 2023-02-23 20:58:14.262272
+Experiment type: Constant weight
+Target object: can
+Planner type: No regrasp
+Run 0: True
+Distance between finger and target object: 0.0529528091794949
+Z difference between target object and initial pose: 0.11299999999999999
+Difference in rotation: 0.10158500583472455
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 1: False
+Distance between finger and target object: 1.4667917370915342
+Z difference between target object and initial pose: 0.0
+Difference in rotation: None
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 2: True
+Distance between finger and target object: 0.05636488268416785
+Z difference between target object and initial pose: 0.11299999999999999
+Difference in rotation: 0.05238280558745644
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 3: False
+Distance between finger and target object: 1.4667917370915342
+Z difference between target object and initial pose: 0.0
+Difference in rotation: None
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 4: False
+Distance between finger and target object: 1.4667917370915342
+Z difference between target object and initial pose: 0.0
+Difference in rotation: None
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Planner type: With rerasp
+Run 0: False
+Distance between finger and target object: 1.1845513918779549
+Z difference between target object and initial pose: -0.0010000000000000009
+Difference in rotation: 1.427325491509868
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 1: True
+Distance between finger and target object: 0.06187083319303213
+Z difference between target object and initial pose: 0.11299999999999999
+Difference in rotation: 0.03906655499362636
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 2: True
+Distance between finger and target object: 0.07376313442364013
+Z difference between target object and initial pose: 0.11099999999999999
+Difference in rotation: 0.04924641973854061
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 3: True
+Distance between finger and target object: 0.061204574992397384
+Z difference between target object and initial pose: 0.121
+Difference in rotation: 0.033559117450529495
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 4: False
+Distance between finger and target object: 0.39469481881575286
+Z difference between target object and initial pose: -0.5509999999999999
+Difference in rotation: 0.6168265563127618
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+All experiments are done for scene tableroom_9
+Date: 2023-02-23 21:20:53.703655
+===========================================Scene: tableroom_10
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_10.ttt
+Date: 2023-02-23 21:21:10.199551
+Experiment type: Constant weight
+Target object: clock
+Planner type: No regrasp
+Run 0: False
+Distance between finger and target object: 0.10652699188468615
+Z difference between target object and initial pose: 0.0020000000000000018
+Difference in rotation: 0.004187732676837419
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 1: False
+Distance between finger and target object: 0.10046890066085121
+Z difference between target object and initial pose: 0.0040000000000000036
+Difference in rotation: 0.004459945218693291
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 2: False
+Distance between finger and target object: 0.8492149315691523
+Z difference between target object and initial pose: -0.017000000000000015
+Difference in rotation: 0.8333768106359389
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 3: False
+Distance between finger and target object: 0.11048076755707298
+Z difference between target object and initial pose: 0.006000000000000005
+Difference in rotation: 0.020686489362792382
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 4: False
+Distance between finger and target object: 0.8679383618667861
+Z difference between target object and initial pose: -0.017000000000000015
+Difference in rotation: 1.2355450372879766
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Planner type: With rerasp
+Run 0: False
+Distance between finger and target object: 0.10371595827065375
+Z difference between target object and initial pose: 0.0
+Difference in rotation: 0.0
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 1: False
+Distance between finger and target object: 0.10574497624000863
+Z difference between target object and initial pose: 0.0010000000000000009
+Difference in rotation: 0.006479616358008893
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 2: False
+Distance between finger and target object: 0.1019509686074634
+Z difference between target object and initial pose: 0.0020000000000000018
+Difference in rotation: 0.009944284900322016
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 3: False
+Distance between finger and target object: 0.10490948479522712
+Z difference between target object and initial pose: 0.0050000000000000044
+Difference in rotation: 0.010529766587101369
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 4: False
+Distance between finger and target object: 0.1003344407469339
+Z difference between target object and initial pose: 0.0
+Difference in rotation: 0.001438637687277441
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+All experiments are done for scene tableroom_10
+Date: 2023-02-23 21:31:46.717602
+===========================================Scene: tableroom_12
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_12.ttt
+Date: 2023-02-23 21:32:02.119264
+Experiment type: Constant weight
+Target object: holetool
+Planner type: No regrasp
+Run 0: True
+Distance between finger and target object: 0.026888659319497528
+Z difference between target object and initial pose: 0.118
+Difference in rotation: 0.17353011748807615
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 1: False
+Distance between finger and target object: 0.03226453160980336
+Z difference between target object and initial pose: 0.0
+Difference in rotation: 0.01731280768219496
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 2: True
+Distance between finger and target object: 0.029137604568666906
+Z difference between target object and initial pose: 0.125
+Difference in rotation: 0.11682945214480452
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 3: True
+Distance between finger and target object: 0.03103224129836575
+Z difference between target object and initial pose: 0.10200000000000009
+Difference in rotation: 0.24334098287729022
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 4: False
+Distance between finger and target object: 0.048476798574163316
+Z difference between target object and initial pose: 0.0
+Difference in rotation: 0.026322682070440882
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Planner type: With rerasp
+Run 0: True
+Distance between finger and target object: 0.031160872901765793
+Z difference between target object and initial pose: 0.125
+Difference in rotation: 0.11321559669908958
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 1: False
+Distance between finger and target object: 0.10648474069086142
+Z difference between target object and initial pose: 0.0
+Difference in rotation: 0.016372332532968523
+CONTROLLER_FAILURE_FLAG: True
+NO_GRASP_FLAG: True
+NO_SOLUTION_FLAG: False
+Run 2: True
+Distance between finger and target object: 0.028337254630609533
+Z difference between target object and initial pose: 0.118
+Difference in rotation: 0.09178266653662577
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 3: True
+Distance between finger and target object: 0.04138840417314968
+Z difference between target object and initial pose: 0.13
+Difference in rotation: 0.0007711992645850234
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+Run 4: True
+Distance between finger and target object: 0.047686476070265486
+Z difference between target object and initial pose: 0.122
+Difference in rotation: 0.15145590556926006
+CONTROLLER_FAILURE_FLAG: False
+NO_GRASP_FLAG: False
+NO_SOLUTION_FLAG: False
+All experiments are done for scene tableroom_12
+Date: 2023-02-23 21:47:24.297188
+===========================================
+
