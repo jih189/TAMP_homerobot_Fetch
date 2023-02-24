@@ -21,16 +21,18 @@ from control_msgs.msg import JointTrajectoryAction, JointTrajectoryGoal, FollowJ
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from sensor_msgs.msg import JointState
 
+from scipy.spatial.transform import Rotation as R
+
 # add the coppeliasim remote api path
 sys.path.append(os.path.expanduser('~') + "/CoppeliaSim/programming/zmqRemoteApi/clients/python/")
 print(sys.path)
 
 WS_BASE = os.path.expanduser('~') +  "/catkin_ws"
 
-def get_object_pose(object_name):
+def get_object_pose(object_name,reference_name="base_link"):
     # because tf doesn't play nice with python3, we have to directly call the tf_echo command
     # the tf_echo command returns a string with the pose of the object, we only want the translation
-    tf_out = subprocess.Popen("rosrun tf tf_echo /base_link /{}".format(object_name), shell=True, stdout=subprocess.PIPE)
+    tf_out = subprocess.Popen("rosrun tf tf_echo /{} /{}".format(reference_name, object_name), shell=True, stdout=subprocess.PIPE)
     # we listen for a max of 2 second
     current_time = time.time()
     # print out the object name in blue for debugging
@@ -159,7 +161,7 @@ def run_one_trial(sim, scene_metadata, target_object_name, scene_name, trial_num
     # reset color
 
     # start the main pipeline
-    main_output = subprocess.Popen("rosrun manipulation_test main_pipeline _use_regrasp:="+str(use_regrasp).lower(), 
+    main_output = subprocess.Popen("rosrun manipulation_test main_pipeline _is_execute:=true _use_regrasp:="+str(use_regrasp), 
         shell=True, cwd=WS_BASE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
     obj_positions = {}
 
@@ -224,7 +226,7 @@ def run_one_trial(sim, scene_metadata, target_object_name, scene_name, trial_num
         # TODO: need to modify the main pipeline so that it waits for ~1 second before it starts moving the arm
         if "move arm to lift object" in output:
             # get the pose of the target object from tf
-            target_object_pose_after_grasp = get_object_pose(target_object_name)
+            target_object_pose_after_grasp = get_object_pose(target_object_name, reference_name="r_gripper_finger_link")
             # print out the pose of the target object for debugging
             # yellow text
             print("\033[33m")
@@ -238,12 +240,14 @@ def run_one_trial(sim, scene_metadata, target_object_name, scene_name, trial_num
     if target_object_name is not None:
         # get the pose of the target object from tf
         target_object_pose = get_object_pose(target_object_name)
+        target_object_pose_after_placement = get_object_pose(target_object_name, reference_name="r_gripper_finger_link")
         # print out the initial pose of the target object and the final pose in yellow for debugging
         # yellow
         print("\033[93m")
         print("Target object name: {}".format(target_object_name))
         print("Initial pose of target object: {}".format(obj_init_poses[target_object_name]))
         print("Final pose of target object: {}".format(target_object_pose))
+        print("Final pose of target object after placement: {}".format(target_object_pose_after_placement))
         # reset color
         print("\033[0m")
 
@@ -260,9 +264,9 @@ def run_one_trial(sim, scene_metadata, target_object_name, scene_name, trial_num
         if target_object_pose_after_grasp is not None:
             # first unitize the rotation quaternions
             lifting_unit_quaternion = target_object_pose_after_grasp[1] / np.linalg.norm(target_object_pose_after_grasp[1])
-            final_unit_quaternion = target_object_pose[1] / np.linalg.norm(target_object_pose[1])
+            final_unit_quaternion = target_object_pose_after_placement[1] / np.linalg.norm(target_object_pose_after_placement[1])
             # then compute the difference in rotation
-            sqrt_rot_diff = np.linalg.norm(lifting_unit_quaternion[1] - final_unit_quaternion[1])
+            sqrt_rot_diff = np.linalg.norm(lifting_unit_quaternion - final_unit_quaternion)
         else:
             sqrt_rot_diff = None
         if success:
@@ -322,7 +326,7 @@ def reset_arm(joint_names, init_position, robot_controller_client):
     # wait for 5 seconds
     time.sleep(5)
 
-def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
+def run_for_scene(scene_name, constant_weights=True, variable_weights=True, num_trials = 5):
     # ascii box with scene name in the middle
     print("+" + "-" * len(scene_name) + "+")
     print("|" + "\033[96m{}\033[0m".format(scene_name) + "|")
@@ -402,7 +406,7 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
                     logging_file.write("Planner type: With rerasp\n")
                     use_regrasp = True
 
-                for i in range(5):
+                for i in range(num_trials):
                     # Green text
                     print("\033[32m")
                     print("Run {}".format(i))
@@ -479,26 +483,31 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True):
     # close the scene
     sim.stopSimulation()
     time.sleep(1)
-    sim.closeScene()    
+    try:
+        sim.closeScene()
+    except:
+        time.sleep(2)
+        sim.closeScene()
     return 0
 
 
 if __name__ == "__main__":
     rospy.init_node("experiment_monitor")
-    run_for_scene("tableroom", constant_weights=True, variable_weights=False)
-    run_for_scene("tableroom_1", constant_weights=True, variable_weights=False)
-    run_for_scene("tableroom_2", constant_weights=True, variable_weights=False)
-    run_for_scene("tableroom_3", constant_weights=True, variable_weights=False)
-    run_for_scene("tableroom_4", constant_weights=True, variable_weights=False)
-    run_for_scene("tableroom_5", constant_weights=True, variable_weights=False)
-    run_for_scene("tableroom_6", constant_weights=True, variable_weights=False)
-    run_for_scene("tableroom_8", constant_weights=True, variable_weights=False)
-    run_for_scene("tableroom_9", constant_weights=True, variable_weights=False)
-    run_for_scene("tableroom_10", constant_weights=True, variable_weights=False)
-    # run_for_scene("tableroom_11", constant_weights=True, variable_weights=False)
-    run_for_scene("tableroom_12", constant_weights=True, variable_weights=False)
-    # run_for_scene("tableroom_13", constant_weights=True, variable_weights=False)
-    run_for_scene("tableroom_14", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom", constant_weights=True, variable_weights=False, num_trials=1)
+    # run_for_scene("tableroom", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_1", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_2", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_3", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_4", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_5", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_6", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_8", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_9", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_10", constant_weights=True, variable_weights=False)
+    # # run_for_scene("tableroom_11", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_12", constant_weights=True, variable_weights=False)
+    # # run_for_scene("tableroom_13", constant_weights=True, variable_weights=False)
+    # run_for_scene("tableroom_14", constant_weights=True, variable_weights=False)
 
         
 

@@ -1495,8 +1495,8 @@ int main(int argc, char** argv)
                 // // If you want to use plane constraint, you should set 0.0005 for it.
 
                 bounding_region.dimensions[bounding_region.BOX_X] = 0.0005; // for x
-                bounding_region.dimensions[bounding_region.BOX_Y] = table_srv.response.depth; // for y 
-                bounding_region.dimensions[bounding_region.BOX_Z] = table_srv.response.width; // for z
+                bounding_region.dimensions[bounding_region.BOX_Y] = table_srv.response.depth * 0.9; // for y 
+                bounding_region.dimensions[bounding_region.BOX_Z] = table_srv.response.width * 0.9; // for z
                 // If you want to use plane constraint, you should set 0.0005 for it.
 
                 // geometry_msgs::Pose target_object_pose;
