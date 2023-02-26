@@ -18,9 +18,11 @@ class RosInterface():
     def predict_cb(self, req):
         rospy.loginfo("get data with camera pose")
         full_point_cloud_in_world = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(req.full_point_cloud)
+        print("got full point cloud with shape: ", full_point_cloud_in_world.shape)
         # convert it to homogeneous coordinates
         full_point_cloud_in_world = np.insert(full_point_cloud_in_world, full_point_cloud_in_world.shape[1], 1.0, axis=1)
         segmented_point_cloud_in_world = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(req.segmented_point_cloud)
+        print("full point cloud in world: ", full_point_cloud_in_world[0:10, :])
         # convert it to homogeneous coordinates
         segmented_point_cloud_in_world = np.insert(segmented_point_cloud_in_world, segmented_point_cloud_in_world.shape[1], 1.0, axis=1)
         rot_mat = R.from_quat([req.camera_stamped_transform.transform.rotation.x, req.camera_stamped_transform.transform.rotation.y, \
@@ -33,12 +35,23 @@ class RosInterface():
         full_point_cloud_in_camera = np.dot(np.linalg.inv(camera_pose_mat), full_point_cloud_in_world.T).T[:, :3]
         segmented_point_cloud_in_camera = np.dot(np.linalg.inv(camera_pose_mat), segmented_point_cloud_in_world.T).T[:, :3]
 
+        # debug visualization
+        # import trimesh
+        # scene = trimesh.Scene()
+        # scene.add_geometry(trimesh.PointCloud(full_point_cloud_in_camera, colors=np.array([255, 0, 0])))
+        # scene.add_geometry(trimesh.PointCloud(segmented_point_cloud_in_camera, colors=np.array([0, 255, 0])))
+        # # add an axis for scale
+        # scene.add_geometry(trimesh.creation.axis())
+        # scene.show()
+
         grasp_poses_in_cam, grasp_scores = self.wrapped_model.predict(full_point_cloud_in_camera, segmented_point_cloud_in_camera)
 
+        print("got grasp poses in camera: ", grasp_poses_in_cam.shape)
         predict_result = PredictResponse()
         to_fetch_pose = np.eye(4)
         to_fetch_pose[:3, :3] = R.from_quat([0.5, -0.5, 0.5, 0.5]).as_matrix()
-        to_fetch_pose[:3, 3] = np.array([0.0, 0.0, -0.08])
+        # to_fetch_pose[:3, 3] = np.array([0.0, 0.0, -0.08])
+        to_fetch_pose[:3, 3] = np.array([0.0, 0.0, -0.09])
         for grasp_pose_in_cam, score in zip(grasp_poses_in_cam, grasp_scores):
             grasp_pose_in_world_Panda = np.dot(camera_pose_mat, grasp_pose_in_cam)
 

@@ -226,7 +226,20 @@ int main(int argc, char** argv)
     robot_model_loader::RobotModelLoaderConstPtr robot_model_loader = std::make_shared<robot_model_loader::RobotModelLoader>("robot_description");
     robot_model::RobotModelConstPtr kinematic_model = robot_model_loader->getModel();
 
-    std::vector<double> home_joint_values = {-1.57095, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    std::vector<double> home_joint_values = {-0.698, 1.34, -2.39, -1.62, 0.087, -1.64, 1.34};
+
+    // std::vector<double> open_finger_joint_values = {0.05, 0.05};
+    // end_effector_move_group.setJointValueTarget(finger_joint_names, open_finger_joint_values);
+    // end_effector_move_group.move();
+    // ros::Duration(1.0).sleep();
+
+    // std::vector<double> close_finger_joint_values = {0.027, 0.027};
+    // end_effector_move_group.setJointValueTarget(finger_joint_names, close_finger_joint_values);
+    // end_effector_move_group.move();
+    // ros::Duration(1.0).sleep();
+
+    // return 0;
+
 
     // need to get necessary transform information vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     // init the tf listener 
@@ -331,6 +344,36 @@ int main(int argc, char** argv)
     //************************************* the main loop to manipulate the object ****************************************************************//
     do
     {
+        // init the wall as the collision object.
+        moveit_msgs::CollisionObject collision_object_wall;
+        collision_object_wall.header.frame_id = move_group.getPlanningFrame();
+        collision_object_wall.id = "wall";
+        shape_msgs::SolidPrimitive wall_primitive;
+        wall_primitive.type = wall_primitive.BOX;
+        wall_primitive.dimensions.resize(3);
+        wall_primitive.dimensions[0] = 2.0;
+        wall_primitive.dimensions[1] = 0.1;
+        wall_primitive.dimensions[2] = 2.0;
+
+        geometry_msgs::Pose wall_pose_right;
+        wall_pose_right.position.x = 0.0;
+        wall_pose_right.position.y = -0.8;
+        wall_pose_right.position.z = 0.5;
+
+        geometry_msgs::Pose wall_pose_left;
+        wall_pose_left.position.x = 0.0;
+        wall_pose_left.position.y = 0.8;
+        wall_pose_left.position.z = 0.5;
+
+        collision_object_wall.primitives.push_back(wall_primitive);
+        collision_object_wall.primitive_poses.push_back(wall_pose_right);
+
+        collision_object_wall.primitives.push_back(wall_primitive);
+        collision_object_wall.primitive_poses.push_back(wall_pose_left);
+        // add the wall to the planning scene
+        collision_object_wall.operation = collision_object_wall.ADD;
+        planning_scene_interface.applyCollisionObject(collision_object_wall);
+
         retry = false;
         // search and visualize the table, and prepare it for the planning scene vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
         rail_segmentation::SearchTable table_srv;
@@ -368,6 +411,13 @@ int main(int argc, char** argv)
         table_primitive.dimensions[1] = table_srv.response.width;
         table_primitive.dimensions[2] =  0.005;
 
+        shape_msgs::SolidPrimitive table_base_primitive;
+        table_base_primitive.type = table_primitive.BOX;
+        table_base_primitive.dimensions.resize(3);
+        table_base_primitive.dimensions[0] = table_srv.response.depth;
+        table_base_primitive.dimensions[1] = table_srv.response.width;
+        table_base_primitive.dimensions[2] =  0.5;
+
         geometry_msgs::Pose table_pose;
         table_pose.position.x = table_srv.response.center.x;
         table_pose.position.y = table_srv.response.center.y;
@@ -377,7 +427,21 @@ int main(int argc, char** argv)
         table_pose.orientation.z = table_srv.response.orientation.z;
         table_pose.orientation.w = table_srv.response.orientation.w;
 
+        geometry_msgs::Pose table_primitive_pose;
+        table_primitive_pose.position.x = 0.0;
+        table_primitive_pose.position.y = 0.0;
+        table_primitive_pose.position.z = 0.0;
+
         collision_object_table.primitives.push_back(table_primitive);
+        collision_object_table.primitive_poses.push_back(table_primitive_pose);
+
+        geometry_msgs::Pose table_base_primitive_pose;
+        table_base_primitive_pose.position.x = 0.0;
+        table_base_primitive_pose.position.y = 0.0;
+        table_base_primitive_pose.position.z = -.25;
+        collision_object_table.primitives.push_back(table_base_primitive);
+        collision_object_table.primitive_poses.push_back(table_base_primitive_pose);
+
         collision_object_table.pose = table_pose;
         //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -702,6 +766,25 @@ int main(int argc, char** argv)
             ROS_ERROR("Failed to call service visualize_regrasp");
             return 1;
         }
+
+        // wait for user input
+        std::cout << "Do you like the grasps? () " << std::endl;
+        std::string accept_grasp_str;
+        std::getline(std::cin, accept_grasp_str);
+
+        while(accept_grasp_str != "y" && accept_grasp_str != "n")
+        {
+            std::cout << "You should enter y or n!! " << std::endl;
+            std::getline(std::cin, accept_grasp_str);
+        }
+        
+        if(accept_grasp_str == "n")
+        {
+            // clear planning scene
+            planning_scene_interface.removeCollisionObjects(planning_scene_interface.getKnownObjectNames());
+            return 0;
+        }
+
         //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
         // initialize the collision environment vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
@@ -795,7 +878,7 @@ int main(int argc, char** argv)
             re_analyze = false;
             collision_object_table.operation = collision_object_table.ADD;
             planning_scene_interface.applyCollisionObject(collision_object_table);
-            move_group.setPlanningTime(2.0);
+            move_group.setPlanningTime(1.5);
             for(int g = 0; g < grasp_transforms.size(); g++)
             {
                 robot_action_trajectory_execution_list.clear();
@@ -840,7 +923,7 @@ int main(int argc, char** argv)
                 // approach the object
                 move_group.setStartState(current_state);
                 moveit_msgs::RobotTrajectory approach_trajectory_msg;    
-                if(move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{grasp_pose}, 0.005, 5.0, approach_trajectory_msg, true) < 0.95)
+                if(move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{grasp_pose}, 0.003, 5.0, approach_trajectory_msg, true) < 0.95)
                     continue;
                 robot_trajectory::RobotTrajectory approach_trajectory = 
                                 robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, approach_trajectory_msg);
@@ -875,6 +958,7 @@ int main(int argc, char** argv)
 
                 // need to place the object with constrained based rrt planning.
                 move_group.setPlannerId("CBIRRTConfigDefault");
+                move_group.setPlanningTime(40.0);
                 move_group.setStartState(current_state);
 
                 // set the placing constraints
@@ -910,7 +994,7 @@ int main(int argc, char** argv)
                 move_group.setPathConstraints(placing_constraints);
                 move_group.setInHandPose(current_in_hand_pose_for_placing);
 
-                move_group.setPositionTarget(0.248, -0.658, 0.721);
+                move_group.setPositionTarget(0.34, -0.48, 0.93);
                 move_group.setCleanPlanningContextFlag(true);
                 moveit::planning_interface::MoveGroupInterface::Plan placing_plan;
                 bool success = (move_group.plan(placing_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -935,6 +1019,32 @@ int main(int argc, char** argv)
                 robot_action_trajectory_execution_list.push_back(std::make_pair("arm", placing_trajectory));
                 current_state = placing_trajectory.getLastWayPoint();
 
+                // get the end effector pose of current state
+                tf::Transform current_hand_transform;
+                tf::transformEigenToTF(current_state.getGlobalLinkTransform("wrist_roll_link"), current_hand_transform);
+                geometry_msgs::Pose place_down_grasp_pose;
+                transformTFToGeoPose(tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(0, 0, -0.1)) * current_hand_transform, place_down_grasp_pose);
+
+                // need to place down the object
+                move_group.setStartState(current_state);
+                moveit_msgs::RobotTrajectory place_down_trajectory_msg;    
+                if(move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{place_down_grasp_pose}, 0.005, 5.0, place_down_trajectory_msg, true) < 0.95)
+                    continue;
+                robot_trajectory::RobotTrajectory place_down_trajectory = 
+                                robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, place_down_trajectory_msg);
+                robot_action_trajectory_execution_list.push_back(std::make_pair("arm", place_down_trajectory));
+                current_state = place_down_trajectory.getLastWayPoint();
+
+                // open the gripper
+                end_effector_move_group.setStartState(current_state);
+                for(int i = 0; i < finger_joint_names.size(); i++)
+                    end_effector_move_group.setJointValueTarget(finger_joint_names[i], 0.04);
+                if(end_effector_move_group.plan(open_gripper_plan) != moveit::planning_interface::MoveItErrorCode::SUCCESS)
+                    continue;
+                open_gripper_trajectory = 
+                                robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group).setRobotTrajectoryMsg(current_state, open_gripper_plan.trajectory_);
+                robot_action_trajectory_execution_list.push_back(std::make_pair("open", open_gripper_trajectory));
+                current_state = open_gripper_trajectory.getLastWayPoint();
 
                 find_solution = true;
 
@@ -1015,7 +1125,7 @@ int main(int argc, char** argv)
                             moveit_msgs::RobotTrajectory approach_trajectory_msg;
                             moveit_msgs::RobotTrajectory lifting_trajectory_msg;
 
-                            double pre_grasp_fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.005, 5.0, approach_trajectory_msg, false);
+                            double pre_grasp_fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.003, 5.0, approach_trajectory_msg, false);
                             double lift_grasp_fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{lift_grasp_pose}, 0.005, 5.0, lifting_trajectory_msg, false);
 
                             if(pre_grasp_fraction >= 0.95 && lift_grasp_fraction >= 0.95)
@@ -1241,7 +1351,7 @@ int main(int argc, char** argv)
                                     moveit_msgs::RobotTrajectory approach_trajectory_msg;
                                     moveit_msgs::RobotTrajectory lifting_trajectory_msg;
 
-                                    double pre_grasp_fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.005, 5.0, approach_trajectory_msg, false);
+                                    double pre_grasp_fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{pre_grasp_pose}, 0.003, 5.0, approach_trajectory_msg, false);
                                     double lift_grasp_fraction = move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{lift_grasp_pose}, 0.005, 5.0, lifting_trajectory_msg, false);
                 
                                     if(pre_grasp_fraction >= 0.95 && lift_grasp_fraction >= 0.95)
@@ -1667,7 +1777,7 @@ int main(int argc, char** argv)
 
                         moveit::planning_interface::MoveGroupInterface::Plan place_plan;
                             
-                        move_group.setPositionTarget(0.248, -0.65, 0.721);
+                        move_group.setPositionTarget(0.32, -0.5, 0.9);
 
                         // 5. plan and execute the motion
                         bool success = (move_group.plan(place_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -1695,7 +1805,36 @@ int main(int argc, char** argv)
                         action_sequence.setSolutionForActionTaskAt(i, place_plan.trajectory_, placing_manifold_constraints[m.manifold_id].in_hand_pose);
                         robot_action_trajectory_execution_list.push_back(std::make_pair("arm", place_trajectory));                
                         current_state = place_trajectory.getLastWayPoint();
-                        
+
+                        // get the end effector pose of current state
+                        tf::Transform current_hand_transform;
+                        tf::transformEigenToTF(current_state.getGlobalLinkTransform("wrist_roll_link"), current_hand_transform);
+                        geometry_msgs::Pose place_down_grasp_pose;
+                        transformTFToGeoPose(tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(0, 0, -0.1)) * current_hand_transform, place_down_grasp_pose);
+
+                        // need to add place down action
+                        move_group.setStartState(current_state);
+                        moveit_msgs::RobotTrajectory place_down_trajectory_msg;    
+                        if(move_group.computeCartesianPath(std::vector<geometry_msgs::Pose>{place_down_grasp_pose}, 0.005, 5.0, place_down_trajectory_msg, true) < 0.95)
+                            continue;
+                        robot_trajectory::RobotTrajectory place_down_trajectory = 
+                                        robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, place_down_trajectory_msg);
+                        robot_action_trajectory_execution_list.push_back(std::make_pair("arm", place_down_trajectory));
+                        current_state = place_down_trajectory.getLastWayPoint();
+
+                        // open the gripper
+                        end_effector_move_group.setStartState(current_state);
+                        for(int i = 0; i < finger_joint_names.size(); i++)
+                            end_effector_move_group.setJointValueTarget(finger_joint_names[i], 0.04);
+                        moveit::planning_interface::MoveGroupInterface::Plan open_gripper_plan;
+                        if(end_effector_move_group.plan(open_gripper_plan) != moveit::planning_interface::MoveItErrorCode::SUCCESS)
+                            continue;
+                        robot_trajectory::RobotTrajectory open_gripper_trajectory = 
+                                        robot_trajectory::RobotTrajectory(kinematic_model, end_effector_joint_model_group).setRobotTrajectoryMsg(current_state, open_gripper_plan.trajectory_);
+                        robot_action_trajectory_execution_list.push_back(std::make_pair("open", open_gripper_trajectory));
+                        current_state = open_gripper_trajectory.getLastWayPoint();
+
+
                         continue;
                     }
 
@@ -2062,11 +2201,17 @@ int main(int argc, char** argv)
 
         if(is_execute)
         {
-            actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> gripper_trajectory_action_("/gripper_controller/follow_joint_trajectory", true);
+            // wait for user input
+            std::cout << "press enter to execute the trajectory" << std::endl;
+            std::cin.get();
+
+
+            // for simulation
+            // actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> gripper_trajectory_action_("/gripper_controller/follow_joint_trajectory", true);
             // we may need to wait for a while for the action server to be ready
-            while(!gripper_trajectory_action_.waitForServer(ros::Duration(5.0))){
-                ROS_INFO("Waiting for the gripper_trajectory_action_ action server to come up");
-            }
+            // while(!gripper_trajectory_action_.waitForServer(ros::Duration(5.0))){
+            //     ROS_INFO("Waiting for the gripper_trajectory_action_ action server to come up");
+            // }
             for(auto iter: robot_action_trajectory_execution_list)
             {
                 if(iter.first.compare("arm") == 0){
@@ -2121,7 +2266,8 @@ int main(int argc, char** argv)
                         move_group.setPlannerId("RRTConnectkConfigDefault");
                         move_group.setStartState(*(move_group.getCurrentState()));
 
-                        move_group.setPositionTarget(0.248, -0.76, 0.721);
+                        // move_group.setPositionTarget(0.248, -0.76, 0.721);
+                        move_group.setJointValueTarget(home_joint_values);
                         move_group.setCleanPlanningContextFlag(true);
                         move_group.setMaxVelocityScalingFactor(0.6);
                         moveit::planning_interface::MoveGroupInterface::Plan re_analyze_plan;
@@ -2155,38 +2301,52 @@ int main(int argc, char** argv)
                 }
                 else if(iter.first.compare("open") == 0){
                     std::cout << "open gripper" << std::endl;
-                    control_msgs::FollowJointTrajectoryGoal goal;
-                    goal.trajectory.header.stamp = ros::Time::now();
-                    goal.trajectory.joint_names.push_back("r_gripper_finger_joint");
-                    trajectory_msgs::JointTrajectoryPoint point;
-                    point.positions.push_back(0.04);
-                    point.time_from_start = ros::Duration(1.0);
-                    goal.trajectory.points.push_back(point);
-                    gripper_trajectory_action_.sendGoalAndWait(goal, ros::Duration(3.0));
+                    // control_msgs::FollowJointTrajectoryGoal goal;
+                    // goal.trajectory.header.stamp = ros::Time::now();
+                    // goal.trajectory.joint_names.push_back("r_gripper_finger_joint");
+                    // trajectory_msgs::JointTrajectoryPoint point;
+                    // point.positions.push_back(0.04);
+                    // point.time_from_start = ros::Duration(1.0);
+                    // goal.trajectory.points.push_back(point);
+                    // gripper_trajectory_action_.sendGoalAndWait(goal, ros::Duration(3.0));
+
+                    // open gripper in the real world
+                    std::vector<double> open_finger_joint_values = {0.05, 0.05};
+                    end_effector_move_group.setJointValueTarget(finger_joint_names, open_finger_joint_values);
+                    end_effector_move_group.move();
+                    ros::Duration(1.0).sleep();
                 }
                 else if(iter.first.compare("close") == 0){
                     std::cout << "close gripper" << std::endl;
-                    control_msgs::FollowJointTrajectoryGoal goal;
-                    goal.trajectory.header.stamp = ros::Time::now();
-                    goal.trajectory.joint_names.push_back("r_gripper_finger_joint");
-                    trajectory_msgs::JointTrajectoryPoint point;
-                    point.positions.push_back(-0.04);
-                    point.time_from_start = ros::Duration(1.0);
-                    goal.trajectory.points.push_back(point);
-                    gripper_trajectory_action_.sendGoalAndWait(goal, ros::Duration(3.0));
-                    // get current finger joint value
-                    std::vector<double> finger_joint_values;
-                    move_group.getCurrentState()->copyJointGroupPositions(end_effector_joint_model_group, finger_joint_values);
-                    // resend the goal
-                    goal.trajectory.points[0].positions[0] = finger_joint_values[0];
-                    goal.trajectory.points[0].time_from_start = ros::Duration(0.5);
-                    gripper_trajectory_action_.sendGoalAndWait(goal, ros::Duration(1.5));
+                    // control_msgs::FollowJointTrajectoryGoal goal;
+                    // goal.trajectory.header.stamp = ros::Time::now();
+                    // goal.trajectory.joint_names.push_back("r_gripper_finger_joint");
+                    // trajectory_msgs::JointTrajectoryPoint point;
+                    // point.positions.push_back(-0.04);
+                    // point.time_from_start = ros::Duration(1.0);
+                    // goal.trajectory.points.push_back(point);
+                    // gripper_trajectory_action_.sendGoalAndWait(goal, ros::Duration(3.0));
+                    // // get current finger joint value
+                    // std::vector<double> finger_joint_values;
+                    // move_group.getCurrentState()->copyJointGroupPositions(end_effector_joint_model_group, finger_joint_values);
+                    // // resend the goal
+                    // goal.trajectory.points[0].positions[0] = finger_joint_values[0];
+                    // goal.trajectory.points[0].time_from_start = ros::Duration(0.5);
+                    // gripper_trajectory_action_.sendGoalAndWait(goal, ros::Duration(1.5));
+
+                    // close gripper in the real world
+                    // std::vector<double> close_finger_joint_values = {0.028, 0.028}; // for coco can
+                    std::vector<double> close_finger_joint_values = {0.012, 0.012}; // for coffee handle
+                    end_effector_move_group.setJointValueTarget(finger_joint_names, close_finger_joint_values);
+                    end_effector_move_group.move();
+                    ros::Duration(1.0).sleep();
                 }
                 else{
                     std::cout << "unknown action" << std::endl;
                     return 0;
                 }
             }
+
         }
         else{
             // init the moveit visual tools for visualization

@@ -28,6 +28,9 @@ class ModelWrapper():
         checkpoint_dir = os.path.expanduser('~') + '/catkin_ws/src/jiaming_manipulation/ros_tensorflow/src/contact_graspnet/checkpoints/scene_test_2048_bs3_hor_sigma_001'
         global_config = config_utils.load_config(checkpoint_dir, batch_size=1, arg_configs=[])
         print(str(global_config))
+        # here we set the filter threshold to 0.001
+        print("original filter_thres: %s"%(str(global_config['TEST']['filter_thres'])))
+        global_config['TEST']['filter_thres'] = 0.001
         print('pid: %s'%(str(os.getpid())))
         # use GPU 1, if possible
         device_name = '/gpu:0'

@@ -90,7 +90,7 @@ public:
     /*! The padding for surface removal. */
     static constexpr double SURFACE_REMOVAL_PADDING = 0.005;
     /*! The minimum cluster size. */
-    static constexpr int DEFAULT_MIN_CLUSTER_SIZE = 200;
+    static constexpr int DEFAULT_MIN_CLUSTER_SIZE = 400;
     /*! The maximum cluster size. */
     static constexpr int DEFAULT_MAX_CLUSTER_SIZE = 25000;
     /*! The cluster tolerance level. */

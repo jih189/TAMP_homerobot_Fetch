@@ -116,10 +116,9 @@ class GraspEstimator:
         :returns: Contact/Grasp indices that lie in the point cloud segment
         """
         filtered_grasp_idcs = np.array([],dtype=np.int32)
-        
         if contact_pts.shape[0] > 0 and segment_pc.shape[0] > 0:
             try:
-                dists = contact_pts[:,:3].reshape(-1,1,3) - segment_pc.reshape(1,-1,3)           
+                dists = contact_pts[:,:3].reshape(-1,1,3) - segment_pc.reshape(1,-1,3)
                 min_dists = np.min(np.linalg.norm(dists,axis=2),axis=1)
                 filtered_grasp_idcs = np.where(min_dists<thres)
             except:

@@ -507,7 +507,9 @@ if __name__ == "__main__":
     # # run_for_scene("tableroom_11", constant_weights=True, variable_weights=False)
     # run_for_scene("tableroom_12", constant_weights=True, variable_weights=False)
     # # run_for_scene("tableroom_13", constant_weights=True, variable_weights=False)
-    run_for_scene("tableroom_14", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom", constant_weights=True, variable_weights=False)
+    run_for_scene("tableroom", constant_weights=True, variable_weights=False)
 
         
 
