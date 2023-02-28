@@ -226,7 +226,7 @@ int main(int argc, char** argv)
     robot_model_loader::RobotModelLoaderConstPtr robot_model_loader = std::make_shared<robot_model_loader::RobotModelLoader>("robot_description");
     robot_model::RobotModelConstPtr kinematic_model = robot_model_loader->getModel();
 
-    std::vector<double> home_joint_values = {-1.57095, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    std::vector<double> home_joint_values = {-1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // need to get necessary transform information vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     // init the tf listener 
@@ -325,7 +325,7 @@ int main(int argc, char** argv)
     bool hasTargetObject = false;
     tf::Transform target_object_transform;
 
-    int num_of_trials = 5;
+    int num_of_trials = 20;
     bool retry = false;
 
     //************************************* the main loop to manipulate the object ****************************************************************//
@@ -803,7 +803,7 @@ int main(int argc, char** argv)
                 // calculate the pre-grasp, grasp and lift-grasp poses
                 tf::Transform pre_grasp_pose_in_world_frame = target_object_transform * grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.1, 0, 0));
                 tf::Transform grasp_pose_in_world_frame = target_object_transform * grasp_transforms[g];
-                tf::Transform lift_grasp_pose_in_world_frame = tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(0, 0, 0.1)) * target_object_transform * grasp_transforms[g];
+                tf::Transform lift_grasp_pose_in_world_frame = tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(0, 0, 0)) * target_object_transform * grasp_transforms[g];
                 geometry_msgs::Pose pre_grasp_pose;
                 geometry_msgs::Pose grasp_pose;
                 geometry_msgs::Pose lift_grasp_pose;
@@ -818,6 +818,7 @@ int main(int argc, char** argv)
                 move_group.setStartState(current_state);
                 move_group.setPoseTarget(pre_grasp_pose);
                 moveit::planning_interface::MoveGroupInterface::Plan pregrasp_plan;
+                move_group.setCleanPlanningContextFlag(true);
                 if(move_group.plan(pregrasp_plan) != moveit::planning_interface::MoveItErrorCode::SUCCESS)
                     continue;
                 robot_trajectory::RobotTrajectory pregrasp_trajectory = 
@@ -869,71 +870,71 @@ int main(int argc, char** argv)
                 robot_action_trajectory_execution_list.push_back(std::make_pair("lift", lifting_trajectory));
                 current_state = lifting_trajectory.getLastWayPoint();
 
-                // need to move to the position for placing
-                geometry_msgs::Pose current_in_hand_pose_for_placing;
-                transformTFToGeoPose(grasp_transforms[g].inverse(), current_in_hand_pose_for_placing);
+                // // need to move to the position for placing
+                // geometry_msgs::Pose current_in_hand_pose_for_placing;
+                // transformTFToGeoPose(grasp_transforms[g].inverse(), current_in_hand_pose_for_placing);
 
-                // need to place the object with constrained based rrt planning.
-                move_group.setPlannerId("CBIRRTConfigDefault");
-                move_group.setStartState(current_state);
+                // // need to place the object with constrained based rrt planning.
+                // move_group.setPlannerId("CBIRRTConfigDefault");
+                // move_group.setStartState(current_state);
 
-                // set the placing constraints
-                moveit_msgs::Constraints placing_constraints;
-                placing_constraints.name = "use_equality_constraints";
-                placing_constraints.in_hand_pose = current_in_hand_pose_for_placing;
+                // // set the placing constraints
+                // moveit_msgs::Constraints placing_constraints;
+                // placing_constraints.name = "use_equality_constraints";
+                // placing_constraints.in_hand_pose = current_in_hand_pose_for_placing;
                 
-                // define the orientation constraint on the object
-                moveit_msgs::OrientationConstraint orientation_constraint;
-                orientation_constraint.parameterization = moveit_msgs::OrientationConstraint::ROTATION_VECTOR;
-                orientation_constraint.header.frame_id = "base_link";
-                orientation_constraint.header.stamp = ros::Time(0);
-                orientation_constraint.link_name = "wrist_roll_link";
-                geometry_msgs::Quaternion constrained_quaternion;
-                constrained_quaternion.x = target_object_transform.getRotation().x();
-                constrained_quaternion.y = target_object_transform.getRotation().y();
-                constrained_quaternion.z = target_object_transform.getRotation().z();
-                constrained_quaternion.w = target_object_transform.getRotation().w();
-                orientation_constraint.orientation = constrained_quaternion;
-                orientation_constraint.weight = 1.0;
-                orientation_constraint.absolute_x_axis_tolerance = 2 * 3.1415;
-                orientation_constraint.absolute_y_axis_tolerance = 0.1;
-                orientation_constraint.absolute_z_axis_tolerance = 0.1;
-                placing_constraints.orientation_constraints.push_back(orientation_constraint);
+                // // define the orientation constraint on the object
+                // moveit_msgs::OrientationConstraint orientation_constraint;
+                // orientation_constraint.parameterization = moveit_msgs::OrientationConstraint::ROTATION_VECTOR;
+                // orientation_constraint.header.frame_id = "base_link";
+                // orientation_constraint.header.stamp = ros::Time(0);
+                // orientation_constraint.link_name = "wrist_roll_link";
+                // geometry_msgs::Quaternion constrained_quaternion;
+                // constrained_quaternion.x = target_object_transform.getRotation().x();
+                // constrained_quaternion.y = target_object_transform.getRotation().y();
+                // constrained_quaternion.z = target_object_transform.getRotation().z();
+                // constrained_quaternion.w = target_object_transform.getRotation().w();
+                // orientation_constraint.orientation = constrained_quaternion;
+                // orientation_constraint.weight = 1.0;
+                // orientation_constraint.absolute_x_axis_tolerance = 2 * 3.1415;
+                // orientation_constraint.absolute_y_axis_tolerance = 0.1;
+                // orientation_constraint.absolute_z_axis_tolerance = 0.1;
+                // placing_constraints.orientation_constraints.push_back(orientation_constraint);
 
-                // calculate current target object pose.
-                tf::Transform placing_transform;
-                Eigen::Isometry3d placing_eigen_transform;
-                GeoPoseTotransformTF(current_in_hand_pose_for_placing, placing_transform);
-                tf::transformTFToEigen(placing_transform, placing_eigen_transform);
-                current_state.attachBody("target_object", placing_eigen_transform, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"}, "wrist_roll_link");
+                // // calculate current target object pose.
+                // tf::Transform placing_transform;
+                // Eigen::Isometry3d placing_eigen_transform;
+                // GeoPoseTotransformTF(current_in_hand_pose_for_placing, placing_transform);
+                // tf::transformTFToEigen(placing_transform, placing_eigen_transform);
+                // current_state.attachBody("target_object", placing_eigen_transform, target_object_shapes, shape_poses, std::vector<std::string>{"l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"}, "wrist_roll_link");
 
-                move_group.setPathConstraints(placing_constraints);
-                move_group.setInHandPose(current_in_hand_pose_for_placing);
+                // move_group.setPathConstraints(placing_constraints);
+                // move_group.setInHandPose(current_in_hand_pose_for_placing);
 
-                move_group.setPositionTarget(0.248, -0.658, 0.721);
-                move_group.setCleanPlanningContextFlag(true);
-                moveit::planning_interface::MoveGroupInterface::Plan placing_plan;
-                bool success = (move_group.plan(placing_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-                current_state.clearAttachedBody("target_object");
+                // move_group.setPositionTarget(0.248, -0.658, 0.721);
+                // move_group.setCleanPlanningContextFlag(true);
+                // moveit::planning_interface::MoveGroupInterface::Plan placing_plan;
+                // bool success = (move_group.plan(placing_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                // current_state.clearAttachedBody("target_object");
 
-                move_group.clearPathConstraints();
-                move_group.clearInHandPose();
-                move_group.clearAction();
-                // move_group.clearExperience();
-                move_group.clearPoseTargets();
-                move_group.clearInHandPose();
+                // move_group.clearPathConstraints();
+                // move_group.clearInHandPose();
+                // move_group.clearAction();
+                // // move_group.clearExperience();
+                // move_group.clearPoseTargets();
+                // move_group.clearInHandPose();
 
-                if(!success)
-                {
-                    std::cout << "placing plan failed" << std::endl;
-                    continue;
-                }
-                std::cout << "placing plan success" << std::endl;
-                robot_trajectory::RobotTrajectory placing_trajectory = 
-                                robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, placing_plan.trajectory_);
+                // if(!success)
+                // {
+                //     std::cout << "placing plan failed" << std::endl;
+                //     continue;
+                // }
+                // std::cout << "placing plan success" << std::endl;
+                // robot_trajectory::RobotTrajectory placing_trajectory = 
+                //                 robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).setRobotTrajectoryMsg(current_state, placing_plan.trajectory_);
 
-                robot_action_trajectory_execution_list.push_back(std::make_pair("arm", placing_trajectory));
-                current_state = placing_trajectory.getLastWayPoint();
+                // robot_action_trajectory_execution_list.push_back(std::make_pair("arm", placing_trajectory));
+                // current_state = placing_trajectory.getLastWayPoint();
 
 
                 find_solution = true;
@@ -975,7 +976,7 @@ int main(int argc, char** argv)
             for(int g = 0; g < grasp_transforms.size(); g++)
             {
                 tf::Transform pre_grasp_pose_in_world_frame = target_object_transform * grasp_transforms[g] * tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(-0.1, 0, 0));
-                tf::Transform lift_grasp_pose_in_world_frame = tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(0, 0, 0.1)) * target_object_transform * grasp_transforms[g];
+                tf::Transform lift_grasp_pose_in_world_frame = tf::Transform(tf::Quaternion(0,0,0,1), tf::Vector3(0, 0, 0.0)) * target_object_transform * grasp_transforms[g];
                 geometry_msgs::Pose pre_grasp_pose;
                 geometry_msgs::Pose lift_grasp_pose;
                 transformTFToGeoPose(pre_grasp_pose_in_world_frame, pre_grasp_pose);
@@ -1078,7 +1079,7 @@ int main(int argc, char** argv)
 
                 // get a set of random target object poses in the table frame.
                 std::vector<tf::Transform> random_target_object_transforms;
-                for(int i = 0; i < 50; i++)
+                for(int i = 0; i < 30; i++)
                 {
                     int index = rand() % table_point_cloud.size();
                     tf::Vector3 random_point(table_point_cloud.points[index].x, table_point_cloud.points[index].y, table_point_cloud.points[index].z);
@@ -1087,7 +1088,8 @@ int main(int argc, char** argv)
 
                     tf::Transform random_target_object_transform_in_table_frame(target_object_transform_in_table_frame);
                     random_target_object_transform_in_table_frame.setOrigin(tf::Vector3(random_point_in_table_frame.x(), random_point_in_table_frame.y(), target_object_transform_in_table_frame.getOrigin().z()));
-                    random_target_object_transform_in_table_frame.setRotation(tf::Quaternion(tf::Vector3(0, 0, 1), (rand() % 360) * M_PI / 180.0) * random_target_object_transform_in_table_frame.getRotation());
+                    // random_target_object_transform_in_table_frame.setRotation(tf::Quaternion(tf::Vector3(0, 0, 1), (rand() % 360) * M_PI / 180.0) * random_target_object_transform_in_table_frame.getRotation());
+                    random_target_object_transform_in_table_frame.setRotation(tf::Quaternion(tf::Vector3(0, 0, 1), (rand() % 90 - 45) * M_PI / 180.0) * random_target_object_transform_in_table_frame.getRotation());
 
                     tf::Transform random_target_object_transform = table_transform * random_target_object_transform_in_table_frame;
 
@@ -1161,7 +1163,7 @@ int main(int argc, char** argv)
                         continue;
                     
                     random_target_object_transforms.push_back(random_target_object_transform);
-                    if(random_target_object_transforms.size() >= 5)
+                    if(random_target_object_transforms.size() >= 4)
                         break;
                 }
                 
@@ -1670,7 +1672,10 @@ int main(int argc, char** argv)
                         move_group.setPositionTarget(0.248, -0.65, 0.721);
 
                         // 5. plan and execute the motion
-                        bool success = (move_group.plan(place_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                        // bool success = (move_group.plan(place_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+
+                        robot_trajectory::RobotTrajectory(kinematic_model, joint_model_group).addSuffixWayPoint(current_state, 0.01).getRobotTrajectoryMsg(place_plan.trajectory_);
+                        bool success = true;
                         
                         // reset the move group
                         move_group.clearPathConstraints();
@@ -2085,7 +2090,7 @@ int main(int argc, char** argv)
 
                     std::cout << "move arm to lift object" << std::endl;
                     // wait for 1 s
-                    ros::Duration(1.0).sleep();
+                    ros::Duration(3.0).sleep();
                     // remove duplicate waypoints
                     for(int t = 0; t < iter.second.getWayPointCount(); t++)
                         if(iter.second.getWayPointDurationFromPrevious(t) == 0.0)
@@ -2121,12 +2126,11 @@ int main(int argc, char** argv)
                         move_group.setPlannerId("RRTConnectkConfigDefault");
                         move_group.setStartState(*(move_group.getCurrentState()));
 
-                        move_group.setPositionTarget(0.248, -0.76, 0.721);
+                        // move_group.setPositionTarget(0.248, -0.76, 0.721);
+                        move_group.setJointValueTarget(home_joint_values);
                         move_group.setCleanPlanningContextFlag(true);
                         move_group.setMaxVelocityScalingFactor(0.6);
                         moveit::planning_interface::MoveGroupInterface::Plan re_analyze_plan;
-                        // std::vector<moveit::planning_interface::MoveGroupInterface::MotionEdge> experience;
-                        // bool success = (move_group.plan(re_analyze_plan, experience) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
                         bool success = (move_group.plan(re_analyze_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
                         move_group.setMaxVelocityScalingFactor(0.1);
 

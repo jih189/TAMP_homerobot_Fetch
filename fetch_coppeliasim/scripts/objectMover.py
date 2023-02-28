@@ -92,20 +92,22 @@ class Gripper:
         self.client.send_goal_and_wait(goal)
 
 class SimObjectMover(object):
-    def __init__(self, clientId_, arm_, gripper_):
+    def __init__(self, clientId_):#, arm_, gripper_):
         self.clientId = clientId_
-        self.arm = arm_
-        self.gripper  = gripper_
+        # self.arm = arm_
+        # self.gripper  = gripper_
         s = rospy.Service('move_object', ObjectPose, self.MoveObjectHandler)
-        robot_s = rospy.Service('reset_robot', ResetRobot, self.resetRobot)
+        # robot_s = rospy.Service('reset_robot', ResetRobot, self.resetRobot)
+        table_s = rospy.Service('remove_table', ResetRobot, self.RemoveTable)
+
         rospy.loginfo("object mover in sim is ready!!")
         rospy.spin()
 
-    def resetRobot(self, req):
-        print("reset robot")
-        self.arm.reset()
-        self.gripper.open()
-        return ResetRobotResponse()
+    # def resetRobot(self, req):
+    #     print("reset robot")
+    #     self.arm.reset()
+    #     self.gripper.open()
+    #     return ResetRobotResponse()
 
     def getMatrixFromQuaternionAndTrans(self, trans_array, quaternion_array):
         poseMatrix = np.array(tf.transformations.quaternion_matrix(quaternion_array))
@@ -123,6 +125,13 @@ class SimObjectMover(object):
         self.moveObjectTo(req.object_name, [req.object_pose.position.x, req.object_pose.position.y, req.object_pose.position.z], 
                         [req.object_pose.orientation.x, req.object_pose.orientation.y, req.object_pose.orientation.z, req.object_pose.orientation.w])
         return ObjectPoseResponse()
+
+    def RemoveTable(self, req):
+        ret, objecthandle = sim.simxGetObjectHandle(self.clientId, 'Cuboid', sim.simx_opmode_oneshot_wait)
+        if ret == sim.simx_return_ok:
+            sim.simxSetObjectPosition(self.clientId, objecthandle, -1, (0,0,10), sim.simx_opmode_oneshot)
+        else:
+            rospy.logerr("no table in the sim!!")
 
     def moveObjectTo(self, objectname, targetposition, targetquaternion):
         ret, objecthandle = sim.simxGetObjectHandle(self.clientId, objectname + "_respondable", sim.simx_opmode_oneshot_wait)
@@ -158,14 +167,16 @@ class SimObjectMover(object):
 if __name__ == "__main__":
     rospy.init_node('sim_object_server')
 
-    arm = Arm()
-    gripper = Gripper()
+    # arm = Arm()
+    # gripper = Gripper()
 
     sim.simxFinish(-1) # just in case, close all opened connections
     clientID=sim.simxStart('127.0.0.1',19999,True,True,5000,5) # Connect to CoppeliaSim
     if clientID!=-1:
-        server = SimObjectMover(clientID, arm, gripper)
+        server = SimObjectMover(clientID)#, arm, gripper)
         # Now close the connection to CoppeliaSim:
         sim.simxFinish(clientID)
     else:
         print ('Failed connecting to remote API server')
+
+    

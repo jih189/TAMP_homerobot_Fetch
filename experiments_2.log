@@ -1,0 +1,434 @@
+Scene: tableroom
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom.ttt
+Date: 2023-02-27 23:38:24.145815
+Experiment type: Constant weight
+Target object: hammer
+Planner type: No regrasp
+Run 0: False
+Z difference between target object and initial pose: -0.5499999999999999
+Difference in rotation: None
+Run 1: False
+Z difference between target object and initial pose: -0.07499999999999996
+Difference in rotation: 0.14550862983176363
+Run 2: False
+Z difference between target object and initial pose: -0.11499999999999994
+Difference in rotation: 0.32550022506610465
+Run 3: True
+Z difference between target object and initial pose: -0.05399999999999994
+Difference in rotation: 0.2224607154112477
+Run 4: True
+Z difference between target object and initial pose: -0.025999999999999912
+Difference in rotation: 0.08755088303894155
+Planner type: With rerasp
+Run 0: True
+Z difference between target object and initial pose: -0.009999999999999898
+Difference in rotation: 0.001
+Run 1: True
+Z difference between target object and initial pose: -0.008999999999999897
+Difference in rotation: 0.001
+Run 2: True
+Z difference between target object and initial pose: -0.0030000000000000027
+Difference in rotation: 0.024547201331209887
+Run 3: True
+Z difference between target object and initial pose: -0.010999999999999899
+Difference in rotation: 0.001
+Run 4: True
+Z difference between target object and initial pose: -0.0020000000000000018
+Difference in rotation: 0.002
+All experiments are done for scene tableroom
+Date: 2023-02-27 23:57:25.654881
+===========================================Scene: tableroom_1
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_1.ttt
+Date: 2023-02-28 00:00:42.753967
+Experiment type: Constant weight
+Target object: pan
+Planner type: No regrasp
+Run 0: False
+Z difference between target object and initial pose: -0.15600000000000003
+Difference in rotation: 1.963558686974161
+Run 1: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: 0.0028285204119931763
+Run 2: False
+Z difference between target object and initial pose: -0.09200000000000003
+Difference in rotation: 1.9852179497181592
+Run 3: False
+Z difference between target object and initial pose: -0.09200000000000003
+Difference in rotation: 1.9724536727275221
+Run 4: False
+Z difference between target object and initial pose: -0.13000000000000006
+Difference in rotation: 1.967154345116682
+Planner type: With rerasp
+Run 0: True
+Z difference between target object and initial pose: 0.0029999999999998916
+Difference in rotation: 1.9980653530831316
+Run 1: True
+Z difference between target object and initial pose: 0.04899999999999993
+Difference in rotation: 0.05717611921138538
+Run 2: True
+Z difference between target object and initial pose: 0.014999999999999902
+Difference in rotation: 0.015293899500473754
+Run 3: True
+Z difference between target object and initial pose: 0.0010000000000000009
+Difference in rotation: 0.13635135900891163
+Run 4: True
+Z difference between target object and initial pose: -0.009000000000000008
+Difference in rotation: 0.08995176214835257
+All experiments are done for scene tableroom_1
+Date: 2023-02-28 00:30:25.129261
+===========================================Scene: tableroom_2
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_2.ttt
+Date: 2023-02-28 00:30:42.141890
+Experiment type: Constant weight
+Target object: candy
+Planner type: No regrasp
+Run 0: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Run 1: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Run 2: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Run 3: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Run 4: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Planner type: With rerasp
+Run 0: True
+Z difference between target object and initial pose: -0.0030000000000000027
+Difference in rotation: 0.04716216709416168
+Run 1: True
+Z difference between target object and initial pose: 0.0
+Difference in rotation: 0.03448657816998181
+Run 2: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Run 3: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Run 4: True
+Z difference between target object and initial pose: 0.0010000000000000009
+Difference in rotation: 0.015422042407728787
+All experiments are done for scene tableroom_2
+Date: 2023-02-28 00:43:20.544582
+===========================================Scene: tableroom_3
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_3.ttt
+Date: 2023-02-28 00:43:38.487295
+Experiment type: Constant weight
+Target object: mic
+Planner type: No regrasp
+Run 0: True
+Z difference between target object and initial pose: 0.0010000000000000009
+Difference in rotation: 0.008819836945293652
+Run 1: True
+Z difference between target object and initial pose: -0.0010000000000000009
+Difference in rotation: 0.004093033329901947
+Run 2: False
+Z difference between target object and initial pose: -0.5499999999999999
+Difference in rotation: None
+Run 3: True
+Z difference between target object and initial pose: -0.015999999999999903
+Difference in rotation: 0.07916167306545328
+Run 4: False
+Z difference between target object and initial pose: -0.5499999999999999
+Difference in rotation: None
+Planner type: With rerasp
+Run 0: True
+Z difference between target object and initial pose: 0.0010000000000000009
+Difference in rotation: 0.01874456195346052
+Run 1: True
+Z difference between target object and initial pose: -0.025999999999999912
+Difference in rotation: 1.6075054385042173
+Run 2: True
+Z difference between target object and initial pose: -0.0020000000000000018
+Difference in rotation: 0.02489955436382491
+Run 3: True
+Z difference between target object and initial pose: -0.03299999999999992
+Difference in rotation: 1.1011324854493239
+Run 4: True
+Z difference between target object and initial pose: -0.017999999999999905
+Difference in rotation: 0.46124183479140735
+All experiments are done for scene tableroom_3
+Date: 2023-02-28 00:56:36.196514
+===========================================Scene: tableroom_4
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_4.ttt
+Date: 2023-02-28 00:56:51.184689
+Experiment type: Constant weight
+Target object: measuretool
+Planner type: No regrasp
+Run 0: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Run 1: False
+Z difference between target object and initial pose: -0.11300000000000004
+Difference in rotation: 1.9422669702918665
+Run 2: False
+Z difference between target object and initial pose: -0.14100000000000007
+Difference in rotation: 1.9160830987110635
+Run 3: False
+Z difference between target object and initial pose: -0.10800000000000004
+Difference in rotation: 1.9414385596100843
+Run 4: True
+Z difference between target object and initial pose: -0.007000000000000006
+Difference in rotation: 0.10914494029588667
+Planner type: With rerasp
+Run 0: True
+Z difference between target object and initial pose: -0.0030000000000000027
+Difference in rotation: 0.07082239501250294
+Run 1: True
+Z difference between target object and initial pose: -0.0020000000000000018
+Difference in rotation: 0.08699793264132046
+Run 2: True
+Z difference between target object and initial pose: -0.0030000000000000027
+Difference in rotation: 0.08643376210801716
+Run 3: True
+Z difference between target object and initial pose: -0.0010000000000000009
+Difference in rotation: 0.057490172020576234
+Run 4: True
+Z difference between target object and initial pose: -0.0010000000000000009
+Difference in rotation: 0.04409557572846505
+All experiments are done for scene tableroom_4
+Date: 2023-02-28 01:15:15.731329
+===========================================Scene: tableroom_5
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_5.ttt
+Date: 2023-02-28 01:15:30.701266
+Experiment type: Constant weight
+Target object: wrench
+Planner type: No regrasp
+Run 0: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Run 1: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Run 2: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Run 3: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Run 4: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Planner type: With rerasp
+Run 0: True
+Z difference between target object and initial pose: -0.015000000000000013
+Difference in rotation: 0.17254786909562514
+Run 1: False
+Z difference between target object and initial pose: -0.551
+Difference in rotation: None
+Run 2: False
+Z difference between target object and initial pose: -0.551
+Difference in rotation: None
+Run 3: False
+Z difference between target object and initial pose: -0.551
+Difference in rotation: None
+Run 4: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+All experiments are done for scene tableroom_5
+Date: 2023-02-28 01:32:54.318891
+===========================================Scene: tableroom_6
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_6.ttt
+Date: 2023-02-28 01:33:09.643037
+Experiment type: Constant weight
+Target object: tissue
+Planner type: No regrasp
+Run 0: True
+Z difference between target object and initial pose: -0.0010000000000000009
+Difference in rotation: 1.9990205332147548
+Run 1: True
+Z difference between target object and initial pose: 0.016000000000000014
+Difference in rotation: 0.02914437474429949
+Run 2: False
+Z difference between target object and initial pose: -0.5499999999999999
+Difference in rotation: 0.0
+Run 3: True
+Z difference between target object and initial pose: 0.007000000000000006
+Difference in rotation: 0.005730067084640743
+Run 4: True
+Z difference between target object and initial pose: 0.013000000000000012
+Difference in rotation: 0.016309295453276206
+Planner type: With rerasp
+Run 0: True
+Z difference between target object and initial pose: 0.010000000000000009
+Difference in rotation: 0.0335377553950802
+Run 1: True
+Z difference between target object and initial pose: 0.007000000000000006
+Difference in rotation: 1.9998871691450915
+Run 2: True
+Z difference between target object and initial pose: 0.010000000000000009
+Difference in rotation: 0.006547122697060425
+Run 3: True
+Z difference between target object and initial pose: 0.007000000000000006
+Difference in rotation: 0.022554183222651753
+Run 4: True
+Z difference between target object and initial pose: 0.013000000000000012
+Difference in rotation: 0.004472023708388593
+All experiments are done for scene tableroom_6
+Date: 2023-02-28 01:45:07.365039
+===========================================Scene: tableroom_8
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_8.ttt
+Date: 2023-02-28 01:45:23.676936
+Experiment type: Constant weight
+Target object: cereal
+Planner type: No regrasp
+Run 0: False
+Z difference between target object and initial pose: -0.547
+Difference in rotation: 1.414234765071311
+Run 1: False
+Z difference between target object and initial pose: -0.547
+Difference in rotation: 1.4152666915793914
+Run 2: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: 0.0
+Run 3: False
+Z difference between target object and initial pose: -0.547
+Difference in rotation: 1.414934195394593
+Run 4: False
+Z difference between target object and initial pose: -0.617
+Difference in rotation: 1.1920117886636405
+Planner type: With rerasp
+Run 0: False
+Z difference between target object and initial pose: -0.551
+Difference in rotation: None
+Run 1: True
+Z difference between target object and initial pose: 0.0010000000000000009
+Difference in rotation: 0.044702460355479756
+Run 2: False
+Z difference between target object and initial pose: -0.55
+Difference in rotation: None
+Run 3: True
+Z difference between target object and initial pose: -0.0040000000000000036
+Difference in rotation: 0.07565255916108402
+Run 4: True
+Z difference between target object and initial pose: -0.009000000000000008
+Difference in rotation: 0.18973498838141398
+All experiments are done for scene tableroom_8
+Date: 2023-02-28 02:09:41.892584
+===========================================Scene: tableroom_9
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_9.ttt
+Date: 2023-02-28 02:09:58.304221
+Experiment type: Constant weight
+Target object: can
+Planner type: No regrasp
+Run 0: True
+Z difference between target object and initial pose: 0.0020000000000000018
+Difference in rotation: 0.02744929254076081
+Run 1: True
+Z difference between target object and initial pose: 0.0010000000000000009
+Difference in rotation: 0.012362930962059874
+Run 2: True
+Z difference between target object and initial pose: 0.0010000000000000009
+Difference in rotation: 0.008998547756183037
+Run 3: True
+Z difference between target object and initial pose: 0.0020000000000000018
+Difference in rotation: 0.02004199585624023
+Run 4: False
+Z difference between target object and initial pose: -0.57
+Difference in rotation: 0.7631857152618875
+Planner type: With rerasp
+Run 0: False
+Z difference between target object and initial pose: -0.571
+Difference in rotation: 1.1902593581653664
+Run 1: True
+Z difference between target object and initial pose: 0.0030000000000000027
+Difference in rotation: 0.019333074181556758
+Run 2: True
+Z difference between target object and initial pose: 0.0
+Difference in rotation: 0.026112110183768703
+Run 3: True
+Z difference between target object and initial pose: 0.0010000000000000009
+Difference in rotation: 0.009430779018177396
+Run 4: True
+Z difference between target object and initial pose: 0.0010000000000000009
+Difference in rotation: 0.010535319274377328
+All experiments are done for scene tableroom_9
+Date: 2023-02-28 02:25:13.098995
+===========================================Scene: tableroom_10
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_10.ttt
+Date: 2023-02-28 02:25:29.708780
+Experiment type: Constant weight
+Target object: clock
+Planner type: No regrasp
+Scene: tableroom_11
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_11.ttt
+Date: 2023-02-28 02:26:19.075406
+Experiment type: Constant weight
+Target object: teapot
+Planner type: No regrasp
+Run 0: False
+Z difference between target object and initial pose: -0.5489999999999999
+Difference in rotation: 0.005277772856270476
+Run 1: True
+Z difference between target object and initial pose: -0.09899999999999998
+Difference in rotation: 0.5788403498103994
+Run 2: True
+Z difference between target object and initial pose: -0.015000000000000013
+Difference in rotation: 0.2842144335734651
+Run 3: False
+Z difference between target object and initial pose: -0.54
+Difference in rotation: 0.5301543125546643
+Run 4: True
+Z difference between target object and initial pose: -0.02200000000000002
+Difference in rotation: 1.9615915286403054
+Planner type: With rerasp
+Run 0: False
+Z difference between target object and initial pose: -0.5489999999999999
+Difference in rotation: None
+Run 1: False
+Z difference between target object and initial pose: -0.5489999999999999
+Difference in rotation: 0.00582893588934727
+Run 2: False
+Z difference between target object and initial pose: -0.5479999999999999
+Difference in rotation: 0.0128771161896887
+Run 3: False
+Z difference between target object and initial pose: -0.5489999999999999
+Difference in rotation: None
+Run 4: False
+Z difference between target object and initial pose: -0.5489999999999999
+Difference in rotation: None
+All experiments are done for scene tableroom_11
+Date: 2023-02-28 02:39:07.333787
+===========================================Scene: tableroom_12
+Scene path: /home/lambda/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene/tableroom_12.ttt
+Date: 2023-02-28 02:39:22.381086
+Experiment type: Constant weight
+Target object: holetool
+Planner type: No regrasp
+Run 0: False
+Z difference between target object and initial pose: -0.58
+Difference in rotation: 1.8501888296711702
+Run 1: False
+Z difference between target object and initial pose: -0.5499999999999999
+Difference in rotation: 0.07911742736533575
+Run 2: False
+Z difference between target object and initial pose: -0.5499999999999999
+Difference in rotation: None
+Run 3: True
+Z difference between target object and initial pose: 0.0
+Difference in rotation: 0.06712294947503494
+Run 4: True
+Z difference between target object and initial pose: -0.0010000000000000009
+Difference in rotation: 0.09043117316191487
+Planner type: With rerasp
+Run 0: True
+Z difference between target object and initial pose: -0.0010000000000000009
+Difference in rotation: 0.027181990213325898
+Run 1: True
+Z difference between target object and initial pose: 0.0
+Difference in rotation: 0.04547729319345252
+Run 2: False
+Z difference between target object and initial pose: -0.5499999999999999
+Difference in rotation: None
+Run 3: False
+Z difference between target object and initial pose: -0.58
+Difference in rotation: 0.6980560978891822
+Run 4: True
+Z difference between target object and initial pose: 0.0
+Difference in rotation: 0.029093254976480385
+All experiments are done for scene tableroom_12
