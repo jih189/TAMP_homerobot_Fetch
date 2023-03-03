@@ -1089,7 +1089,7 @@ int main(int argc, char** argv)
                     tf::Transform random_target_object_transform_in_table_frame(target_object_transform_in_table_frame);
                     random_target_object_transform_in_table_frame.setOrigin(tf::Vector3(random_point_in_table_frame.x(), random_point_in_table_frame.y(), target_object_transform_in_table_frame.getOrigin().z()));
                     // random_target_object_transform_in_table_frame.setRotation(tf::Quaternion(tf::Vector3(0, 0, 1), (rand() % 360) * M_PI / 180.0) * random_target_object_transform_in_table_frame.getRotation());
-                    random_target_object_transform_in_table_frame.setRotation(tf::Quaternion(tf::Vector3(0, 0, 1), (rand() % 90 - 45) * M_PI / 180.0) * random_target_object_transform_in_table_frame.getRotation());
+                    random_target_object_transform_in_table_frame.setRotation(tf::Quaternion(tf::Vector3(0, 0, 1), (rand() % 200 - 100) * M_PI / 180.0) * random_target_object_transform_in_table_frame.getRotation());
 
                     tf::Transform random_target_object_transform = table_transform * random_target_object_transform_in_table_frame;
 
@@ -1497,8 +1497,8 @@ int main(int argc, char** argv)
                 // // If you want to use plane constraint, you should set 0.0005 for it.
 
                 bounding_region.dimensions[bounding_region.BOX_X] = 0.0005; // for x
-                bounding_region.dimensions[bounding_region.BOX_Y] = table_srv.response.depth * 0.9; // for y 
-                bounding_region.dimensions[bounding_region.BOX_Z] = table_srv.response.width * 0.9; // for z
+                bounding_region.dimensions[bounding_region.BOX_Y] = table_srv.response.depth*0.9; // for y 
+                bounding_region.dimensions[bounding_region.BOX_Z] = table_srv.response.width*0.9; // for z
                 // If you want to use plane constraint, you should set 0.0005 for it.
 
                 // geometry_msgs::Pose target_object_pose;
@@ -1606,7 +1606,7 @@ int main(int argc, char** argv)
 
             // setup the motion planner
             move_group.setPlannerId("CLazyPRMConfigDefault");
-            move_group.setPlanningTime(0.5);
+            move_group.setPlanningTime(1.0);
 
             bool cannotfindplan = false;
 

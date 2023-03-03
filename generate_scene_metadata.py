@@ -139,6 +139,22 @@ scene_metadatem14 = {
 }
 scene_metadata.append(scene_metadatem14)
 
+scene_metadatem16 = {
+    "scene_name": "tableroom_16",
+    "objects": ['cereal', 'remote', 'dispenser'],
+    "target_object_names": ["dispenser"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem16)
+
+scene_metadatem17 = {
+    "scene_name": "tableroom_17",
+    "objects": ['cereal', 'remote', 'dispenser'],
+    "target_object_names": ["remote"],
+    "target_object_weights": {},
+}
+scene_metadata.append(scene_metadatem17)
+
 SCENE_DIR = os.path.expanduser('~') + "/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/scene"
 
 for scene in scene_metadata:

@@ -269,7 +269,7 @@ def run_one_trial(sim, scene_metadata, target_object_name, scene_name, trial_num
         # also check if the target object has been lifted
         z_diff_from_init = target_object_position[2] - obj_init_poses[target_object_name][0][2]
         # TODO: make this detection more robust
-        # success = distance < 0.15 and z_diff_from_init > 0.05
+        # success = distance < 0.15 and z_diff_frofm_init > 0.05
         # success = z_diff_from_init > 0.05 # now success is only based on whether the target object has been lifted
         success = target_object_position[2] > 0.5 # now success is based on weather the target object has fall down from the gripper
         # also store the difference in rotation 
@@ -343,7 +343,7 @@ def reset_arm(joint_names, init_position, robot_controller_client):
     # wait for 5 seconds
     time.sleep(5)
 
-def run_for_scene(scene_name, constant_weights=True, variable_weights=True, num_trials = 5):
+def run_for_scene(scene_name, logging_file_name, constant_weights=True, variable_weights=True, num_trials = 5):
     # ascii box with scene name in the middle
     print("+" + "-" * len(scene_name) + "+")
     print("|" + "\033[96m{}\033[0m".format(scene_name) + "|")
@@ -382,7 +382,7 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True, num_
     print("Controller started")
 
     # log the scene name in experiments.log
-    logging_file = open(os.path.join(WS_BASE, "src/jiaming_manipulation/experiments_5.log"), "a")
+    logging_file = open(os.path.join(WS_BASE, "src/jiaming_manipulation/results/"+logging_file_name), "a")
     # log scene name and time date
     logging_file.write("Scene: {}\n".format(scene_name))
     logging_file.write("Scene path: {}\n".format(os.path.join(scene_path, scene_name+".ttt")))
@@ -511,20 +511,22 @@ def run_for_scene(scene_name, constant_weights=True, variable_weights=True, num_
 if __name__ == "__main__":
     rospy.init_node("experiment_monitor")
     # run_for_scene("tableroom_1", constant_weights=True, variable_weights=False, num_trials=1)
-    run_for_scene("tableroom", constant_weights=True, variable_weights=False, num_trials=5)
-    run_for_scene("tableroom_1", constant_weights=True, variable_weights=False, num_trials=5)
-    run_for_scene("tableroom_2", constant_weights=True, variable_weights=False, num_trials=5)
-    run_for_scene("tableroom_3", constant_weights=True, variable_weights=False, num_trials=5)
-    run_for_scene("tableroom_4", constant_weights=True, variable_weights=False, num_trials=5)
-    run_for_scene("tableroom_5", constant_weights=True, variable_weights=False, num_trials=5)
-    run_for_scene("tableroom_6", constant_weights=True, variable_weights=False, num_trials=5)
-    run_for_scene("tableroom_8", constant_weights=True, variable_weights=False, num_trials=5)
-    run_for_scene("tableroom_9", constant_weights=True, variable_weights=False, num_trials=5)
-    run_for_scene("tableroom_10", constant_weights=True, variable_weights=False, num_trials=5)
-    # run_for_scene("tableroom_11", constant_weights=True, variable_weights=False, num_trials=5)
-    run_for_scene("tableroom_12", constant_weights=True, variable_weights=False, num_trials=5)
-    # run_for_scene("tableroom_13", constant_weights=True, variable_weights=False, num_trials=5)
-    run_for_scene("tableroom_14", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom_1", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom_2", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom_3", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom_4", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom_5", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom_6", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom_8", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom_9", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom_10", constant_weights=True, variable_weights=False, num_trials=5)
+    # # run_for_scene("tableroom_11", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom_12", constant_weights=True, variable_weights=False, num_trials=5)
+    # # run_for_scene("tableroom_13", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom_14", constant_weights=True, variable_weights=False, num_trials=5)
+    # run_for_scene("tableroom_16", "experiments_8.log", constant_weights=True, variable_weights=False, num_trials=5)
+    run_for_scene("tableroom_17", "experiments_8.log", constant_weights=True, variable_weights=False, num_trials=5)
 
         
 
