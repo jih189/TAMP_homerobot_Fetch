@@ -66,12 +66,15 @@ if __name__ == '__main__':
     if clientID!=-1:
         print ('Connected to remote API server')
         handleIds = []
+        detectedObjectNames = []
         for object_name in object_names:
             res, handleId = sim.simxGetObjectHandle(clientID, object_name, sim.simx_opmode_blocking)
             if res == sim.simx_return_ok:
                 handleIds.append(handleId)
-            else:
-                print('Failed to get object handle!')
+                detectedObjectNames.append(object_name)
+        
+        print("detected object list:")
+        print(detectedObjectNames)
 
         object_segementation = ObjectSegmentation()
         object_segementation.setObjectHandleIds(handleIds)

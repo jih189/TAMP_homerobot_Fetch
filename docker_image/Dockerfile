@@ -5,8 +5,8 @@ FROM ubuntu:18.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-          git \
+   apt-get install -y --no-install-recommends \
+         git \
 		cmake \
 		build-essential \
 		curl \
@@ -14,23 +14,23 @@ RUN apt-get update && \
 		gnupg2 \
 		lsb-release \
 		ca-certificates \
-        net-tools \
-    && rm -rf /var/lib/apt/lists/*
+      net-tools \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add -
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+   apt-get install -y --no-install-recommends \
 		ros-melodic-desktop-full \
 		ros-melodic-image-transport \
 		ros-melodic-vision-msgs \
 		ros-melodic-message-filters \
-          python-rosdep \
-          python-rosinstall \
-          python-rosinstall-generator \
-          python-wstool \
-    && rm -rf /var/lib/apt/lists/*
+         python-rosdep \
+         python-rosinstall \
+         python-rosinstall-generator \
+         python-wstool \
+   && rm -rf /var/lib/apt/lists/*
 
 RUN echo 'source /opt/ros/melodic/setup.bash' >> /root/.bashrc
 
@@ -63,14 +63,52 @@ ENV COPPELIASIM_ROOT_DIR=/opt/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04
 ENV LD_LIBRARY_PATH=$COPPELIASIM_ROOT_DIR:$LD_LIBRARY_PATH
 ENV PATH=$COPPELIASIM_ROOT_DIR:$PATH
 
-#RUN echo '#!/bin/bash\ncd $COPPELIASIM_ROOT_DIR\n/usr/bin/xvfb-run --server-args "-ac -screen 0, 1024x1024x24" coppeliaSim "$@"' > /entrypoint && chmod a+x /entrypoint
-
-RUN echo '#!/bin/bash\ncd $COPPELIASIM_ROOT_DIR; coppeliaSim "$@"' > /entrypoint && chmod a+x /entrypoint
-
-RUN apt-get update -q && \
-    apt install -y python3.8 && \
-    apt-get autoclean -y && apt-get autoremove -y && apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# RUN apt-get update -q && \
+#     apt install -y python3.8 && \
+#     apt-get autoclean -y && apt-get autoremove -y && apt-get clean && \
+#     rm -rf /var/lib/apt/lists/*
 
 EXPOSE 19997
-ENTRYPOINT ["/entrypoint"]
+
+# RUN echo '#!/bin/bash\ncd $COPPELIASIM_ROOT_DIR; coppeliaSim "$@"' > /entrypoint && chmod a+x /entrypoint
+# ENTRYPOINT ["/entrypoint"]
+
+RUN apt-get update -q && \
+    apt-get install -y autotools-dev automake libtool
+
+WORKDIR /root
+# install cmake
+RUN git clone https://github.com/Kitware/CMake.git
+RUN cd CMake && ./bootstrap && make && make install
+
+RUN echo 'export PATH=$HOME/CMake/bin:$PATH' >> /root/.bashrc
+RUN echo 'export CMAKE_PREFIX_PATH=$HOME/CMake:$CMAKE_PREFIX_PATH' >> /root/.bashrc
+
+
+# install ompl
+
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+
+# first, need to instal ODE
+RUN git clone https://github.com/thomasmarsh/ODE.git
+RUN cd ODE && mkdir -p build && cd build && cmake .. && make && make install
+
+# second, need to install Py++
+COPY ./download/castxml.tar.xz /root/
+RUN tar -xf /root/castxml.tar.xz -C /root && \
+    rm /root/castxml.tar.xz
+
+RUN apt-get update -q && \
+    apt install -y python3-pip
+
+RUN pip3 install -vU pygccxml pyplusplus numpy
+RUN echo 'export PATH=/root/castxml/bin:${PATH}' >> /root/.bashrc
+
+# then install ompl
+RUN git clone https://github.com/ompl/ompl.git && cd ompl && \
+    mkdir -p build/Release && cd build/Release
+
+# WORKDIR /root
+# RUN git clone https://github.com/ompl/ompl.git && cd ompl && \
+#     mkdir -p build/Release && cd build/Release && cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../.. -DPYTHON_EXEC=/usr/bin/python3 && \
+#     make update_bindings && make && sudo make install
