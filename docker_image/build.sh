@@ -20,3 +20,4 @@
 #     fi
 # fi
 docker build -f Dockerfile -t coppeliasim-ubuntu18:latest .
+# docker build -f ompl.Dockerfile -t ompl-ubuntu18:latest .

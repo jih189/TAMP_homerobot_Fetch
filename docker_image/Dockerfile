@@ -32,12 +32,12 @@ RUN apt-get update && \
          python-wstool \
    && rm -rf /var/lib/apt/lists/*
 
-RUN echo 'source /opt/ros/melodic/setup.bash' >> /root/.bashrc
+RUN echo 'source /opt/ros/melodic/setup.bash' >> $HOME/.bashrc
 
-RUN echo 'export ROS_MASTER_URI=https://localhost:11311' >> /root/.bashrc
-RUN echo 'export ROS_HOSTNAME=localhost' >> /root/.bashrc
+RUN echo 'export ROS_MASTER_URI=https://localhost:11311' >> $HOME/.bashrc
+RUN echo 'export ROS_HOSTNAME=localhost' >> $HOME/.bashrc
 
-# install the coppeliasim
+# # install the coppeliasim
 
 RUN apt-get update -q && \
 	export DEBIAN_FRONTEND=noninteractive && \
@@ -55,60 +55,37 @@ RUN apt-get update -q && \
 
 RUN mkdir -p /shared /opt
 
-COPY ./download/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz /opt/
-RUN tar -xf /opt/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz -C /opt && \
-    rm /opt/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz
+COPY ./download/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz /root/
+RUN tar -xf /root/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz -C /root && \
+    rm /root/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz
 
-ENV COPPELIASIM_ROOT_DIR=/opt/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04
-ENV LD_LIBRARY_PATH=$COPPELIASIM_ROOT_DIR:$LD_LIBRARY_PATH
-ENV PATH=$COPPELIASIM_ROOT_DIR:$PATH
-
-# RUN apt-get update -q && \
-#     apt install -y python3.8 && \
-#     apt-get autoclean -y && apt-get autoremove -y && apt-get clean && \
-#     rm -rf /var/lib/apt/lists/*
+ENV COPPELIASIM_ROOT_DIR=/root/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04
+# ENV LD_LIBRARY_PATH=$COPPELIASIM_ROOT_DIR:$LD_LIBRARY_PATH
+# ENV PATH=$COPPELIASIM_ROOT_DIR:$PATH
 
 EXPOSE 19997
 
-# RUN echo '#!/bin/bash\ncd $COPPELIASIM_ROOT_DIR; coppeliaSim "$@"' > /entrypoint && chmod a+x /entrypoint
-# ENTRYPOINT ["/entrypoint"]
+# # RUN echo '#!/bin/bash\ncd $COPPELIASIM_ROOT_DIR; coppeliaSim "$@"' > /entrypoint && chmod a+x /entrypoint
+# # ENTRYPOINT ["/entrypoint"]
 
 RUN apt-get update -q && \
-    apt-get install -y autotools-dev automake libtool
+    apt-get install -y autotools-dev automake libtool python3-pip vim 
 
 WORKDIR /root
-# install cmake
-RUN git clone https://github.com/Kitware/CMake.git
-RUN cd CMake && ./bootstrap && make && make install
-
-RUN echo 'export PATH=$HOME/CMake/bin:$PATH' >> /root/.bashrc
-RUN echo 'export CMAKE_PREFIX_PATH=$HOME/CMake:$CMAKE_PREFIX_PATH' >> /root/.bashrc
-
 
 # install ompl
-
-ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 # first, need to instal ODE
 RUN git clone https://github.com/thomasmarsh/ODE.git
 RUN cd ODE && mkdir -p build && cd build && cmake .. && make && make install
 
 # second, need to install Py++
-COPY ./download/castxml.tar.xz /root/
-RUN tar -xf /root/castxml.tar.xz -C /root && \
-    rm /root/castxml.tar.xz
+COPY ./download/castxml.tar.xz $HOME
+RUN tar -xf $HOME/castxml.tar.xz -C $HOME && rm $HOME/castxml.tar.xz
+ENV PATH=/root/castxml/bin:${PATH}
 
-RUN apt-get update -q && \
-    apt install -y python3-pip
-
-RUN pip3 install -vU pygccxml pyplusplus numpy
-RUN echo 'export PATH=/root/castxml/bin:${PATH}' >> /root/.bashrc
+RUN sudo -H pip3 install -vU pygccxml pyplusplus numpy
 
 # then install ompl
-RUN git clone https://github.com/ompl/ompl.git && cd ompl && \
-    mkdir -p build/Release && cd build/Release
-
-# WORKDIR /root
-# RUN git clone https://github.com/ompl/ompl.git && cd ompl && \
-#     mkdir -p build/Release && cd build/Release && cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../.. -DPYTHON_EXEC=/usr/bin/python3 && \
-#     make update_bindings && make && sudo make install
+RUN git clone https://github.com/ompl/ompl.git && cd ompl && mkdir -p build/Release && cd build/Release && \
+    cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../.. -DPYTHON_EXEC=/usr/bin/python3  -DCASTXML=/root/castxml/bin/castxml && make update_bindings && make && make install
