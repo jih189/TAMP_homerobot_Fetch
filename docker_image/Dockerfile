@@ -1,9 +1,13 @@
 FROM ubuntu:18.04
 
-# include ros melodic
+WORKDIR /root
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+RUN apt-get update -q && \
+    apt-get install -y autotools-dev automake libtool python3-pip vim 
+
+# include ros melodic
 RUN apt-get update && \
    apt-get install -y --no-install-recommends \
          git \
@@ -38,7 +42,6 @@ RUN echo 'export ROS_MASTER_URI=https://localhost:11311' >> $HOME/.bashrc
 RUN echo 'export ROS_HOSTNAME=localhost' >> $HOME/.bashrc
 
 # # install the coppeliasim
-
 RUN apt-get update -q && \
 	export DEBIAN_FRONTEND=noninteractive && \
     apt-get install -y --no-install-recommends \
@@ -60,21 +63,27 @@ RUN tar -xf /root/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz -C /root && \
     rm /root/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz
 
 ENV COPPELIASIM_ROOT_DIR=/root/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04
-# ENV LD_LIBRARY_PATH=$COPPELIASIM_ROOT_DIR:$LD_LIBRARY_PATH
-# ENV PATH=$COPPELIASIM_ROOT_DIR:$PATH
 
 EXPOSE 19997
 
-# # RUN echo '#!/bin/bash\ncd $COPPELIASIM_ROOT_DIR; coppeliaSim "$@"' > /entrypoint && chmod a+x /entrypoint
-# # ENTRYPOINT ["/entrypoint"]
+# install cmake
+RUN apt-get update && \
+    apt-get install -y build-essential wget && \
+    wget https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0.tar.gz && \
+    tar -xf cmake-3.22.0.tar.gz && \
+    rm cmake-3.22.0.tar.gz && \
+    cd cmake-3.22.0 && \
+    ./bootstrap && \
+    make -j$(nproc) && \
+    make install
 
-RUN apt-get update -q && \
-    apt-get install -y autotools-dev automake libtool python3-pip vim 
-
-WORKDIR /root
+# setup the python client for remote control in Coppeliasim
+RUN python3 -m pip install pyzmq
+RUN python3 -m pip install cbor
+RUN git clone --recursive https://github.com/CoppeliaRobotics/zmqRemoteApi && cd zmqRemoteApi && git fetch && git checkout tags/coppeliasim-v4.4.0-rev0 && \
+    mkdir -p build && cd build && cmake -DMAKE_BUILD_TYPE=Release .. && cmake --build . && cmake --install .
 
 # install ompl
-
 # first, need to instal ODE
 RUN git clone https://github.com/thomasmarsh/ODE.git
 RUN cd ODE && mkdir -p build && cd build && cmake .. && make && make install
@@ -89,3 +98,14 @@ RUN sudo -H pip3 install -vU pygccxml pyplusplus numpy
 # then install ompl
 RUN git clone https://github.com/ompl/ompl.git && cd ompl && mkdir -p build/Release && cd build/Release && \
     cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../.. -DPYTHON_EXEC=/usr/bin/python3  -DCASTXML=/root/castxml/bin/castxml && make update_bindings && make && make install
+
+RUN mkdir -p $HOME/fetch_repo
+
+# install jupyter
+RUN python3 -m pip install --upgrade pip
+RUN pip3 install jupyter
+
+# Expose the port Jupyter will run on
+EXPOSE 8888
+
+WORKDIR /root/fetch_repo
