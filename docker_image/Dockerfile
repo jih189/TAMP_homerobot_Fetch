@@ -122,6 +122,6 @@ RUN pip3 install jupyter
 # Expose the port Jupyter will run on
 EXPOSE 8888
 
-RUN mkdir -p $HOME/fetch_repo
+RUN mkdir -p $HOME/catkin_ws/src/jiaming_manipulation
 
-WORKDIR /root/fetch_repo
+WORKDIR /root
