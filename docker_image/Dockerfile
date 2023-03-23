@@ -99,7 +99,21 @@ RUN sudo -H pip3 install -vU pygccxml pyplusplus numpy
 RUN git clone https://github.com/ompl/ompl.git && cd ompl && mkdir -p build/Release && cd build/Release && \
     cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../.. -DPYTHON_EXEC=/usr/bin/python3  -DCASTXML=/root/castxml/bin/castxml && make update_bindings && make && make install
 
-RUN mkdir -p $HOME/fetch_repo
+# install moveit
+# setup the rosdep
+RUN sudo apt -y install python-wstool python-catkin-tools clang-format-10 python-rosdep
+RUN mkdir -p ws_moveit/src && cd ws_moveit/src && git clone https://github.com/jih189/moveit_cbirrt.git
+RUN rosdep init && rosdep update
+RUN cd ws_moveit && rosdep install -y --from-paths src --ignore-src --rosdistro melodic
+
+# remove the ompl from ROS
+RUN apt-get -y remove $(apt list --installed | awk -F/ '{print $1}' | grep ompl)
+
+# reinstall the ompl in its build directory
+RUN cd ompl/build/Release && make install
+
+# compile moveit
+RUN cd ws_moveit && catkin config --extend /opt/ros/melodic --install --install-space /opt/ros/melodic --cmake-args -DCMAKE_BUILD_TYPE=Release && catkin build
 
 # install jupyter
 RUN python3 -m pip install --upgrade pip
@@ -107,5 +121,7 @@ RUN pip3 install jupyter
 
 # Expose the port Jupyter will run on
 EXPOSE 8888
+
+RUN mkdir -p $HOME/fetch_repo
 
 WORKDIR /root/fetch_repo
