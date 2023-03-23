@@ -1,2 +1,0 @@
-link_0 slider translation_screen
-link_1 free display_base
