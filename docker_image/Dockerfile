@@ -38,7 +38,7 @@ RUN apt-get update && \
 
 RUN echo 'source /opt/ros/melodic/setup.bash' >> $HOME/.bashrc
 
-RUN echo 'export ROS_MASTER_URI=https://localhost:11311' >> $HOME/.bashrc
+RUN echo 'export ROS_MASTER_URI=http://localhost:11311' >> $HOME/.bashrc
 RUN echo 'export ROS_HOSTNAME=localhost' >> $HOME/.bashrc
 
 # # install the coppeliasim
@@ -60,9 +60,9 @@ RUN mkdir -p /shared /opt
 
 COPY ./download/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz /root/
 RUN tar -xf /root/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz -C /root && \
-    rm /root/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz
+    rm /root/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz && cd /root && mv CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04 CoppeliaSim
 
-ENV COPPELIASIM_ROOT_DIR=/root/CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04
+ENV COPPELIASIM_ROOT_DIR=/root/CoppeliaSim
 
 EXPOSE 19997
 
@@ -121,6 +121,9 @@ RUN pip3 install jupyter
 
 # Expose the port Jupyter will run on
 EXPOSE 8888
+
+# Install necessary for building
+RUN apt-get install -y ros-melodic-costmap-2d ros-melodic-rail-manipulation-msgs 
 
 RUN mkdir -p $HOME/catkin_ws/src/jiaming_manipulation
 

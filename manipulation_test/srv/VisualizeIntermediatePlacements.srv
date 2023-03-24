@@ -1,5 +1,0 @@
-geometry_msgs/PoseStamped[] intermediate_placement_poses
-float32[] intermediate_placement_depths
-float32[] intermediate_placement_widths
-float32[] intermediate_placement_heights
----
