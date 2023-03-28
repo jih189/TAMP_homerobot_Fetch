@@ -57,6 +57,18 @@ Once the image is built, you can run the image as a container by
 sh run.sh
 ```
 
+At this point, the workspace is not compiled yet. In the docker container, you need to compile by catkin by 
+```
+cd ~catkin_ws $$ catkin_make
+```
+
+Then you need to provide the controller and server plugin for CoppeliaSim with ROS, so you need to cp them and place in the CoppeliaSim
+
+```
+cp /root/catkin_ws/devel/lib/libsimExtRosControl.so $COPPELIASIM_ROOT_DIR
+cp /root/catkin_ws/devel/lib/libsimExtRosServices.so $COPPELIASIM_ROOT_DIR
+```
+
 If you want to run multiple terminals in the container, you can run
 ```
 sh enter_lastest_container.sh
@@ -64,6 +76,19 @@ sh enter_lastest_container.sh
 For runing this command properly, you can have only one container.
 
 ### Usage
+
+#### Source the setup.
+Before running, we need to make the ROS recognize this workspace by 
+```
+source ~/jiaming_manipulation/devel/setup.bash
+```
+
+#### Preparing the trajectory dataset.
+In this project, we will use deep learning based method to generate the trajectory for planning, so we need to generate a collision-free trajectory database for Fetch. In this case, we do not need to have real robot or simulated robot to launch Moveit, and we can use a fake robot to launch Moveit instead.
+
+```
+roslaunch fetch_moveit_config data_generation_with_move_group.launch
+```
 
 Provide examples and instructions for how to use your project. This section should be detailed enough to help someone who's new to your project get started, but not so detailed that it overwhelms them.
 
