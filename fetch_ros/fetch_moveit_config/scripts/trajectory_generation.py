@@ -8,6 +8,12 @@ from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest
 from moveit_msgs.msg import RobotState
 from sensor_msgs.msg import JointState
 
+import numpy as np
+import pickle
+from os import path as osp
+import os
+import shutil
+
 class TrajectoryGenerator:
     def __init__(self, mc):
         self.robot = mc.RobotCommander()
@@ -57,8 +63,30 @@ def main():
     # Initialize MoveIt
     moveit_commander.roscpp_initialize(sys.argv)
     trajectory_generator = TrajectoryGenerator(moveit_commander)
-    sampled_trajectory = trajectory_generator.generateValidTrajectory()
-    print sampled_trajectory
+    
+    fileDir = 'trajectory_data/'
+
+    # remove the directory for data if it exists.
+    if os.path.exists(fileDir):
+        shutil.rmtree(fileDir)
+
+    os.mkdir(fileDir)
+
+    for env_num in range(1):
+        os.mkdir(fileDir + "env_%06d/" % env_num)
+        for i in range(10):
+            sampled_trajectory = np.array(trajectory_generator.generateValidTrajectory())
+            trajData = {'path': sampled_trajectory}
+            # with open(osp.join(fileDir, "path_%d.p" % i), 'wb') as f:
+            with open(fileDir + "env_%06d/" % env_num + "path_%d.p" % i, 'wb') as f:
+                pickle.dump(trajData, f)
+
+        # # Load the saved numpy array using pickle
+        # with open(fileDir + "path_%d.p" % i, 'rb') as f:
+        #     loaded_array = pickle.load(f)
+        # print loaded_array['path']
+
+
 
 
 if __name__ == '__main__':
