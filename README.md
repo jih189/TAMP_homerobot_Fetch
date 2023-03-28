@@ -88,6 +88,7 @@ In this project, we will use deep learning based method to generate the trajecto
 
 ```
 roslaunch fetch_moveit_config data_generation_with_move_group.launch
+rosrun fetch_moveit_config trajectory_generation.py
 ```
 
 Provide examples and instructions for how to use your project. This section should be detailed enough to help someone who's new to your project get started, but not so detailed that it overwhelms them.

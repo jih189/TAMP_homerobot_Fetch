@@ -16,6 +16,10 @@ class TrajectoryGenerator:
         self.state_validity_service = rospy.ServiceProxy('/check_state_validity', GetStateValidity)
         self.joint_names = self.move_group.get_active_joints()
 
+        # set the planner to rrt star
+        self.move_group.set_planner_id('RRTstarkConfigDefault')
+        self.move_group.set_planning_time(1.0)
+
     def getValidJoints(self):
         '''
         Return a valid joint values of the Fetch. If something stuck here, it can be
