@@ -1,0 +1,14 @@
+# try to visualize the grasp in the rviz over the object surface.
+
+# the grasped object name
+string grasped_object_name
+
+geometry_msgs/PoseStamped[] grasp_poses
+
+float32[] grasp_jawwidths
+
+uint8[] grasp_types
+
+---
+
+geometry_msgs/PoseStamped[] actual_grasp_poses

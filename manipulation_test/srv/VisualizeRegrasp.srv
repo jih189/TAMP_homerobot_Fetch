@@ -1,0 +1,8 @@
+# try to visualize the regrasp in the rviz over the object surface.
+
+geometry_msgs/PoseStamped[] grasp_poses
+
+float32[] grasp_jawwidths
+
+uint8[] grasp_types
+---

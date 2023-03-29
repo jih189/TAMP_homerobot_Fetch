@@ -1,0 +1,7 @@
+geometry_msgs/PoseStamped[] obstacle_poses
+float32[] depths
+float32[] widths
+float32[] heights
+int8[] obstacle_ids
+bool[] is_target
+---

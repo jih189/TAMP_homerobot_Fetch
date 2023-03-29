@@ -123,7 +123,13 @@ RUN pip3 install jupyter
 EXPOSE 8888
 
 # Install necessary for building
-RUN apt-get install -y ros-melodic-costmap-2d ros-melodic-rail-manipulation-msgs 
+RUN apt-get install -y ros-melodic-costmap-2d ros-melodic-rail-manipulation-msgs
+
+# Install fcl library
+RUN git clone https://github.com/flexible-collision-library/fcl.git && cd fcl && mkdir build && cd build && cmake .. && make && make install
+
+# install open3d
+RUN pip install open3d
 
 RUN mkdir -p $HOME/catkin_ws/src/jiaming_manipulation
 

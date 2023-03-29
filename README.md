@@ -9,7 +9,7 @@ The Cogrob home robot project on the Fetch robot provides an open-loop manipulat
 
 To facilitate the development and testing of the system, we offer a simulation platform based on Coppeliasim, and a Dockerfile to enable easy transfer of the workspace to developers' computers.
 
-Remind: This is manipulation system is a open loop system. That is, once the planning scene is given, this TAMP system plans the robot trajectory to finish the desired task, then pass to the robot for exuection. That is, once the manipulation fails during execution, the system will fail directly, and there is no any module to detect the failure and replan. Besides that, the MoveIt! in our system is modified based on our need for constrained motion planning and deep learning, so you can't use the original Moveit with this system.
+__Remind__: This is manipulation system is a open loop system. That is, once the planning scene is given, this TAMP system plans the robot trajectory to finish the desired task, then pass to the robot for exuection. That is, once the manipulation fails during execution, the system will fail directly, and there is no any module to detect the failure and replan. Besides that, the MoveIt! in our system is modified based on our need for constrained motion planning and deep learning, so you can't use the original Moveit with this system.
 
 ## System Structure
 Basically, there are 6 components in our system, as shown in the following diagram. Currently, we only focus on the task planner, motion planner, and action database. For the rest of them, we assume it works well for now, and we may work on them in future.
@@ -42,24 +42,25 @@ Given the robot state trajectory, the robot controller will directly execute the
 - Docker
 
 ### Installing
-Because we will use CoppeliaSim as our simulation for this project, we need to download the zip file for the [CoppeliaSim package](https://drive.google.com/drive/folders/1QUWJlT4B2yIQaNmF-G1xE8XvtskaKTv8?usp=sharing). Then, directly copy both CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz andcastxml.tar.xz and place both of them in
+Because we will use CoppeliaSim as our simulation for this project, we need to download the zip file for the [CoppeliaSim package](https://drive.google.com/drive/folders/1QUWJlT4B2yIQaNmF-G1xE8XvtskaKTv8?usp=sharing). Then, directly copy both CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz and castxml.tar.xz and place them in (__do not unzip them__)
 ```
-~/jiaming_manipulation/download
+[directory where you have the jiaming_manipulation]/jiaming_manipulation/download
 ```
 Build the docker image, and this step will take a long time.
 ```
-cd ~/jiaming_manipulation/docker_iamge
+cd [directory where you have the jiaming_manipulation]/jiaming_manipulation/docker_image
 sh build.sh
 ```
 
-Once the image is built, you can run the image as a container by
+Once the image is built, you can run the image as a container by (__xhost is required once you use docker run here__)
 ```
+xhost +
 sh run.sh
 ```
 
-At this point, the workspace is not compiled yet. In the docker container, you need to compile by catkin by 
+At this point, you will enter the container, but the workspace is not compiled yet. In the docker container, you need to compile and source it by 
 ```
-cd ~catkin_ws $$ catkin_make
+cd ~/catkin_ws $$ catkin_make && source devel/setup.bash
 ```
 
 Then you need to provide the controller and server plugin for CoppeliaSim with ROS, so you need to cp them and place in the CoppeliaSim
@@ -69,21 +70,21 @@ cp /root/catkin_ws/devel/lib/libsimExtRosControl.so $COPPELIASIM_ROOT_DIR
 cp /root/catkin_ws/devel/lib/libsimExtRosServices.so $COPPELIASIM_ROOT_DIR
 ```
 
-If you want to run multiple terminals in the container, you can run
+If you want to run multiple terminals in the container, you can run in a new terminal(__not in the container__)
 ```
-sh enter_lastest_container.sh
+cd [directory where you have the jiaming_manipulation]/jiaming_manipulation/docker_iamge && sh enter_lastest_container.sh
 ```
 For runing this command properly, you can have only one container.
 
 ### Usage
 
-#### Source the setup.
-Before running, we need to make the ROS recognize this workspace by 
+#### __*Use Jupyter notebook*__
+Your are allowed to use jupyter notebook with the following command
 ```
-source ~/jiaming_manipulation/devel/setup.bash
+jupyter notebook --allow-root
 ```
 
-#### Preparing the trajectory dataset.
+#### __*Preparing the trajectory dataset*__
 In this project, we will use deep learning based method to generate the trajectory for planning, so we need to generate a collision-free trajectory database for Fetch. In this case, we do not need to have real robot or simulated robot to launch Moveit, and we can use a fake robot to launch Moveit instead.
 
 ```
@@ -94,7 +95,7 @@ rosrun fetch_moveit_config trajectory_generation.py
 This command will create a 'trajectory_data' directory with the trajectories at where you run this command.
 
 ### Testing
-
+<span style="color: red">TODO</span>
 
 ## Contributing
 
