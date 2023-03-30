@@ -6,7 +6,11 @@ import moveit_commander
 import random
 from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest
 from moveit_msgs.msg import RobotState
+from moveit_msgs.msg import PlanningScene, CollisionObject, AttachedCollisionObject
 from sensor_msgs.msg import JointState
+from geometry_msgs.msg import PoseStamped, Point
+from shape_msgs.msg import Mesh
+from shape_msgs.msg import MeshTriangle
 
 from moveit_msgs.msg import RobotTrajectory, DisplayTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
@@ -16,6 +20,15 @@ import pickle
 from os import path as osp
 import os
 import shutil
+
+import trimesh
+from trimesh_util import sample_points_on_mesh
+
+from sensor_msgs.msg import PointCloud2, PointField
+import std_msgs.msg
+import struct
+
+
 
 class TrajectoryGenerator:
     def __init__(self, mc):
@@ -43,27 +56,145 @@ class TrajectoryGenerator:
         self.move_group.set_planner_id('RRTstarkConfigDefault')
         self.move_group.set_planning_time(1.0)
 
+        self.pointcloud_pub = rospy.Publisher("/point_cloud", PointCloud2, queue_size=1)
+
+    def show_point_cloud(self, pointcloud):
+        '''
+        publish the pointcloud to the rviz
+        '''
+        point_cloud_msg = self.numpy_to_pointcloud2(pointcloud, frame_id="base_link")
+        self.pointcloud_pub.publish(point_cloud_msg)
+
+    def numpy_to_pointcloud2(self, points, frame_id="base_link"):
+        '''
+        convert pointcloud from numpy format to PointCloud2 in the base_link frame.
+        '''
+        pc2_msg = PointCloud2()
+        pc2_msg.header.stamp = rospy.Time.now()
+        pc2_msg.header.frame_id = frame_id
+        pc2_msg.height = 1
+        pc2_msg.width = len(points)
+        pc2_msg.fields = [
+            PointField(name="x", offset=0, datatype=PointField.FLOAT32, count=1),
+            PointField(name="y", offset=4, datatype=PointField.FLOAT32, count=1),
+            PointField(name="z", offset=8, datatype=PointField.FLOAT32, count=1),
+        ]
+        pc2_msg.is_bigendian = False
+        pc2_msg.point_step = 12
+        pc2_msg.row_step = pc2_msg.point_step * pc2_msg.width
+        pc2_msg.is_dense = True
+
+        buffer = []
+
+        for point in points:
+            float_bytes = [struct.pack('f', coord) for coord in point]
+            buffer.append(b''.join(float_bytes))
+
+        pc2_msg.data = b''.join(buffer)
+
+        return pc2_msg
+
+
+    def trimesh_to_shape_msgs_mesh(self, object_id, tri_mesh):
+        '''
+        Generate collisionObject from a trimesh object mesh.
+        '''
+        co = CollisionObject()
+        co.operation = CollisionObject.ADD
+        co.id = object_id
+        co.header.frame_id = "base_link"
+        co.pose.position.x = 0.0
+        co.pose.position.y = 0.0
+        co.pose.position.z = 0.0
+        co.pose.orientation.w = 1.0
+
+        mesh_msg = Mesh()
+
+        for vertex in tri_mesh.vertices:
+            mesh_msg.vertices.append(Point(x=vertex[0], y=vertex[1], z=vertex[2]))
+
+        for face in tri_mesh.faces:
+            mesh_msg.triangles.append(MeshTriangle(vertex_indices=[face[0], face[1], face[2]]))
+
+        co.meshes = [mesh_msg]
+
+        return co
+
+    def setObstaclesInScene(self, mesh_list):
+        '''
+        Set the obstacle into the planning scene as long as it does not collide with the robot, and return the pointcloud in numpy format.
+        '''
+
+        for i in range(len(mesh_list)):
+            mesh_msg = self.trimesh_to_shape_msgs_mesh("obstacle"+str(i), mesh_list[i])
+            self.scene.add_object(mesh_msg)
+        rospy.sleep(1)
+
+        # need to remove the obstacle if it collides with the robot.
+        bad_obstacle_ids = self.checkCollision()
+        for bad_obstacle_id in bad_obstacle_ids:
+            self.scene.remove_world_object(bad_obstacle_id)
+        rospy.sleep(1)
+
+        pointcloud = sample_points_on_mesh(trimesh.util.concatenate([mesh_list[i] for i in range(len(mesh_list)) if "obstacle"+str(i) not in bad_obstacle_ids]), 5000)
+
+        # pointclouds = np.vstack([sample_points_on_mesh(mesh_list[i], 100) for i in range(len(mesh_list)) if "obstacle"+str(i) not in bad_obstacle_ids])
+        return pointcloud
+
+    def cleanPlanningScene(self):
+        '''
+        clean the planning scene.
+        '''
+        self.scene.clear()
+
+    def checkCollision(self):
+        '''
+        Check the collsion happening in the scene.
+        '''
+        joint_values = self.move_group.get_random_joint_values()
+        # Create a GetStateValidityRequest object
+        request = GetStateValidityRequest()
+        request.robot_state.joint_state.name = self.joint_names
+        request.robot_state.joint_state.position = joint_values
+        result = []
+        for contact in self.state_validity_service(request).contacts:
+            result.append(contact.contact_body_1)
+        return list(set(result))
+
     def getValidJoints(self):
         '''
         Return a valid joint values of the Fetch. If something stuck here, it can be
         caused by too little joint values are valid.
+        output: success, joint value
         '''
-        while True:
+        count = 0
+        while count < 10:
             joint_values = self.move_group.get_random_joint_values()
             # Create a GetStateValidityRequest object
             request = GetStateValidityRequest()
             request.robot_state.joint_state.name = self.joint_names
             request.robot_state.joint_state.position = joint_values
-            if self.state_validity_service(request).valid:
-                return joint_values
+            result = self.state_validity_service(request)
+            if result.valid:
+                return True, joint_values
+            count += 1
+        return False, None
 
     def generateValidTrajectory(self):
         '''
         It first samples two valid joint values, then plan for the trajectory between them.
+        output: success, trajectory
         '''
-        while True:
-            start_joint = self.getValidJoints()
-            target_joint = self.getValidJoints()
+        count = 0
+        while count < 100:
+            start_joint_success, start_joint = self.getValidJoints()
+            if not start_joint_success:
+                count += 1
+                continue
+            target_joint_success, target_joint = self.getValidJoints()
+            if not target_joint_success:
+                count += 1
+                continue
 
             moveit_robot_state = RobotState()
             moveit_robot_state.joint_state.name = self.joint_names
@@ -74,9 +205,15 @@ class TrajectoryGenerator:
             result = self.move_group.plan()
             if result[0]:
                 sampled_trajectory = [j.positions for j in result[1].joint_trajectory.points]
-                return sampled_trajectory
+                return True, sampled_trajectory
+            else:
+                count += 1
+        return False, None
 
     def visualizeTrajectory(self, trajectory_data):
+        '''
+        Visualize the trajectory in robot trajectory format.
+        '''
         robot_trajectory = RobotTrajectory()
         robot_trajectory.joint_trajectory.joint_names = self.joint_names
         currenttime = rospy.Duration(0.0)
@@ -95,7 +232,27 @@ class TrajectoryGenerator:
         display_trajectory_publisher = rospy.Publisher('/move_group/planned_path', DisplayTrajectory, queue_size=1)
         display_trajectory_publisher.publish(display_trajectory)
 
+    def random_point_in_bounding_box(self, min_point, max_point):
+        # Generate a random point within the bounding box
+        random_point = np.random.rand(3) * (max_point - min_point) + min_point
+        return random_point
 
+    def generate_random_mesh(self, seed_value, obstacle_size=0.3, min_point=[-0.5, -1.0, 0.0], max_point=[1.0,1.0,2.0], obstacle_num=20, num_points=20):
+        np.random.seed(seed_value)
+        seed_number_list = np.random.randint(0, 10000, size=obstacle_num)
+        result = []
+        for sn in seed_number_list:
+            np.random.seed(sn)
+            points = (np.random.rand(num_points, 3) - 0.5) * obstacle_size
+            # Create a convex hull from the random points
+            hull = trimesh.convex.convex_hull(points)
+
+            position = self.random_point_in_bounding_box(np.array(min_point), np.array(max_point))
+
+            hull.apply_translation(position.tolist())
+            result.append(hull)
+
+        return result
 
 def main():
     rospy.init_node('data_trajectory_generation')
@@ -115,7 +272,7 @@ def main():
     # for env_num in range(1):
     #     os.mkdir(fileDir + "env_%06d/" % env_num)
     #     for i in range(10):
-    #         sampled_trajectory = np.array(trajectory_generator.generateValidTrajectory())
+    #         plan_result, sampled_trajectory = np.array(trajectory_generator.generateValidTrajectory())
     #         trajData = {'path': sampled_trajectory}
     #         with open(fileDir + "env_%06d/" % env_num + "path_%d.p" % i, 'wb') as f:
     #             pickle.dump(trajData, f)
