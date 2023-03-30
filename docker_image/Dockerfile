@@ -119,6 +119,11 @@ RUN cd ws_moveit && catkin config --extend /opt/ros/melodic --install --install-
 RUN python3 -m pip install --upgrade pip
 RUN pip3 install jupyter
 
+# install python2 kernel into jupyter notebook
+RUN apt install python-pip -y
+RUN python2 -m pip install ipykernel
+RUN python2 -m ipykernel install
+
 # Expose the port Jupyter will run on
 EXPOSE 8888
 
