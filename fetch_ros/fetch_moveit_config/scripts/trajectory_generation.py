@@ -22,7 +22,7 @@ import os
 import shutil
 
 import trimesh
-from trimesh_util import sample_points_on_mesh
+from trimesh_util import sample_points_on_mesh, generate_point_cloud
 
 from sensor_msgs.msg import PointCloud2, PointField
 import std_msgs.msg
@@ -136,9 +136,25 @@ class TrajectoryGenerator:
             self.scene.remove_world_object(bad_obstacle_id)
         rospy.sleep(1)
 
-        pointcloud = sample_points_on_mesh(trimesh.util.concatenate([mesh_list[i] for i in range(len(mesh_list)) if "obstacle"+str(i) not in bad_obstacle_ids]), 5000)
+        meshes = trimesh.util.concatenate([mesh_list[i] for i in range(len(mesh_list)) if "obstacle"+str(i) not in bad_obstacle_ids])
 
-        # pointclouds = np.vstack([sample_points_on_mesh(mesh_list[i], 100) for i in range(len(mesh_list)) if "obstacle"+str(i) not in bad_obstacle_ids])
+        cameras = [
+            {
+                "position": (0, 0, 1),
+                "target": (1, 0, 1),
+                "up": (0, 1, 0),
+                "fov": 45,
+                "aspect_ratio": 1.0,
+                "near_clip": 0.1,
+                "far_clip": 10,
+                "width": 640,
+                "height": 480,
+            },
+            # Add more cameras if needed
+        ]
+        pointcloud = generate_point_cloud(meshes, cameras)
+        # pointcloud = sample_points_on_mesh(meshes, 5000)
+
         return pointcloud
 
     def cleanPlanningScene(self):
