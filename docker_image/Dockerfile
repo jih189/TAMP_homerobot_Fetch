@@ -135,7 +135,7 @@ RUN git clone https://github.com/flexible-collision-library/fcl.git && cd fcl &&
 
 # install trimesh
 RUN pip2 install trimesh
-RUN apt-get install -y python-scipy
+RUN apt-get install -y python-scipy python-rtree
 
 RUN mkdir -p $HOME/catkin_ws/src/jiaming_manipulation
 
