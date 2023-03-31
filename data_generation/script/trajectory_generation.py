@@ -22,7 +22,7 @@ import os
 import shutil
 
 import trimesh
-from trimesh_util import sample_points_on_mesh, generate_point_cloud
+from trimesh_util import sample_points_on_mesh, filter_points_inside_mesh, write_ply
 
 from sensor_msgs.msg import PointCloud2, PointField
 import std_msgs.msg
@@ -138,24 +138,11 @@ class TrajectoryGenerator:
 
         meshes = trimesh.util.concatenate([mesh_list[i] for i in range(len(mesh_list)) if "obstacle"+str(i) not in bad_obstacle_ids])
 
-        cameras = [
-            {
-                "position": (0, 0, 1),
-                "target": (1, 0, 1),
-                "up": (0, 1, 0),
-                "fov": 45,
-                "aspect_ratio": 1.0,
-                "near_clip": 0.1,
-                "far_clip": 10,
-                "width": 640,
-                "height": 480,
-            },
-            # Add more cameras if needed
-        ]
-        pointcloud = generate_point_cloud(meshes, cameras)
-        # pointcloud = sample_points_on_mesh(meshes, 5000)
+        pointcloud = sample_points_on_mesh(meshes, 5000)
 
-        return pointcloud
+        filtered_pointcloud = filter_points_inside_mesh(meshes, pointcloud)
+
+        return filtered_pointcloud
 
     def cleanPlanningScene(self):
         '''
@@ -221,7 +208,7 @@ class TrajectoryGenerator:
             result = self.move_group.plan()
             if result[0]:
                 sampled_trajectory = [j.positions for j in result[1].joint_trajectory.points]
-                return True, sampled_trajectory
+                return True, np.array(sampled_trajectory)
             else:
                 count += 1
         return False, None
@@ -271,27 +258,43 @@ class TrajectoryGenerator:
         return result
 
 def main():
+    ###################
+    scene_count = 1
+    trajectory_count_per_scene = 10
     rospy.init_node('data_trajectory_generation')
 
     # Initialize MoveIt
     moveit_commander.roscpp_initialize(sys.argv)
     trajectory_generator = TrajectoryGenerator(moveit_commander)
 
-    # fileDir = 'trajectory_data/'
+    fileDir = 'trajectory_data/'
 
-    # # remove the directory for data if it exists.
-    # if os.path.exists(fileDir):
-    #     shutil.rmtree(fileDir)
+    # remove the directory for data if it exists.
+    if os.path.exists(fileDir):
+        shutil.rmtree(fileDir)
 
-    # os.mkdir(fileDir)
+    os.mkdir(fileDir)
 
-    # for env_num in range(1):
-    #     os.mkdir(fileDir + "env_%06d/" % env_num)
-    #     for i in range(10):
-    #         plan_result, sampled_trajectory = np.array(trajectory_generator.generateValidTrajectory())
-    #         trajData = {'path': sampled_trajectory}
-    #         with open(fileDir + "env_%06d/" % env_num + "path_%d.p" % i, 'wb') as f:
-    #             pickle.dump(trajData, f)
+    for env_num in range(scene_count):
+        os.mkdir(fileDir + "env_%06d/" % env_num)
+
+        # use the env_num as the seed
+        obstacle_meshes = trajectory_generator.generate_random_mesh(env_num)
+        pointcloud = trajectory_generator.setObstaclesInScene(obstacle_meshes)
+
+        write_ply(fileDir + "env_%06d/pointcloud.ply" % env_num, pointcloud)
+
+        i = 0
+        while i < trajectory_count_per_scene:
+            plan_result, sampled_trajectory = trajectory_generator.generateValidTrajectory()
+            if not plan_result:
+                continue
+            trajData = {'path': sampled_trajectory}
+            with open(fileDir + "env_%06d/" % env_num + "path_%d.p" % i, 'wb') as f:
+                pickle.dump(trajData, f)
+            i += 1
+
+        trajectory_generator.cleanPlanningScene()
 
         # # Load the saved numpy array using pickle
         # with open(fileDir + "path_%d.p" % i, 'rb') as f:

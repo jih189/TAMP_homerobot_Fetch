@@ -1,109 +1,38 @@
 import trimesh
 import numpy as np
+import sys
 
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-from OpenGL.GLU import *
+def write_ply(filename, points, colors=None):
+    with open(filename, 'w') as ply_file:
+        ply_file.write('ply\n')
+        ply_file.write('format ascii 1.0\n')
+        ply_file.write('element vertex %d\n' % len(points))
+        ply_file.write('property float x\n')
+        ply_file.write('property float y\n')
+        ply_file.write('property float z\n')
 
-def generate_point_cloud(mesh, cameras):
-    # Initialize GLUT
-    glutInit()
+        if colors is not None:
+            ply_file.write('property uchar red\n')
+            ply_file.write('property uchar green\n')
+            ply_file.write('property uchar blue\n')
 
-    # Create a window for off-screen rendering
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
-    glutInitWindowSize(1, 1)
-    glutCreateWindow("Off-screen")
+        ply_file.write('end_header\n')
 
-    # Set up OpenGL context
-    glEnable(GL_DEPTH_TEST)
-    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE)
+        if colors is not None:
+            for point, color in zip(points, colors):
+                ply_file.write('%f %f %f %d %d %d\n' % (point[0], point[1], point[2], color[0], color[1], color[2]))
+        else:
+            for point in points:
+                ply_file.write('%f %f %f\n' % (point[0], point[1], point[2]))
 
-    # Create an empty list to store the points from each camera
-    point_clouds = []
+def filter_points_inside_mesh(mesh, point_cloud):
+    # Calculate the signed distance for each point in the point_cloud
+    signed_distances = trimesh.proximity.signed_distance(mesh, point_cloud)
 
-    for camera in cameras:
-        # Set up the projection matrix
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        gluPerspective(camera["fov"], camera["aspect_ratio"], camera["near_clip"], camera["far_clip"])
+    # Filter out the points with negative signed distances (inside the mesh)
+    filtered_points = point_cloud[signed_distances >= 0]
 
-        # Set up the modelview matrix
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-        gluLookAt(camera["position"][0], camera["position"][1], camera["position"][2],
-          camera["target"][0], camera["target"][1], camera["target"][2],
-          camera["up"][0], camera["up"][1], camera["up"][2])
-
-        # Render the mesh
-        glBegin(GL_POINTS)
-        for vertex in mesh.vertices:
-            glVertex3f(vertex[0], vertex[1], vertex[2])
-        glEnd()
-
-        # Read the depth buffer
-        depth_buffer = glReadPixels(0, 0, camera["width"], camera["height"], GL_DEPTH_COMPONENT, GL_FLOAT)
-
-        # Unpack the depth values
-        depths = np.frombuffer(depth_buffer, dtype=np.float32)
-        depths = depths.reshape((camera["height"], camera["width"]))
-
-        # Compute the points for this camera and add them to the list
-        points = camera_to_points(camera, depths)
-        point_clouds.append(points)
-
-    # Combine the point clouds from all cameras
-    point_cloud = np.vstack(point_clouds)
-
-    return point_cloud
-
-def camera_to_points(camera, depths):
-    # Compute the camera intrinsics matrix (K)
-    f = (camera["width"] / 2) / np.tan(np.radians(camera["fov"] / 2))
-    K = np.array([
-        [f, 0, camera["width"] / 2],
-        [0, f / camera["aspect_ratio"], camera["height"] / 2],
-        [0, 0, 1]
-    ])
-
-    # Compute the camera extrinsics matrix (Rt)
-    R, t = look_at(camera["position"], camera["target"], camera["up"])
-    Rt = np.vstack((np.column_stack((R, t)), np.array([0,0,0,1.0])))
-
-    # Initialize an empty list for the 3D points
-    points = []
-
-    # Iterate over the depth values
-    for y in range(depths.shape[0]):
-        for x in range(depths.shape[1]):
-            # Convert depth value to linear depth
-            linear_depth = camera["near_clip"] * camera["far_clip"] / (camera["far_clip"] - depths[y, x] * (camera["far_clip"] - camera["near_clip"]))
-
-            # Convert the pixel coordinates (x, y) to normalized device coordinates (ndc_x, ndc_y)
-            ndc_x = (x - camera["width"] / 2) / (camera["width"] / 2)
-            ndc_y = -(y - camera["height"] / 2) / (camera["height"] / 2)
-
-            # Compute the 3D point in the camera coordinate system
-            point_cam = np.dot(np.linalg.inv(K), np.array([ndc_x * linear_depth, ndc_y * linear_depth, linear_depth]))
-
-            # Compute the 3D point in the world coordinate system
-            point_world = np.dot(np.linalg.inv(Rt), np.append(point_cam, 1))
-
-            # Append the point to the list
-            points.append(point_world[:3])
-
-    return np.array(points)
-
-def look_at(position, target, up):
-    z_axis = np.array(position, dtype=float) - np.array(target, dtype=float)
-    z_axis /= np.linalg.norm(z_axis)
-    x_axis = np.cross(np.array(up, dtype=float), z_axis)
-    x_axis /= np.linalg.norm(x_axis)
-    y_axis = np.cross(z_axis, x_axis)
-
-    R = np.array([x_axis, y_axis, z_axis]).T
-    t = np.dot(-R , np.array(position, dtype=float))
-
-    return R, t
+    return filtered_points
 
 def create_axis_arrow(axis, shaft_radius=0.05, shaft_length=1.0, head_radius=0.1, head_length=0.2, color=None):
     # Create the shaft (cylinder) and head (cone) of the arrow

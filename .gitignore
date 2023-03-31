@@ -1,3 +1,2 @@
 CMakelists.txt
-data_generation/trajectory_data
 *.pyc
