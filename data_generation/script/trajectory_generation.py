@@ -259,7 +259,7 @@ class TrajectoryGenerator:
 
 def main():
     ###################
-    scene_count = 1
+    scene_count = 5
     trajectory_count_per_scene = 10
     rospy.init_node('data_trajectory_generation')
 
@@ -275,14 +275,17 @@ def main():
 
     os.mkdir(fileDir)
 
-    for env_num in range(scene_count):
+    scene_count += 1
+
+    for env_num in range(1, scene_count):
+        print "process ", env_num, " / ", (scene_count - 1)
         os.mkdir(fileDir + "env_%06d/" % env_num)
 
         # use the env_num as the seed
         obstacle_meshes = trajectory_generator.generate_random_mesh(env_num)
         pointcloud = trajectory_generator.setObstaclesInScene(obstacle_meshes)
 
-        write_ply(fileDir + "env_%06d/pointcloud.ply" % env_num, pointcloud)
+        write_ply(fileDir + "env_%06d/map_" % env_num + "%d.ply" % env_num, pointcloud)
 
         i = 0
         while i < trajectory_count_per_scene:
