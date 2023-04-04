@@ -128,7 +128,8 @@ RUN python2 -m ipykernel install
 EXPOSE 8888
 
 # Install necessary for building
-RUN apt-get install -y ros-melodic-costmap-2d ros-melodic-rail-manipulation-msgs
+RUN apt-get update -q && \
+    apt-get install -y ros-melodic-costmap-2d ros-melodic-rail-manipulation-msgs ros-melodic-joint-trajectory-controller
 
 # Install fcl library
 RUN git clone https://github.com/flexible-collision-library/fcl.git && cd fcl && mkdir build && cd build && cmake .. && make && make install
