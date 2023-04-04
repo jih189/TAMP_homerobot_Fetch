@@ -259,8 +259,8 @@ class TrajectoryGenerator:
 
 def main():
     ###################
-    scene_count = 5
-    trajectory_count_per_scene = 10
+    scene_count = 500
+    trajectory_count_per_scene = 1
     rospy.init_node('data_trajectory_generation')
 
     # Initialize MoveIt
@@ -277,7 +277,7 @@ def main():
 
     scene_count += 1
 
-    for env_num in range(1, scene_count):
+    for env_num in range(2000, 2000 + scene_count):
         print "process ", env_num, " / ", (scene_count - 1)
         os.mkdir(fileDir + "env_%06d/" % env_num)
 
