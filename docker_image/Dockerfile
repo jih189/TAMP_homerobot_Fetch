@@ -138,6 +138,11 @@ RUN git clone https://github.com/flexible-collision-library/fcl.git && cd fcl &&
 RUN pip2 install trimesh
 RUN apt-get install -y python-scipy python-rtree
 
+# install python3 package required for ROS
+RUN apt-get install -y python3-pip python3-yaml python3-netifaces && pip3 install rospkg catkin_pkg
+
+# RUN apt install -y ros-melodic-desktop-full --fix-missing
+
 RUN mkdir -p $HOME/catkin_ws/src/jiaming_manipulation
 
 WORKDIR /root
