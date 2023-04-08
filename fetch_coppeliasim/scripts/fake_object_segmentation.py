@@ -9,6 +9,8 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
 
+from rail_manipulation_msgs.msg import SegmentedObjectList, SegmentedObject
+
 try:
     import sim
 except:
@@ -29,10 +31,21 @@ class ObjectSegmentation:
         self.image_sub = rospy.Subscriber(self.image_topic, Image, self.image_callback)
         self.seg_topic = "/head_camera/seg/image_rect_color"
         self.image_pub = rospy.Publisher(self.seg_topic, Image, queue_size=10)
+        self.segmented_object_info_topic = "/segmented_object_list"
+        self.segmented_object_info_pub = rospy.Publisher(self.segmented_object_info_topic, SegmentedObjectList, queue_size=1)
 
-    def setObjectHandleIds(self, handles):
+    def setObjectHandleIds(self, handles, object_names):
         self.object_handles = handles
         self.object_colors = [np.random.choice(range(256), size=3) for _ in range(len(handles))]
+        self.object_names = object_names
+
+        # prepare the segmented object list.
+        self.segmented_object_list = SegmentedObjectList()
+        for color, name in zip(self.object_colors, self.object_names):
+            segmented_object = SegmentedObject()
+            segmented_object.rgb = color[::-1] # the color need to be changed to bgr.
+            segmented_object.name = name
+            self.segmented_object_list.objects.append(segmented_object)
 
     def image_callback(self, msg):
         try:
@@ -49,13 +62,11 @@ class ObjectSegmentation:
             output_image.header = msg.header
             self.image_pub.publish(output_image)
 
+            # need to publish the segmented object list as well
+            self.segmented_object_info_pub.publish(self.segmented_object_list)
+
         except CvBridgeError, e:
             print(e)
-
-object_names = ['hammer_visual', 'can_visual', 'bottle_visual', 'book_visual', 'pan_visual', 'cereal_visual', 'remote_visual', 'dispenser_visual', 'teapot_visual', 'wrench_visual', \
-                'stable_visual', 'lego_visual', 'tissue_visual', 'candy_visual', 'clock_visual', 'laptop_visual', 'light_visual', 'hairdryer_visual', 'mic_visual', 'earphone_visual', \
-                'oil_visual', 'holetool_visual', 'measuretool_visual', 'weight_visual', 'pen_visual', 'bar_visual', 'axe_visual', 'drill_visual', \
-                'Cuboid']
 
 
 if __name__ == '__main__':
@@ -64,20 +75,20 @@ if __name__ == '__main__':
     sim.simxFinish(-1) # just in case, close all opened connections
     clientID=sim.simxStart('127.0.0.1',19999,True,True,5000,5) # Connect to CoppeliaSim
     if clientID!=-1:
-        print ('Connected to remote API server')
-        handleIds = []
-        detectedObjectNames = []
-        for object_name in object_names:
-            res, handleId = sim.simxGetObjectHandle(clientID, object_name, sim.simx_opmode_blocking)
-            if res == sim.simx_return_ok:
-                handleIds.append(handleId)
-                detectedObjectNames.append(object_name)
         
-        print("detected object list:")
-        print(detectedObjectNames)
+
+        print ('Connected to remote API server')
+
+        # get all visible desired objects
+        res, allObjectIds, intData, floatData, stringData = sim.simxGetObjectGroupData(clientID, sim.sim_object_shape_type, 0, sim.simx_opmode_blocking)
+        desired_object_indices, desired_object_names = zip(*[(i, s[7: -7]) for i, s in enumerate(stringData) if s.startswith('object_') and s.endswith('_visual')])
+        desired_object_indices = list(desired_object_indices)
+        desired_object_names = list(desired_object_names)
+        
+        handleIds = [allObjectIds[index] for index in desired_object_indices]
 
         object_segementation = ObjectSegmentation()
-        object_segementation.setObjectHandleIds(handleIds)
+        object_segementation.setObjectHandleIds(handleIds, desired_object_names)
 
         rospy.spin()
 

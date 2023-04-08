@@ -1,0 +1,62 @@
+function sysCall_init()
+    corout=coroutine.create(coroutineMain)
+end
+
+function getTransformStamped(objHandle,name,relTo,relToName)
+    -- This function retrieves the stamped transform for a specific object
+    t=sim.getSimulationTime()
+    p=sim.getObjectPosition(objHandle,relTo)
+    o=sim.getObjectQuaternion(objHandle,relTo)
+    return {
+        header={
+            stamp=t,
+            frame_id=relToName
+        },
+        child_frame_id=name,
+        transform={
+            translation={x=p[1],y=p[2],z=p[3]},
+            rotation={x=o[1],y=o[2],z=o[3],w=o[4]}
+        }
+    }
+end
+
+function sysCall_actuation()
+    if coroutine.status(corout)~='dead' then
+        local ok,errorMsg=coroutine.resume(corout)
+        if errorMsg then
+            error(debug.traceback(corout,errorMsg),2)
+        end
+    end
+end
+
+function sysCall_cleanup()
+    -- do some clean-up here
+end
+
+function coroutineMain()
+    -- Put some initialization code here
+
+    -- the script of current handle having the actual object pose defined by the user
+    objectPoseHandle=sim.getObject(".")
+    -- the parent of current handle should be the actual object mesh in the sim
+    objectHandle=sim.getObject("..")
+    fullObjectName=sim.getObjectAlias(objectHandle, -1)
+    
+    -- need to check whether the object's name format is proper.
+    if string.sub(fullObjectName, 1, 7)~="object_" or string.sub(fullObjectName, -12)~="_respondable" then
+        error("The object's name is not correct. Its format should be like 'object_<name>_respondable'", 2)
+    end
+    
+    -- we get the object's name by cropping "object_" and "_respondable"
+    objectName=string.sub(string.sub(fullObjectName, 8), 1, -13)
+    print(objectName)
+
+    -- Put your main loop here, e.g.:
+    
+    while true do
+        simROS.sendTransform(getTransformStamped(objectPoseHandle,objectName,-1,'world'))
+        sim.switchThread() -- resume in next simulation step
+    end
+end
+
+-- See the user manual or the available code snippets for additional callback functions and details
