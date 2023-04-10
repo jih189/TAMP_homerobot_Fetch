@@ -76,15 +76,15 @@ cd [directory where you have the jiaming_manipulation]/jiaming_manipulation/dock
 ```
 For runing this command properly, you can have only one container.
 
-### Usage
+## Usage
 
-#### __*Use Jupyter notebook*__
+### __*Use Jupyter notebook*__
 Your are allowed to use jupyter notebook with the following command
 ```
 jupyter notebook --allow-root
 ```
 
-#### __*Preparing the trajectory dataset*__
+### __*Preparing the trajectory dataset*__
 In this project, we will use deep learning based method to generate the trajectory for planning, so we need to generate a collision-free trajectory database for Fetch. In this case, we do not need to have real robot or simulated robot to launch Moveit, and we can use a fake robot to launch Moveit instead.
 
 ```
@@ -99,7 +99,7 @@ In this project, when you want to use some object in the simulation, you need to
 
 ![](images/object_structure.png)
 
-In this project, we have a fake object segmentation in simulation. The segmented result image will be published in topic **"/head_camera/seg/image_rect_color"**, while the object's segmentation color is in the topic **"/segmented_object_list/objects"**.
+In this project, we have a fake object segmentation in simulation. The segmentation result will be published in topic **"/head_camera/seg/image_rect_color"**, while the list of pair (segmentation color and name) is in the topic **"/segmented_object_list/objects"**.
 
 Moreover, to get the color of each object quickly, you can run in terminal with the following command
 ```
@@ -107,7 +107,7 @@ rostopic echo -n 1 /segmented_object_list/objects | grep -E 'name|rgb' | awk 'NR
 ```
 
 ### Sim manipulation helper
-Sim manipulation helper is a python3 pacakge for manipulating models in the simulation. For example, "resetScene" can be used to reset the robot state. For more detail, you can check the "sim_manipulation_helper.py" for more function. To use this package, you need to include the following code in the top of file
+Sim manipulation helper is a python3 pacakge for manipulating models in the simulation. For example, "resetScene" can be used to reset the robot state. For more detail, you can check the [sim_manipulation_helper.py](fetch_coppeliasim/scripts/sim_manipulation_helper.py) for more function. To use this package, you need to include the following code in the top of file
 ```
 import rospy
 import rospkg
