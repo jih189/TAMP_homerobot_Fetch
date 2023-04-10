@@ -42,7 +42,7 @@ Given the robot state trajectory, the robot controller will directly execute the
 - Docker
 
 ### Installing
-Because we will use CoppeliaSim as our simulation for this project, we need to download the zip file for the [CoppeliaSim package](https://drive.google.com/drive/folders/1QUWJlT4B2yIQaNmF-G1xE8XvtskaKTv8?usp=sharing). Then, directly copy both CoppeliaSim_Edu_V4_4_0_rev0_Ubuntu18_04.tar.xz and castxml.tar.xz and place them in (__do not unzip them__)
+Because we will use CoppeliaSim as our simulation and some other third app for this project, we need to download the zip file from [here](https://drive.google.com/drive/folders/1QUWJlT4B2yIQaNmF-G1xE8XvtskaKTv8?usp=sharing). Then, place them in (__do not unzip them__)
 ```
 [directory where you have the jiaming_manipulation]/jiaming_manipulation/download
 ```
@@ -72,7 +72,7 @@ cp /root/catkin_ws/devel/lib/libsimExtRosServices.so $COPPELIASIM_ROOT_DIR
 
 If you want to run multiple terminals in the container, you can run in a new terminal(__not in the container__)
 ```
-cd [directory where you have the jiaming_manipulation]/jiaming_manipulation/docker_iamge && sh enter_lastest_container.sh
+cd [directory where you have the jiaming_manipulation]/jiaming_manipulation/docker_image && sh enter_lastest_container.sh
 ```
 For runing this command properly, you can have only one container.
 

@@ -141,7 +141,28 @@ RUN apt-get install -y python-scipy python-rtree
 # install python3 package required for ROS
 RUN apt-get install -y python3-pip python3-yaml python3-netifaces && pip3 install rospkg catkin_pkg
 
-# RUN apt install -y ros-melodic-desktop-full --fix-missing
+# install blender
+# RUN apt-get update && apt-get install -y libc6 libc6-dev
+
+# COPY ./download/blender-3.4.0-linux-x64.tar.xz /root/
+
+# RUN tar -xf /root/blender-3.4.0-linux-x64.tar.xz -C /root && \
+#     rm /root/blender-3.4.0-linux-x64.tar.xz && cd /root && mv blender-3.4.0-linux-x64 Blender
+
+# install conda
+
+# Install miniconda
+ENV CONDA_DIR /opt/conda
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
+     /bin/bash ~/miniconda.sh -b -p /opt/conda
+
+# Put conda in path so we can use conda activate
+ENV PATH=$CONDA_DIR/bin:$PATH
+
+# Create a conda env for contact graspnet
+COPY ./download/contact_graspnet_env.tar.xz /root/
+RUN tar -xf /root/contact_graspnet_env.tar.xz -C /root && rm /root/contact_graspnet_env.tar.xz
+RUN conda env create -f contact_graspnet_env.yml
 
 RUN mkdir -p $HOME/catkin_ws/src/jiaming_manipulation
 
