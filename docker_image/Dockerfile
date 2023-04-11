@@ -175,9 +175,6 @@ RUN git clone https://github.com/flexible-collision-library/fcl.git && cd fcl &&
 RUN pip2 install trimesh
 RUN apt-get install -y python-scipy python-rtree
 
-# install python3 package required for ROS
-RUN apt-get install -y python3-pip python3-yaml python3-netifaces && pip3 install rospkg catkin_pkg
-
 # install blender
 # RUN apt-get update && apt-get install -y libc6 libc6-dev
 
@@ -204,12 +201,26 @@ RUN conda env create -f contact_graspnet_env.yml
 RUN echo 'source $CONDA_DIR/etc/profile.d/conda.sh' >> $HOME/.bashrc
 
 # install python package for tensorflow
-RUN apt-get install -y ros-melodic-ros-numpy
+RUN apt-get install -y ros-melodic-ros-numpy 
+
+# install python3 package required for ROS
+RUN apt-get install -y python3-pip python3-yaml python3-netifaces && pip3 install rospkg catkin_pkg
+
+# # recompile tf2_ros for python3
+RUN apt-get install -y python3-catkin-pkg-modules python3-rospkg-modules python3-empy
+
+RUN /bin/bash -c 'source /opt/ros/melodic/setup.bash && mkdir -p $HOME/ros_ws/src && cd $HOME/ros_ws && wstool init && wstool set -y src/geometry2 --git https://github.com/ros/geometry2 -v melodic-devel && wstool up && rosdep install --from-paths src --ignore-src -y -r && \
+    catkin_make --cmake-args \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPYTHON_EXECUTABLE=/usr/bin/python3 \
+            -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m \
+            -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so'
 
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME
 
 RUN echo 'source $HOME/catkin_ws/devel/setup.bash' >> $HOME/.bashrc
+RUN echo 'source $HOME/ros_ws/devel/setup.bash' >> $HOME/.bashrc
 
 RUN mkdir -p $HOME/catkin_ws/src/jiaming_manipulation
 
