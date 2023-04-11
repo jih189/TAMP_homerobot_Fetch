@@ -58,23 +58,21 @@ xhost +
 sh run.sh
 ```
 
-At this point, you will enter the container, but the workspace is not compiled yet. In the docker container, you need to compile and source it by 
+At this point, you will enter the container, but the workspace is not compiled yet. In the docker container, you need to run following code for preparing the workspace.
+
+<a id="workspace_prepare"></a>
 ```
-cd ~/catkin_ws $$ catkin_make && source devel/setup.bash
+cd $HOME
+./prepare_workspace.sh
+cd catkin_ws
+source devel/setup.bash
 ```
 
-Then you need to provide the controller and server plugin for CoppeliaSim with ROS, so you need to cp them and place in the CoppeliaSim
-
-```
-cp /root/catkin_ws/devel/lib/libsimExtRosControl.so $COPPELIASIM_ROOT_DIR
-cp /root/catkin_ws/devel/lib/libsimExtRosServices.so $COPPELIASIM_ROOT_DIR
-```
-
-If you want to run multiple terminals in the container, you can run in a new terminal(__not in the container__)
+If you want to run multiple terminals in the container after running above commands, you can run the following commands in a new terminal(__not in the container__)
 ```
 cd [directory where you have the jiaming_manipulation]/jiaming_manipulation/docker_image && sh enter_lastest_container.sh
 ```
-For runing this command properly, you can have only one container.
+For runing this command properly, you can have only one active container.
 
 ## Usage
 
@@ -122,6 +120,21 @@ In this package, it will send the action command to ros controller for seting ro
 rospy.init_node('Sim_manipulation_helper_example')
 s_m_helper = SimManipulationHelper()
 s_m_helper.resetScene()
+```
+
+### Launch the simulation and ROS controller
+Before to launch the simulation and the ROS controller of the robot in simulation, you need to ensure that you have [parpared the workspace](#workspace_prepare). Then, you can run following command in two different terminals in order
+```
+roslaunch fetch_coppeliasim simulation.launch
+roslaunch fetch_coppeliasim fetch_control.launch
+```
+
+<span style="color: red">Warning: sometimes Coppeliasim will ask you to update the coppeliasim, please close it quick, or it will cause some error in fetch_control.launch.</span>
+
+### Run ros node in conda
+In this project, we have ros server to use contact grasp net for grasp prediction which is running in a specific conda env. You can run it with the following command.
+```
+conda run -n contact_graspnet_env --no-capture-output rosrun ros_tensorflow grasp_prediction_server.py
 ```
 
 ### Testing

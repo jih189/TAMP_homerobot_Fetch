@@ -11,4 +11,4 @@ docker run -v $PWD/../:/root/catkin_ws/src/jiaming_manipulation \
 	-p 8888:8888 \
 	--privileged=true \
 	-v /etc/localtime:/etc/localtime:ro \
-	-v "/tmp/.X11-unix:/tmp/.X11-unix:rw" -p 19997:19997 -it coppeliasim-ubuntu18 bash
+	-v "/tmp/.X11-unix:/tmp/.X11-unix:rw" -p 19997:19997 -it jiaming-ubuntu18 bash

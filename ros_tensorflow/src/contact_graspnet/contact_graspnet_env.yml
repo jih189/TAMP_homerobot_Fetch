@@ -149,3 +149,5 @@ dependencies:
     - wrapt==1.12.1
     - zipp==3.4.0
     - python-fcl==0.0.12
+    - rospkg
+    - netifaces

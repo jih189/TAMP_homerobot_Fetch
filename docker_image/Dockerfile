@@ -1,6 +1,43 @@
 FROM ubuntu:18.04
 
-WORKDIR /root
+WORKDIR /root/
+
+# Add libcuda dummy dependency
+ADD control .
+RUN apt-get update && \
+	apt-get install --yes equivs && \
+	equivs-build control && \
+	dpkg -i libcuda1-dummy_11.8_all.deb && \
+	rm control libcuda1-dummy_11.8* && \
+	apt-get remove --yes --purge --autoremove equivs && \
+	rm -rf /var/lib/apt/lists/*
+
+# Setup Lambda repository
+ADD lambda.gpg .
+RUN apt-get update && \
+	apt-get install --yes gnupg && \
+	apt-key add lambda.gpg && \
+	rm lambda.gpg && \
+	echo "deb http://archive.lambdalabs.com/ubuntu bionic main" > /etc/apt/sources.list.d/lambda.list && \
+	echo "Package: *" > /etc/apt/preferences.d/lambda && \
+	echo "Pin: origin archive.lambdalabs.com" >> /etc/apt/preferences.d/lambda && \
+	echo "Pin-Priority: 1001" >> /etc/apt/preferences.d/lambda && \
+	echo "cudnn cudnn/license_preseed select ACCEPT" | debconf-set-selections && \
+	apt-get update && \
+	DEBIAN_FRONTEND=noninteractive \
+		apt-get install \
+		--yes \
+		--no-install-recommends \
+		--option "Acquire::http::No-Cache=true" \
+		--option "Acquire::http::Pipeline-Depth=0" \
+		lambda-stack-cuda \
+		lambda-server && \
+	rm -rf /var/lib/apt/lists/*
+
+# Setup for nvidia-docker
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+ENV NVIDIA_REQUIRE_CUDA "cuda>=10.0"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -115,9 +152,9 @@ RUN cd ompl/build/Release && make install
 # compile moveit
 RUN cd ws_moveit && catkin config --extend /opt/ros/melodic --install --install-space /opt/ros/melodic --cmake-args -DCMAKE_BUILD_TYPE=Release && catkin build
 
-# install jupyter
+# # install jupyter
 RUN python3 -m pip install --upgrade pip
-RUN pip3 install jupyter
+RUN pip3 install --ignore-installed pyzmq && pip3 install jupyter
 
 # install python2 kernel into jupyter notebook
 RUN apt install python-pip -y
@@ -163,6 +200,16 @@ ENV PATH=$PATH:$CONDA_DIR/bin
 COPY ./download/contact_graspnet_env.tar.xz /root/
 RUN tar -xf /root/contact_graspnet_env.tar.xz -C /root && rm /root/contact_graspnet_env.tar.xz
 RUN conda env create -f contact_graspnet_env.yml
+
+RUN echo 'source $CONDA_DIR/etc/profile.d/conda.sh' >> $HOME/.bashrc
+
+# install python package for tensorflow
+RUN apt-get install -y ros-melodic-ros-numpy
+
+# put the script to prepare the workspace
+COPY prepare_workspace.sh $HOME
+
+RUN echo 'source $HOME/catkin_ws/devel/setup.bash' >> $HOME/.bashrc
 
 RUN mkdir -p $HOME/catkin_ws/src/jiaming_manipulation
 
