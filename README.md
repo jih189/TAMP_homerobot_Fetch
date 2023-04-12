@@ -44,7 +44,7 @@ Given the robot state trajectory, the robot controller will directly execute the
 ### Installing
 Because we will use CoppeliaSim as our simulation and some other third app for this project, we need to download the zip file from [here](https://drive.google.com/drive/folders/1QUWJlT4B2yIQaNmF-G1xE8XvtskaKTv8?usp=sharing). Then, place them in (__do not unzip them__)
 ```
-[directory where you have the jiaming_manipulation]/jiaming_manipulation/download
+[directory where you have the jiaming_manipulation]/jiaming_manipulation/docker_image/download
 ```
 Build the docker image, and this step will take a long time.
 ```
