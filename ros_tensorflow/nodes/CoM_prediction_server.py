@@ -69,7 +69,9 @@ class RosInterface():
             np.random.shuffle(point_cloud_labels)
         # reshape the point cloud and label array to (BATCH_SIZE, NUM_POINT, 4)
         point_cloud_labels = point_cloud_labels.reshape((BATCH_SIZE, NUM_POINT, 4))
+        print("Passing pointcloud to the model")
         CoM = self.wrapped_model.predict(point_cloud_labels)
+        print("Model prediction: ", CoM)
         CoM = np.dot(camera_pose_mat, np.append(CoM, 1))[:3]
         # convert the CoM to a Point message
         CoM_msg = Point()

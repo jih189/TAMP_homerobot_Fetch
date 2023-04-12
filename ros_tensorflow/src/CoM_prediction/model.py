@@ -41,7 +41,9 @@ class ModelWrapper():
     def predict(self, x):
         # get the prediction
         feed_dict = {self.pointclouds_pl: x, self.is_training_pl: True}
+        print("running the prediction")
         pred_vals = self.sess.run([self.pred], feed_dict=feed_dict)[0]
+        print("prediction done")
         pred_val = pred_vals[0]
         # CoM translation
         pred_CoMs = (x[0,:,:3]- pred_val[:,:3]) * (1 - x[0,:,3:4])
