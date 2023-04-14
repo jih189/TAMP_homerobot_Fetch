@@ -74,9 +74,6 @@ cd [directory where you have the jiaming_manipulation]/jiaming_manipulation/dock
 ```
 For runing this command properly, you can have only one active container.
 
-### Python and ROS
-Because python2 and 3 use different tf2, you may need to select the proper one based on your need. If you want to use python3, you will need to run "source ~/ros_ws/devel/setup.bash" to overwrite. Otherwise, you will need to run "source ~/catkin_ws/devel/setup.bash" to set it back for Python2.
-
 ## Usage
 
 ### __*Use Jupyter notebook*__

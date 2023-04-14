@@ -176,15 +176,14 @@ RUN pip2 install trimesh
 RUN apt-get install -y python-scipy python-rtree
 
 # install blender
-# RUN apt-get update && apt-get install -y libc6 libc6-dev
+RUN apt-get update && apt-get install -y libc6 libc6-dev
 
-# COPY ./download/blender-3.4.0-linux-x64.tar.xz /root/
+COPY ./download/blender-3.4.0-linux-x64.tar.xz /root/
 
-# RUN tar -xf /root/blender-3.4.0-linux-x64.tar.xz -C /root && \
-#     rm /root/blender-3.4.0-linux-x64.tar.xz && cd /root && mv blender-3.4.0-linux-x64 Blender
+RUN tar -xf /root/blender-3.4.0-linux-x64.tar.xz -C /root && \
+    rm /root/blender-3.4.0-linux-x64.tar.xz && cd /root && mv blender-3.4.0-linux-x64 Blender
 
 # install conda
-
 # Install miniconda
 ENV CONDA_DIR /opt/conda
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
@@ -209,8 +208,10 @@ RUN apt-get install -y python3-pip python3-yaml python3-netifaces && pip3 instal
 # # recompile tf2_ros for python3
 RUN apt-get install -y python3-catkin-pkg-modules python3-rospkg-modules python3-empy
 
-RUN /bin/bash -c 'source /opt/ros/melodic/setup.bash && mkdir -p $HOME/ros_ws/src && cd $HOME/ros_ws && wstool init && wstool set -y src/geometry2 --git https://github.com/ros/geometry2 -v melodic-devel && wstool up && rosdep install --from-paths src --ignore-src -y -r && \
-    catkin_make --cmake-args \
+RUN /bin/bash -c 'source /opt/ros/melodic/setup.bash && mkdir -p $HOME/ros_python3_ws/src && cd $HOME/ros_python3_ws && wstool init && wstool set -y src/geometry2 --git https://github.com/ros/geometry2 -v melodic-devel && wstool up && rosdep install --from-paths src --ignore-src -y -r'
+RUN sed -i '/from __future__ import absolute_import/aimport sys\nsys.path[:] = [x for x in sys.path if "python3" not in x] if sys.version_info[0] < 3 else sys.path' /root/ros_python3_ws/src/geometry2/tf2_ros/src/tf2_ros/__init__.py
+RUN /bin/bash -c 'source /opt/ros/melodic/setup.bash && cd $HOME/ros_python3_ws && \
+	catkin_make --cmake-args \
             -DCMAKE_BUILD_TYPE=Release \
             -DPYTHON_EXECUTABLE=/usr/bin/python3 \
             -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m \
@@ -220,7 +221,7 @@ RUN /bin/bash -c 'source /opt/ros/melodic/setup.bash && mkdir -p $HOME/ros_ws/sr
 COPY prepare_workspace.sh $HOME
 
 RUN echo 'source $HOME/catkin_ws/devel/setup.bash' >> $HOME/.bashrc
-RUN echo 'source $HOME/ros_ws/devel/setup.bash' >> $HOME/.bashrc
+RUN echo 'source $HOME/ros_python3_ws/devel/setup.bash' >> $HOME/.bashrc
 
 RUN mkdir -p $HOME/catkin_ws/src/jiaming_manipulation
 
