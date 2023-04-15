@@ -183,6 +183,9 @@ COPY ./download/blender-3.4.0-linux-x64.tar.xz /root/
 RUN tar -xf /root/blender-3.4.0-linux-x64.tar.xz -C /root && \
     rm /root/blender-3.4.0-linux-x64.tar.xz && cd /root && mv blender-3.4.0-linux-x64 Blender
 
+# install ros related packages in blender
+RUN /root/Blender/3.4/python/bin/python3.10 -m ensurepip && /root/Blender/3.4/python/bin/python3.10 -m pip install install pyyaml rospkg opencv-python
+
 # install conda
 # Install miniconda
 ENV CONDA_DIR /opt/conda
