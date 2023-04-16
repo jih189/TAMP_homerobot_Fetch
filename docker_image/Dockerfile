@@ -183,8 +183,15 @@ COPY ./download/blender-3.4.0-linux-x64.tar.xz /root/
 RUN tar -xf /root/blender-3.4.0-linux-x64.tar.xz -C /root && \
     rm /root/blender-3.4.0-linux-x64.tar.xz && cd /root && mv blender-3.4.0-linux-x64 Blender
 
+# Download the Python Source since it is not bundled with Blender
+RUN wget https://www.python.org/ftp/python/3.10.8/Python-3.10.8.tgz \
+	&& tar -xzf Python-3.10.8.tgz \
+	&& cp -r Python-3.10.8/Include/* /root/Blender/3.4/python/include/python3.10/ \
+	&& rm -rf Python-3.10.8.tgz \
+	&& rm -rf Python-3.10.8
+	
 # install ros related packages in blender
-RUN /root/Blender/3.4/python/bin/python3.10 -m ensurepip && /root/Blender/3.4/python/bin/python3.10 -m pip install pyyaml rospkg opencv-python
+RUN /root/Blender/3.4/python/bin/python3.10 -m ensurepip && /root/Blender/3.4/python/bin/python3.10 -m pip install pyyaml rospkg opencv-python netifaces
 
 # set alias for blender
 RUN echo "alias blender='$HOME/Blender/blender'" >> $HOME/.bashrc
