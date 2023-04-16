@@ -184,7 +184,10 @@ RUN tar -xf /root/blender-3.4.0-linux-x64.tar.xz -C /root && \
     rm /root/blender-3.4.0-linux-x64.tar.xz && cd /root && mv blender-3.4.0-linux-x64 Blender
 
 # install ros related packages in blender
-RUN /root/Blender/3.4/python/bin/python3.10 -m ensurepip && /root/Blender/3.4/python/bin/python3.10 -m pip install install pyyaml rospkg opencv-python
+RUN /root/Blender/3.4/python/bin/python3.10 -m ensurepip && /root/Blender/3.4/python/bin/python3.10 -m pip install pyyaml rospkg opencv-python
+
+# set alias for blender
+RUN echo "alias blender='$HOME/Blender/blender'" >> $HOME/.bashrc
 
 # install conda
 # Install miniconda

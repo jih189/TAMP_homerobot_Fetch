@@ -81,11 +81,16 @@ if __name__ == '__main__':
 
         # get all visible desired objects
         res, allObjectIds, intData, floatData, stringData = sim.simxGetObjectGroupData(clientID, sim.sim_object_shape_type, 0, sim.simx_opmode_blocking)
-        desired_object_indices, desired_object_names = zip(*[(i, s[7: -7]) for i, s in enumerate(stringData) if s.startswith('object_') and s.endswith('_visual')])
-        desired_object_indices = list(desired_object_indices)
-        desired_object_names = list(desired_object_names)
-        
-        handleIds = [allObjectIds[index] for index in desired_object_indices]
+        packed_res = [(i, s[7: -7]) for i, s in enumerate(stringData) if s.startswith('object_') and s.endswith('_visual')]
+        if len(packed_res) > 0:
+            desired_object_indices, desired_object_names = zip(*packed_res)
+            desired_object_indices = list(desired_object_indices)
+            desired_object_names = list(desired_object_names)
+            
+            handleIds = [allObjectIds[index] for index in desired_object_indices]
+        else:
+            handleIds = []
+            desired_object_names = []
 
         object_segementation = ObjectSegmentation()
         object_segementation.setObjectHandleIds(handleIds, desired_object_names)
