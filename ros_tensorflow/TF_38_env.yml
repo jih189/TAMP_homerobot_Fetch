@@ -1,4 +1,4 @@
-name: CoM_Mass_Prediction_env
+name: Tensorflow_env_PY38
 channels:
   - nvidia/label/cuda-11.3.0
   - conda-forge
