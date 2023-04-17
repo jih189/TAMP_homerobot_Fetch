@@ -10,11 +10,6 @@ import geometry_msgs.msg
 # initialize the node
 rospy.init_node('test_tensorflow_services')
 
-# # wait for the service to be available
-# rospy.wait_for_service('CoMPredict')
-
-# # create a handle to the service
-# predict = rospy.ServiceProxy('CoMPredict', ComPredict)
 
 # generate a dummy point cloud with 100 points as a structured numpy array
 point_cloud = np.zeros((100,), dtype=[('x', np.float32), ('y', np.float32), ('z', np.float32)])
@@ -55,6 +50,12 @@ camera_stamped_transform.transform.rotation.w = 1.0
 # req.table_point_cloud = table_point_cloud_msg
 # req.camera_stamped_transform = camera_stamped_transform
 
+
+# # wait for the service to be available
+# rospy.wait_for_service('CoMPredict')
+
+# # create a handle to the service
+# predict = rospy.ServiceProxy('CoMPredict', ComPredict)
 
 # # call the service
 # res = predict(req)

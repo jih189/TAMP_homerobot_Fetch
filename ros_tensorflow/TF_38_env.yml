@@ -1,4 +1,4 @@
-name: Tensorflow_env_PY38
+name: CoM_Mass_Prediction_env
 channels:
   - nvidia/label/cuda-11.3.0
   - conda-forge
@@ -27,9 +27,9 @@ dependencies:
   - wheel=0.38.4=pyhd8ed1ab_0
   - xz=5.2.6=h166bdaf_0
   - zlib=1.2.13=h166bdaf_4
-  - pip=23.0.1
   - pip:
       - absl-py==1.4.0
+      - apptools==5.2.0
       - asttokens==2.2.1
       - astunparse==1.6.3
       - attrs==22.2.0
@@ -42,16 +42,19 @@ dependencies:
       - chardet==5.1.0
       - charset-normalizer==3.0.1
       - colorlog==6.7.0
+      - configobj==5.0.8
       - contourpy==1.0.7
       - cycler==0.11.0
       - cython==0.29.33
       - decorator==5.1.1
       - distro==1.8.0
       - docutils==0.19
+      - envisage==7.0.3
       - exceptiongroup==1.1.0
       - executing==1.2.0
       - flatbuffers==23.1.21
       - fonttools==4.38.0
+      - freetype-py==2.3.0
       - gast==0.4.0
       - glooey==0.3.6
       - gnupg==2.3.1
@@ -79,6 +82,7 @@ dependencies:
       - markupsafe==2.1.2
       - matplotlib==3.6.3
       - matplotlib-inline==0.1.6
+      - mayavi==4.8.1
       - mdurl==0.1.2
       - meshio==5.3.4
       - more-itertools==9.0.0
@@ -88,6 +92,7 @@ dependencies:
       - networkx==3.0
       - numpy==1.24.2
       - oauthlib==3.2.2
+      - opencv-python==4.7.0.72
       - opt-einsum==3.3.0
       - packaging==23.0
       - pandas==1.5.3
@@ -108,9 +113,12 @@ dependencies:
       - pyasn1-modules==0.2.8
       - pycollada==0.7.2
       - pycryptodomex==3.17
+      - pyface==8.0.0
       - pyglet==1.5.27
       - pygments==2.14.0
+      - pyopengl==3.1.0
       - pyparsing==3.0.9
+      - pyrender==0.1.45
       - pyrsistent==0.19.3
       - pyserial==3.5
       - pytest==7.2.1
@@ -145,15 +153,20 @@ dependencies:
       - termcolor==2.2.0
       - tifffile==2023.2.2
       - tomli==2.0.1
+      - tqdm==4.65.0
       - traitlets==5.9.0
+      - traits==6.4.1
+      - traitsui==7.4.3
       - trimesh==3.18.3
       - typeguard==2.13.3
       - typing-extensions==4.4.0
       - urllib3==1.26.14
       - vecrec==0.3.1
+      - vtk==9.2.6
       - wcwidth==0.2.6
       - werkzeug==2.2.2
       - wrapt==1.14.1
       - xatlas==0.0.7
       - xxhash==3.2.0
       - zipp==3.12.0
+prefix: /opt/conda/envs/CoM_Mass_Prediction_env
