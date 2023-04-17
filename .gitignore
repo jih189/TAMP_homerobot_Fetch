@@ -1,2 +1,4 @@
 CMakelists.txt
 *.pyc
+ros_tensorflow/src/contact_graspnet/pointnet2/tf_ops
+ros_tensorflow/src/CoM_prediction/pointnet2/tf_ops
