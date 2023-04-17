@@ -74,9 +74,6 @@ cd [directory where you have the jiaming_manipulation]/jiaming_manipulation/dock
 ```
 For runing this command properly, you can have only one active container.
 
-### Python and ROS
-Because python2 and 3 use different tf2, you may need to select the proper one based on your need. If you want to use python3, you will need to run "source ~/ros_ws/devel/setup.bash" to overwrite. Otherwise, you will need to run "source ~/catkin_ws/devel/setup.bash" to set it back for Python2.
-
 ## Usage
 
 ### __*Use Jupyter notebook*__
@@ -139,6 +136,15 @@ In this project, we have ros server to use contact grasp net for grasp predictio
 ```
 conda run -n contact_graspnet_env --no-capture-output rosrun ros_tensorflow grasp_prediction_server.py
 ```
+
+### Use the blender to render the scene
+In this project, we provide the solution to use Blender as the rendering engine for better photorealistic rendering. The basic idea here is you need to prepare a blend file which is exactly similar to the scene used in the Coppeliasim, and save it in fetch_coppeliasim/scene. Thus, you can enter the fetch_coppeliasim/scene directory and run the following command after launching simulation and controller.
+
+```
+./launch_blender_cam.sh /path/to/blend.file
+```
+
+In this code, it first updates the camera in blender based on the transform of the camera in tf tree, then render and publish the camera image to the topic __'/blender_camera/image_raw'__. Thus, there will be only scene, so this is most likely used by navigation. In future, you can update the code to include the manipulated object and update their poses based on the tf tree as well.
 
 ### Testing
 <span style="color: red">TODO</span>
