@@ -27,6 +27,7 @@ dependencies:
   - wheel=0.38.4=pyhd8ed1ab_0
   - xz=5.2.6=h166bdaf_0
   - zlib=1.2.13=h166bdaf_4
+  - pip=23.0.1
   - pip:
       - absl-py==1.4.0
       - apptools==5.2.0
@@ -82,7 +83,7 @@ dependencies:
       - markupsafe==2.1.2
       - matplotlib==3.6.3
       - matplotlib-inline==0.1.6
-      - mayavi==4.8.1
+      - mayavi==4.8.0
       - mdurl==0.1.2
       - meshio==5.3.4
       - more-itertools==9.0.0
@@ -162,7 +163,7 @@ dependencies:
       - typing-extensions==4.4.0
       - urllib3==1.26.14
       - vecrec==0.3.1
-      - vtk==9.2.6
+      - vtk==9.2.5
       - wcwidth==0.2.6
       - werkzeug==2.2.2
       - wrapt==1.14.1
