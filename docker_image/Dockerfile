@@ -210,7 +210,13 @@ COPY ./download/contact_graspnet_env.tar.xz /root/
 RUN tar -xf /root/contact_graspnet_env.tar.xz -C /root && rm /root/contact_graspnet_env.tar.xz
 RUN conda env create -f contact_graspnet_env.yml
 
+# for nvidia 30-series
+# COPY ./download/TF_38_env.tar.xz /root/
+# RUN tar -xf /root/TF_38_env.tar.xz -C /root && rm /root/TF_38_env.tar.xz
+# RUN conda env create -f TF_38_env.yml
+
 RUN echo 'source $CONDA_DIR/etc/profile.d/conda.sh' >> $HOME/.bashrc
+
 
 # install python package for tensorflow
 RUN apt-get install -y ros-melodic-ros-numpy 
@@ -232,6 +238,7 @@ RUN /bin/bash -c 'source /opt/ros/melodic/setup.bash && cd $HOME/ros_python3_ws 
 
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME
+COPY prepare_workspace_PY38.sh $HOME
 
 RUN echo 'source $HOME/catkin_ws/devel/setup.bash' >> $HOME/.bashrc
 RUN echo 'source $HOME/ros_python3_ws/devel/setup.bash' >> $HOME/.bashrc
