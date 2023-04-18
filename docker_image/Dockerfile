@@ -211,8 +211,8 @@ RUN tar -xf /root/contact_graspnet_env.tar.xz -C /root && rm /root/contact_grasp
 RUN conda env create -f contact_graspnet_env.yml
 
 # for nvidia 30-series
-# COPY ./download/TF_38_env.tar.xz /root/
-# RUN tar -xf /root/TF_38_env.tar.xz -C /root && rm /root/TF_38_env.tar.xz
+COPY ./download/TF_38_env.tar.xz /root/
+RUN tar -xf /root/TF_38_env.tar.xz -C /root && rm /root/TF_38_env.tar.xz
 # RUN conda env create -f TF_38_env.yml
 
 RUN echo 'source $CONDA_DIR/etc/profile.d/conda.sh' >> $HOME/.bashrc

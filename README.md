@@ -77,12 +77,36 @@ cd [directory where you have the jiaming_manipulation]/jiaming_manipulation/dock
 For runing this command properly, you can have only one active container.
 
 ### Conda environment for Nvidia 30-series machines
+When you enter the container, you can create the conda environment for Python3.8 by running the following commands:
+```
+conda env create -f TF_38_env.yml
+```
+This command is prone to failure due to a bug in mayavi (see this [issue](https://github.com/enthought/mayavi/issues/1209)). If it does fail, try running the following commands instead:
+```
+conda activate contact_graspnet_env
+conda env remove -n Tensorflow_env_PY38
+conda env create -f TF_38_env.yml
+conda deactivate
+```
+This should create the environment and install all the required packages. If you want to save the image at this point, consider committing the container to a new image. To do so, first locate the running container's ID by running `sudo docker container ls`. Then, run the following command:
+```
+sudo docker commit [container ID] [new image name]
+```
+If you want to use the run_PY38.sh script, you need to modify the image name in the script. 
 
+You should now be able to run prepare_workspace_PY38.sh to prepare the workspace. Note that you need to run the following commands in the container:
 <a id="workspace_prepare_PY38"></a>
 ```
 cd $HOME
 ./prepare_workspace_PY38.sh
-cd catkin_ws
+conda activate Tensorflow_env_PY38
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
+cd /root/catkin_ws/src/jiaming_manipulation/ros_tensorflow/src/CoM_prediction
+sh compile_pointnet_tfops_38.sh
+cd /root/catkin_ws/src/jiaming_manipulation/ros_tensorflow/src/contact_graspnet
+sh compile_pointnet_tfops_38.sh
+conda deactivate
+cd /root/catkin_ws
 source devel/setup.bash
 ```
 

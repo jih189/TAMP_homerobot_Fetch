@@ -83,7 +83,7 @@ dependencies:
       - markupsafe==2.1.2
       - matplotlib==3.6.3
       - matplotlib-inline==0.1.6
-      - mayavi==4.8.0
+      - mayavi==4.8.1
       - mdurl==0.1.2
       - meshio==5.3.4
       - more-itertools==9.0.0
@@ -163,7 +163,7 @@ dependencies:
       - typing-extensions==4.4.0
       - urllib3==1.26.14
       - vecrec==0.3.1
-      - vtk==9.2.5
+      - vtk==9.2.6
       - wcwidth==0.2.6
       - werkzeug==2.2.2
       - wrapt==1.14.1
