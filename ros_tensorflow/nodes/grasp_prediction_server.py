@@ -5,7 +5,8 @@ from ros_tensorflow_msgs.srv import Predict, PredictRequest, PredictResponse
 from geometry_msgs.msg import PoseStamped
 
 from contact_graspnet.contact_graspnet.model import ModelWrapper
-import ros_numpy
+# import ros_numpy
+from rosnumpy_Com import pointcloud2_to_xyz_array
 from scipy.spatial.transform import Rotation as R
 
 import numpy as np
@@ -17,10 +18,10 @@ class RosInterface():
 
     def predict_cb(self, req):
         rospy.loginfo("get data with camera pose")
-        full_point_cloud_in_world = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(req.full_point_cloud)
+        full_point_cloud_in_world = pointcloud2_to_xyz_array(req.full_point_cloud)
         # convert it to homogeneous coordinates
         full_point_cloud_in_world = np.insert(full_point_cloud_in_world, full_point_cloud_in_world.shape[1], 1.0, axis=1)
-        segmented_point_cloud_in_world = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(req.segmented_point_cloud)
+        segmented_point_cloud_in_world = pointcloud2_to_xyz_array(req.segmented_point_cloud)
         # convert it to homogeneous coordinates
         segmented_point_cloud_in_world = np.insert(segmented_point_cloud_in_world, segmented_point_cloud_in_world.shape[1], 1.0, axis=1)
         rot_mat = R.from_quat([req.camera_stamped_transform.transform.rotation.x, req.camera_stamped_transform.transform.rotation.y, \

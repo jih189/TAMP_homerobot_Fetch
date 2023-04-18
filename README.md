@@ -40,7 +40,7 @@ Given the robot state trajectory, the robot controller will directly execute the
 - Ubuntu 18.04
 - ROS melodic (Because of Fetch Robot)
 - Docker
-- Nvidia Container toolkit
+- Nvidia Container Toolkit
 
 ### Installing
 Because we will use CoppeliaSim as our simulation and some other third app for this project, we need to download the zip file from [here](https://drive.google.com/drive/folders/1QUWJlT4B2yIQaNmF-G1xE8XvtskaKTv8?usp=sharing). Then, place them in (__do not unzip them__)
@@ -60,12 +60,14 @@ sh run.sh
 ```
 
 At this point, you will enter the container, but the workspace is not compiled yet. In the docker container, you need to run following code for preparing the workspace.
+Note that for Nvidia 30-series machines, the original environment might result in slow model inference. A different conda environment with Python3.8 can be use to speed up the inference. To use this environment, please refer to [this section](#conda-environment-for-nvidia-30-series-machines).
 
 <a id="workspace_prepare"></a>
 ```
 cd $HOME
 ./prepare_workspace.sh
-source .bashrc
+cd catkin_ws
+source devel/setup.bash
 ```
 
 If you want to run multiple terminals in the container after running above commands, you can run the following commands in a new terminal(__not in the container__)
@@ -73,6 +75,48 @@ If you want to run multiple terminals in the container after running above comma
 cd [directory where you have the jiaming_manipulation]/jiaming_manipulation/docker_image && sh enter_lastest_container.sh
 ```
 For runing this command properly, you can have only one active container.
+
+### Conda environment for Nvidia 30-series machines
+When you enter the container, you can create the conda environment for Python3.8 by running the following commands:
+```
+conda env create -f TF_38_env.yml
+```
+This command is prone to failure due to a bug in mayavi (see this [issue](https://github.com/enthought/mayavi/issues/1209)). If it does fail, try running the following commands instead:
+```
+conda activate contact_graspnet_env
+conda env remove -n Tensorflow_env_PY38
+conda env create -f TF_38_env.yml
+conda deactivate
+```
+This should create the environment and install all the required packages. If you want to save the image at this point, consider committing the container to a new image. To do so, first locate the running container's ID by running `sudo docker container ls`. Then, run the following command:
+```
+sudo docker commit [container ID] [new image name]
+```
+If you want to use the run_PY38.sh script, you need to modify the image name in the script. 
+
+You should now be able to run prepare_workspace_PY38.sh to prepare the workspace. Note that you need to run the following commands in the container:
+<a id="workspace_prepare_PY38"></a>
+```
+cd $HOME
+./prepare_workspace_PY38.sh
+conda activate Tensorflow_env_PY38
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
+cd /root/catkin_ws/src/jiaming_manipulation/ros_tensorflow/src/CoM_prediction
+sh compile_pointnet_tfops_38.sh
+cd /root/catkin_ws/src/jiaming_manipulation/ros_tensorflow/src/contact_graspnet
+sh compile_pointnet_tfops_38.sh
+conda deactivate
+cd /root/catkin_ws
+source devel/setup.bash
+```
+
+To enable the environment:
+```
+conda activate Tensorflow_env_PY38
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
+```
+
+You can then run nodes from the ros_tensorflow package in this environment.
 
 ## Usage
 
@@ -136,15 +180,6 @@ In this project, we have ros server to use contact grasp net for grasp predictio
 ```
 conda run -n contact_graspnet_env --no-capture-output rosrun ros_tensorflow grasp_prediction_server.py
 ```
-
-### Use the blender to render the scene
-In this project, we provide the solution to use Blender as the rendering engine for better photorealistic rendering. The basic idea here is you need to prepare a blend file which is exactly similar to the scene used in the Coppeliasim, and save it in fetch_coppeliasim/scene. Thus, you can enter the fetch_coppeliasim/scene directory and run the following command after launching simulation and controller.
-
-```
-./launch_blender_cam.sh /path/to/blend.file
-```
-
-In this code, it first updates the camera in blender based on the transform of the camera in tf tree, then render and publish the camera image to the topic __'/blender_camera/image_raw'__. Thus, there will be only scene, so this is most likely used by navigation. In future, you can update the code to include the manipulated object and update their poses based on the tf tree as well.
 
 ### Testing
 <span style="color: red">TODO</span>
