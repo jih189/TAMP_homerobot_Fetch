@@ -20,7 +20,7 @@ from . import config_utils
 from .data import regularize_pc_point_count, depth2pc, load_available_input_data
 
 from contact_grasp_estimator import GraspEstimator
-from visualization_utils import visualize_grasps, show_image
+# from visualization_utils import visualize_grasps, show_image
 
 class ModelWrapper():
     def __init__(self):

@@ -211,9 +211,9 @@ RUN tar -xf /root/contact_graspnet_env.tar.xz -C /root && rm /root/contact_grasp
 RUN conda env create -f contact_graspnet_env.yml
 
 # Create a conda env for contact graspnet for 30 series
-COPY ./download/contact_graspnet_30_env.tar.xz /root/
-RUN tar -xf /root/contact_graspnet_30_env.tar.xz -C /root && rm /root/contact_graspnet_30_env.tar.xz
-RUN conda env create -f contact_graspnet_30_env.yml
+COPY ./download/contact_graspnet_30.tar.xz /root/
+RUN tar -xf /root/contact_graspnet_30.tar.xz -C /root && rm /root/contact_graspnet_30.tar.xz
+RUN conda env create -f contact_graspnet_30.yml
 
 RUN echo 'source $CONDA_DIR/etc/profile.d/conda.sh' >> $HOME/.bashrc
 
@@ -235,8 +235,8 @@ RUN /bin/bash -c 'source /opt/ros/melodic/setup.bash && cd $HOME/ros_python3_ws 
             -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m \
             -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so'
 
-# install open3d
-RUN pip install --ignore-installed scikit-learn PyYAML && pip install open3d
+# # install open3d
+# RUN pip install --ignore-installed scikit-learn PyYAML && pip install open3d
 
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME
