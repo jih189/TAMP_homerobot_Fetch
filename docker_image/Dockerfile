@@ -210,6 +210,11 @@ COPY ./download/contact_graspnet_env.tar.xz /root/
 RUN tar -xf /root/contact_graspnet_env.tar.xz -C /root && rm /root/contact_graspnet_env.tar.xz
 RUN conda env create -f contact_graspnet_env.yml
 
+# Create a conda env for contact graspnet for 30 series
+COPY ./download/contact_graspnet_30_env.tar.xz /root/
+RUN tar -xf /root/contact_graspnet_30_env.tar.xz -C /root && rm /root/contact_graspnet_30_env.tar.xz
+RUN conda env create -f contact_graspnet_30_env.yml
+
 RUN echo 'source $CONDA_DIR/etc/profile.d/conda.sh' >> $HOME/.bashrc
 
 # install python package for tensorflow

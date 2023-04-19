@@ -137,6 +137,11 @@ In this project, we have ros server to use contact grasp net for grasp predictio
 conda run -n contact_graspnet_env --no-capture-output rosrun ros_tensorflow grasp_prediction_server.py
 ```
 
+For the computer with 30-series machines, we have to use different conda env to launch the server
+```
+conda run -n contact_graspnet_30_env --no-capture-output rosrun ros_tensorflow grasp_prediction_server.py
+```
+
 ### Use the blender to render the scene
 In this project, we provide the solution to use Blender as the rendering engine for better photorealistic rendering. The basic idea here is you need to prepare a blend file which is exactly similar to the scene used in the Coppeliasim, and save it in fetch_coppeliasim/scene. Thus, you can enter the fetch_coppeliasim/scene directory and run the following command after launching simulation and controller.
 
