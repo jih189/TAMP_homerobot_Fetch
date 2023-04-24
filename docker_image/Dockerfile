@@ -235,8 +235,19 @@ RUN /bin/bash -c 'source /opt/ros/melodic/setup.bash && cd $HOME/ros_python3_ws 
             -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m \
             -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so'
 
-# # install open3d
-# RUN pip install --ignore-installed scikit-learn PyYAML && pip install open3d
+# install open3d
+RUN pip3 install --ignore-installed scikit-learn PyYAML && pip3 install open3d
+
+# update skikit-image
+RUN pip3 install --upgrade scikit-image
+
+# install pytorch related packages
+RUN pip3 install torch torchvision torchaudio
+RUN pip install --no-cache-dir torch-scatter -f https://pytorch-geometric.com/whl/torch-1.10.1+cu102.html
+RUN pip install --no-cache-dir torch-sparse -f https://pytorch-geometric.com/whl/torch-1.10.1+cu102.html
+RUN pip install --no-cache-dir torch-cluster -f https://pytorch-geometric.com/whl/torch-1.10.1+cu102.html
+RUN pip install --no-cache-dir torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.10.1+cu102.html
+RUN pip install --no-cache-dir torch-geometric
 
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME
