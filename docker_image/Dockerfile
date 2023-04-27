@@ -248,6 +248,7 @@ RUN pip install --no-cache-dir torch-sparse -f https://pytorch-geometric.com/whl
 RUN pip install --no-cache-dir torch-cluster -f https://pytorch-geometric.com/whl/torch-1.10.1+cu102.html
 RUN pip install --no-cache-dir torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.10.1+cu102.html
 RUN pip install --no-cache-dir torch-geometric
+RUN pip3 install einops
 
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME
