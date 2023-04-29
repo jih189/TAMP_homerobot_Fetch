@@ -2,43 +2,6 @@ FROM ubuntu:18.04
 
 WORKDIR /root/
 
-# # Add libcuda dummy dependency
-# ADD control .
-# RUN apt-get update && \
-# 	apt-get install --yes equivs && \
-# 	equivs-build control && \
-# 	dpkg -i libcuda1-dummy_11.8_all.deb && \
-# 	rm control libcuda1-dummy_11.8* && \
-# 	apt-get remove --yes --purge --autoremove equivs && \
-# 	rm -rf /var/lib/apt/lists/*
-
-# # Setup Lambda repository
-# ADD lambda.gpg .
-# RUN apt-get update && \
-# 	apt-get install --yes gnupg && \
-# 	apt-key add lambda.gpg && \
-# 	rm lambda.gpg && \
-# 	echo "deb http://archive.lambdalabs.com/ubuntu bionic main" > /etc/apt/sources.list.d/lambda.list && \
-# 	echo "Package: *" > /etc/apt/preferences.d/lambda && \
-# 	echo "Pin: origin archive.lambdalabs.com" >> /etc/apt/preferences.d/lambda && \
-# 	echo "Pin-Priority: 1001" >> /etc/apt/preferences.d/lambda && \
-# 	echo "cudnn cudnn/license_preseed select ACCEPT" | debconf-set-selections && \
-# 	apt-get update && \
-# 	DEBIAN_FRONTEND=noninteractive \
-# 		apt-get install \
-# 		--yes \
-# 		--no-install-recommends \
-# 		--option "Acquire::http::No-Cache=true" \
-# 		--option "Acquire::http::Pipeline-Depth=0" \
-# 		lambda-stack-cuda \
-# 		lambda-server && \
-# 	rm -rf /var/lib/apt/lists/*
-
-# # Setup for nvidia-docker
-# ENV NVIDIA_VISIBLE_DEVICES all
-# ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
-# ENV NVIDIA_REQUIRE_CUDA "cuda>=10.0"
-
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -q && \
@@ -141,6 +104,7 @@ RUN apt-get install -y build-essential g++ python-dev autotools-dev libicu-dev l
 RUN wget -c 'http://sourceforge.net/projects/boost/files/boost/1.76.0/boost_1_76_0.tar.bz2/download' && tar xf download && rm download
 RUN cd boost_1_76_0 && ./bootstrap.sh --with-python=/usr/bin/python3.8
 RUN cd boost_1_76_0 && ./b2 --prefix=/root/boost_1_76_0 variant=release link=shared threading=multi runtime-link=shared toolset=gcc install
+ENV LD_LIBRARY_PATH=/root/boost_1_76_0/lib:$LD_LIBRARY_PATH
 
 # RUN sudo -H pip3 install -vU pygccxml pyplusplus numpy
 RUN sudo -H python3.8 -m pip install -vU pygccxml pyplusplus numpy
@@ -156,22 +120,22 @@ RUN git clone https://github.com/ompl/ompl.git && cd ompl && mkdir -p build/Rele
 # setup the rosdep
 RUN sudo apt -y install python-wstool python-catkin-tools clang-format-10 python-rosdep
 RUN mkdir -p ws_moveit/src && cd ws_moveit/src && git clone https://github.com/jih189/moveit_cbirrt.git
+# RUN mkdir -p ws_moveit/src && cd ws_moveit/src && git clone https://github.com/ros-planning/moveit.git -b melodic-devel
+
 RUN rosdep init && rosdep update
 RUN cd ws_moveit && rosdep install -y --from-paths src --ignore-src --rosdistro melodic
 
 # remove the ompl from ROS
 RUN apt-get -y remove $(apt list --installed | awk -F/ '{print $1}' | grep ompl)
 
-# reinstall the ompl in its build directory
+# reinstall the ompl in its build directory. You must install the ompl with the new yaml-cpp
 RUN cd ompl/build/Release && make install
 
-# uninstall yaml-cpp (not the original one)
+# # uninstall yaml-cpp (not the original one)
 RUN cd yaml-cpp/build && make uninstall
 
-# compile moveit
-# RUN cd ws_moveit && catkin config --extend /opt/ros/melodic --install --install-space /opt/ros/melodic --cmake-args -DCMAKE_BUILD_TYPE=Release -DBOOST_ROOT=/root/boost_1_76_0 -DBOOST_LIBRARYDIR=/root/boost_1_76_0/lib && catkin build
-RUN cd ws_moveit && catkin config --extend /opt/ros/melodic --install --install-space /opt/ros/melodic --cmake-args -DCMAKE_BUILD_TYPE=Release && catkin build
-# RUN cd ws_moveit && catkin config --extend /opt/ros/melodic --install --install-space /opt/ros/melodic --cmake-args -DCMAKE_BUILD_TYPE=Release -DBOOST_ROOT=/usr -DBOOST_LIBRARYDIR=/usr/lib/x86_64-linux-gnu && catkin build
+# # compile moveit
+RUN cd ws_moveit && catkin config --extend /opt/ros/melodic --install --install-space /opt/ros/melodic --cmake-args -DCMAKE_BUILD_TYPE=Release && catkin config --blacklist moveit_setup_assistant && catkin build
 
 # # install jupyter
 RUN python3.8 -m pip install --upgrade pip
@@ -257,19 +221,27 @@ RUN /bin/bash -c 'source /opt/ros/melodic/setup.bash && cd $HOME/ros_python3_ws 
             -DPYTHON_LIBRARY=/usr/lib/libpython3.8.so'
 
 # install open3d
-RUN pip3 install --ignore-installed scikit-learn PyYAML && pip3 install open3d
+RUN python3.8 -m pip install --ignore-installed scikit-learn PyYAML && python3.8 -m pip install open3d
 
 # update skikit-image
-RUN pip3 install --upgrade scikit-image
+RUN python3.8 -m pip install --upgrade scikit-image
 
 # install torch
+# RUN python3.8 -m pip install --upgrade pip && python3.8 -m pip install --upgrade pillow
+# RUN python3.8 -m pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
+# RUN python3.8 -m pip install --no-cache-dir torch-scatter -f https://pytorch-geometric.com/whl/torch-1.13.1+cu117.html
+# RUN python3.8 -m pip install --no-cache-dir torch-sparse -f https://pytorch-geometric.com/whl/torch-1.13.1+cu117.html
+# RUN python3.8 -m pip install --no-cache-dir torch-cluster -f https://pytorch-geometric.com/whl/torch-1.13.1+cu117.html
+# RUN python3.8 -m pip install --no-cache-dir torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.13.1+cu117.html
+# RUN python3.8 -m pip install --no-cache-dir torch-geometric -f https://pytorch-geometric.com/whl/torch-1.13.1+cu117.html
+# RUN python3.8 -m pip install einops
 RUN python3.8 -m pip install --upgrade pip && python3.8 -m pip install --upgrade pillow
-RUN python3.8 -m pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
-RUN python3.8 -m pip install --no-cache-dir torch-scatter -f https://pytorch-geometric.com/whl/torch-1.13.1+cu117.html
-RUN python3.8 -m pip install --no-cache-dir torch-sparse -f https://pytorch-geometric.com/whl/torch-1.13.1+cu117.html
-RUN python3.8 -m pip install --no-cache-dir torch-cluster -f https://pytorch-geometric.com/whl/torch-1.13.1+cu117.html
-RUN python3.8 -m pip install --no-cache-dir torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.13.1+cu117.html
-RUN python3.8 -m pip install --no-cache-dir torch-geometric -f https://pytorch-geometric.com/whl/torch-1.13.1+cu117.html
+RUN python3.8 -m pip install torch==2.0.0+cu117 torchvision==0.15.1+cu117 torchaudio==2.0.1+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
+RUN python3.8 -m pip install --no-cache-dir torch-scatter -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
+RUN python3.8 -m pip install --no-cache-dir torch-sparse -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
+RUN python3.8 -m pip install --no-cache-dir torch-cluster -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
+RUN python3.8 -m pip install --no-cache-dir torch-spline-conv -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
+RUN python3.8 -m pip install --no-cache-dir torch-geometric -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
 RUN python3.8 -m pip install einops
 
 # put the script to prepare the workspace
@@ -277,7 +249,7 @@ COPY prepare_workspace.sh /root
 
 RUN echo 'source /root/catkin_ws/devel/setup.bash' >> /root/.bashrc
 RUN echo 'source /root/ros_python3_ws/devel/setup.bash' >> /root/.bashrc
-RUN echo 'export LD_LIBRARY_PATH=/root/boost_1_76_0/lib:$LD_LIBRARY_PATH' >> /root/.bashrc
+# RUN echo 'export LD_LIBRARY_PATH=/root/boost_1_76_0/lib:$LD_LIBRARY_PATH' >> /root/.bashrc
 
 RUN mkdir -p /root/catkin_ws/src/jiaming_manipulation
 
