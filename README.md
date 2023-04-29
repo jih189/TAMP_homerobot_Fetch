@@ -154,7 +154,7 @@ conda run -n contact_graspnet_env --no-capture-output rosrun ros_tensorflow gras
 
 For the computer with 30-series machines, we have to use different conda env to launch the server
 ```
-conda run -n contact_graspnet_30_env --no-capture-output rosrun ros_tensorflow grasp_prediction_server.py
+conda run -n contact_graspnet_30 --no-capture-output rosrun ros_tensorflow grasp_prediction_server.py
 ```
 
 ### Use the blender to render the scene
