@@ -280,6 +280,11 @@ RUN python3.8 -m pip install --no-cache-dir torch-spline-conv -f https://pytorch
 RUN python3.8 -m pip install --no-cache-dir torch-geometric -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
 RUN python3.8 -m pip install einops
 
+# install visual studio code
+RUN apt-get update && apt-get install -y software-properties-common apt-transport-https && wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && \
+	install -o root -g root -m 644 packages.microsoft.gpg /etc/apt/trusted.gpg.d/ && sh -c 'echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list' && \
+	apt-get update && apt-get install -y code
+
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME
 

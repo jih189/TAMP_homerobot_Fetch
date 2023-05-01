@@ -28,12 +28,11 @@ from sensor_msgs.msg import PointCloud2, PointField
 import std_msgs.msg
 import struct
 
-
-
 class TrajectoryGenerator:
     def __init__(self, mc):
         self.robot = mc.RobotCommander()
         self.scene = mc.PlanningSceneInterface()
+        self.scene.clear()
         self.move_group = mc.MoveGroupCommander("arm")
         self.state_validity_service = rospy.ServiceProxy('/check_state_validity', GetStateValidity)
         self.joint_names = self.move_group.get_active_joints()
@@ -65,6 +64,9 @@ class TrajectoryGenerator:
         point_cloud_msg = self.numpy_to_pointcloud2(pointcloud, frame_id="base_link")
         self.pointcloud_pub.publish(point_cloud_msg)
 
+    def set_path_planner_id(self, planner_id):
+        self.move_group.set_planner_id(planner_id)
+
     def numpy_to_pointcloud2(self, points, frame_id="base_link"):
         '''
         convert pointcloud from numpy format to PointCloud2 in the base_link frame.
@@ -93,7 +95,6 @@ class TrajectoryGenerator:
         pc2_msg.data = b''.join(buffer)
 
         return pc2_msg
-
 
     def trimesh_to_shape_msgs_mesh(self, object_id, tri_mesh):
         '''
