@@ -87,7 +87,7 @@ In this project, we will use deep learning based method to generate the trajecto
 
 ```
 roslaunch fetch_moveit_config data_generation_with_move_group.launch
-rosrun fetch_moveit_config trajectory_generation.py
+rosrun data_generation trajectory_generation.py
 ```
 
 This command will create a 'trajectory_data' directory with the trajectories at where you run this command. The format of this directory should be like the following
@@ -154,7 +154,7 @@ conda run -n contact_graspnet_env --no-capture-output rosrun ros_tensorflow gras
 
 For the computer with 30-series machines, we have to use different conda env to launch the server
 ```
-conda run -n contact_graspnet_30_env --no-capture-output rosrun ros_tensorflow grasp_prediction_server.py
+conda run -n contact_graspnet_30 --no-capture-output rosrun ros_tensorflow grasp_prediction_server.py
 ```
 
 ### Use the blender to render the scene

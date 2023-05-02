@@ -28,12 +28,11 @@ from sensor_msgs.msg import PointCloud2, PointField
 import std_msgs.msg
 import struct
 
-
-
 class TrajectoryGenerator:
     def __init__(self, mc):
         self.robot = mc.RobotCommander()
         self.scene = mc.PlanningSceneInterface()
+        self.scene.clear()
         self.move_group = mc.MoveGroupCommander("arm")
         self.state_validity_service = rospy.ServiceProxy('/check_state_validity', GetStateValidity)
         self.joint_names = self.move_group.get_active_joints()
@@ -56,7 +55,10 @@ class TrajectoryGenerator:
         self.move_group.set_planner_id('RRTstarkConfigDefault')
         self.move_group.set_planning_time(1.0)
 
-        self.pointcloud_pub = rospy.Publisher("/point_cloud", PointCloud2, queue_size=1)
+        self.pointcloud_pub = rospy.Publisher("/obstacle_point_cloud", PointCloud2, queue_size=1)
+
+        self.start_configuration = []
+        self.goal_configuration = []
 
     def show_point_cloud(self, pointcloud):
         '''
@@ -64,6 +66,9 @@ class TrajectoryGenerator:
         '''
         point_cloud_msg = self.numpy_to_pointcloud2(pointcloud, frame_id="base_link")
         self.pointcloud_pub.publish(point_cloud_msg)
+
+    def set_path_planner_id(self, planner_id):
+        self.move_group.set_planner_id(planner_id)
 
     def numpy_to_pointcloud2(self, points, frame_id="base_link"):
         '''
@@ -93,7 +98,6 @@ class TrajectoryGenerator:
         pc2_msg.data = b''.join(buffer)
 
         return pc2_msg
-
 
     def trimesh_to_shape_msgs_mesh(self, object_id, tri_mesh):
         '''
@@ -203,6 +207,9 @@ class TrajectoryGenerator:
             moveit_robot_state.joint_state.name = self.joint_names
             moveit_robot_state.joint_state.position = start_joint
 
+            self.start_configuration = start_joint
+            self.goal_configuration = target_joint
+
             self.move_group.set_start_state(moveit_robot_state)
             self.move_group.set_joint_value_target(target_joint)
             result = self.move_group.plan()
@@ -212,6 +219,14 @@ class TrajectoryGenerator:
             else:
                 count += 1
         return False, None
+
+    def print_task(self):
+        print("joint names")
+        print(self.joint_names)
+        print("start configuration")
+        print(self.start_configuration)
+        print("target configuration")
+        print(self.goal_configuration)
 
     def visualizeTrajectory(self, trajectory_data):
         '''

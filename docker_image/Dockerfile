@@ -235,20 +235,55 @@ RUN /bin/bash -c 'source /opt/ros/melodic/setup.bash && cd $HOME/ros_python3_ws 
             -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m \
             -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so'
 
+# install python3.8
+RUN apt-get update && apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev && \
+   wget https://www.python.org/ftp/python/3.8.16/Python-3.8.16.tgz && tar -xf Python-3.8.16.tgz && \
+   cd Python-3.8.16 && ./configure --enable-shared --prefix /usr --enable-optimizations && make -j$(nproc) && make altinstall
+RUN ln -s /usr/lib/python3.8/_sysconfigdata__linux_x86_64-linux-gnu.py  /usr/lib/python3.8/_sysconfigdata__x86_64-linux-gnu.py
+
+# install boost 1.76
+RUN apt-get install -y g++ python-dev libicu-dev libboost-all-dev
+RUN wget -c 'http://sourceforge.net/projects/boost/files/boost/1.76.0/boost_1_76_0.tar.bz2/download' && tar xf download && rm download
+RUN cd boost_1_76_0 && ./bootstrap.sh --with-python=/usr/bin/python3.8
+RUN cd boost_1_76_0 && ./b2 --prefix=/root/boost_1_76_0 variant=release link=shared threading=multi runtime-link=shared toolset=gcc install
+ENV LD_LIBRARY_PATH=/root/boost_1_76_0/lib:$LD_LIBRARY_PATH
+
+# compile ompl with python3.8# # RUN sudo -H pip3 install -vU pygccxml pyplusplus numpy
+RUN sudo -H python3.8 -m pip install -vU pygccxml pyplusplus numpy
+
+## Install yaml-cpp parser
+RUN git clone https://github.com/jbeder/yaml-cpp.git && cd yaml-cpp && mkdir build && cd build && cmake -DBUILD_SHARED_LIBS=ON .. && make && make install
+
+# then install ompl
+RUN cd ompl && mkdir -p python_build/Release && cd python_build/Release && \
+    cmake ../.. -DPYTHON_EXEC=/usr/bin/python3.8  -DCASTXML=/root/castxml/bin/castxml -DBOOST_ROOT=/root/boost_1_76_0 -DBOOST_LIBRARYDIR=/root/boost_1_76_0/lib && make update_bindings && make -j$(nproc) && make install -j$(nproc)
+
+# # uninstall yaml-cpp (not the original one)
+RUN cd yaml-cpp/build && make uninstall
+
+# install python3 package required for ROS
+RUN apt-get install -y python3-pip python3-yaml python3-netifaces && python3.8 -m pip install rospkg catkin_pkg netifaces
+
 # install open3d
-RUN pip3 install --ignore-installed scikit-learn PyYAML && pip3 install open3d
+RUN python3.8 -m pip install --ignore-installed scikit-learn PyYAML && python3.8 -m pip install open3d
 
 # update skikit-image
-RUN pip3 install --upgrade scikit-image
+RUN python3.8 -m pip install --upgrade scikit-image
 
-# install pytorch related packages
-RUN pip3 install torch torchvision torchaudio
-RUN pip install --no-cache-dir torch-scatter -f https://pytorch-geometric.com/whl/torch-1.10.1+cu102.html
-RUN pip install --no-cache-dir torch-sparse -f https://pytorch-geometric.com/whl/torch-1.10.1+cu102.html
-RUN pip install --no-cache-dir torch-cluster -f https://pytorch-geometric.com/whl/torch-1.10.1+cu102.html
-RUN pip install --no-cache-dir torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.10.1+cu102.html
-RUN pip install --no-cache-dir torch-geometric
-RUN pip3 install einops
+# # install torch
+RUN python3.8 -m pip install --upgrade pip && python3.8 -m pip install --upgrade pillow
+RUN python3.8 -m pip install torch==2.0.0+cu117 torchvision==0.15.1+cu117 torchaudio==2.0.1+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
+RUN python3.8 -m pip install --no-cache-dir torch-scatter -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
+RUN python3.8 -m pip install --no-cache-dir torch-sparse -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
+RUN python3.8 -m pip install --no-cache-dir torch-cluster -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
+RUN python3.8 -m pip install --no-cache-dir torch-spline-conv -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
+RUN python3.8 -m pip install --no-cache-dir torch-geometric -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
+RUN python3.8 -m pip install einops
+
+# install visual studio code
+RUN apt-get update && apt-get install -y software-properties-common apt-transport-https && wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && \
+	install -o root -g root -m 644 packages.microsoft.gpg /etc/apt/trusted.gpg.d/ && sh -c 'echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list' && \
+	apt-get update && apt-get install -y code
 
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME
