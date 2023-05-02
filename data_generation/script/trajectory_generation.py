@@ -55,7 +55,10 @@ class TrajectoryGenerator:
         self.move_group.set_planner_id('RRTstarkConfigDefault')
         self.move_group.set_planning_time(1.0)
 
-        self.pointcloud_pub = rospy.Publisher("/point_cloud", PointCloud2, queue_size=1)
+        self.pointcloud_pub = rospy.Publisher("/obstacle_point_cloud", PointCloud2, queue_size=1)
+
+        self.start_configuration = []
+        self.goal_configuration = []
 
     def show_point_cloud(self, pointcloud):
         '''
@@ -204,6 +207,9 @@ class TrajectoryGenerator:
             moveit_robot_state.joint_state.name = self.joint_names
             moveit_robot_state.joint_state.position = start_joint
 
+            self.start_configuration = start_joint
+            self.goal_configuration = target_joint
+
             self.move_group.set_start_state(moveit_robot_state)
             self.move_group.set_joint_value_target(target_joint)
             result = self.move_group.plan()
@@ -213,6 +219,14 @@ class TrajectoryGenerator:
             else:
                 count += 1
         return False, None
+
+    def print_task(self):
+        print("joint names")
+        print(self.joint_names)
+        print("start configuration")
+        print(self.start_configuration)
+        print("target configuration")
+        print(self.goal_configuration)
 
     def visualizeTrajectory(self, trajectory_data):
         '''

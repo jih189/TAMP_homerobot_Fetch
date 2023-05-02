@@ -19,9 +19,11 @@ def main():
 
     obstacle_meshes = path_planner_tester.generate_random_mesh(env_num)
     pointcloud = path_planner_tester.setObstaclesInScene(obstacle_meshes)
+    path_planner_tester.show_point_cloud(pointcloud)
 
     # randonly generate two valid points and path the solution between them
     plan_result, sampled_trajectory  = path_planner_tester.generateValidTrajectory()
+    path_planner_tester.print_task()
 
     # publish the pointcloud of the obstacle
     rate = rospy.Rate(20)

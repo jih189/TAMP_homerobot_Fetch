@@ -262,7 +262,7 @@ RUN cd ompl && mkdir -p python_build/Release && cd python_build/Release && \
 RUN cd yaml-cpp/build && make uninstall
 
 # install python3 package required for ROS
-RUN apt-get install -y python3-pip python3-yaml python3-netifaces && python3.8 -m pip install rospkg catkin_pkg
+RUN apt-get install -y python3-pip python3-yaml python3-netifaces && python3.8 -m pip install rospkg catkin_pkg netifaces
 
 # install open3d
 RUN python3.8 -m pip install --ignore-installed scikit-learn PyYAML && python3.8 -m pip install open3d
