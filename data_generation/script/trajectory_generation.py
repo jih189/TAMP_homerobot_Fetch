@@ -5,12 +5,15 @@ import rospy
 import moveit_commander
 import random
 from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest
-from moveit_msgs.msg import RobotState
 from moveit_msgs.msg import PlanningScene, CollisionObject, AttachedCollisionObject
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import PoseStamped, Point
 from shape_msgs.msg import Mesh
 from shape_msgs.msg import MeshTriangle
+
+from moveit_msgs.srv import GetJointWithConstraints, GetJointWithConstraintsRequest
+from moveit_msgs.msg import Constraints, OrientationConstraint, MoveItErrorCodes, RobotState
+from geometry_msgs.msg import Quaternion, Pose
 
 from moveit_msgs.msg import RobotTrajectory, DisplayTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
@@ -28,6 +31,8 @@ from sensor_msgs.msg import PointCloud2, PointField
 import std_msgs.msg
 import struct
 
+import time
+
 class TrajectoryGenerator:
     def __init__(self, mc):
         self.robot = mc.RobotCommander()
@@ -35,6 +40,7 @@ class TrajectoryGenerator:
         self.scene.clear()
         self.move_group = mc.MoveGroupCommander("arm")
         self.state_validity_service = rospy.ServiceProxy('/check_state_validity', GetStateValidity)
+        self.sample_joint_with_constraints_service = rospy.ServiceProxy('/sample_joint_with_constraints', GetJointWithConstraints)
         self.joint_names = self.move_group.get_active_joints()
 
         # # set initial joint state
@@ -53,12 +59,13 @@ class TrajectoryGenerator:
 
         # set the planner to rrt star
         self.move_group.set_planner_id('RRTstarkConfigDefault')
-        self.move_group.set_planning_time(1.0)
+        self.move_group.set_planning_time(10.0)
 
         self.pointcloud_pub = rospy.Publisher("/obstacle_point_cloud", PointCloud2, queue_size=1)
 
         self.start_configuration = []
         self.goal_configuration = []
+        self.planning_time_cost = 0.0
 
     def show_point_cloud(self, pointcloud):
         '''
@@ -187,6 +194,165 @@ class TrajectoryGenerator:
             count += 1
         return False, None
 
+    def getRandomTask(self):
+        count = 0
+        while count < 100:
+            start_joint_success, start_joint = self.getValidJoints()
+            if not start_joint_success:
+                count += 1
+                continue
+            target_joint_success, target_joint = self.getValidJoints()
+            if not target_joint_success:
+                count += 1
+                continue
+
+            return True, start_joint, target_joint
+        return False, None, None
+
+    def getProperJointState(self, all_name, all_joint, selected_name):
+        result = []
+        for sn in selected_name:
+            result.append(all_joint[all_name.index(sn)])
+        return result
+
+    def getRandomTaskWithConstraints(self):
+        horizontal_constraint = Constraints()
+        horizontal_constraint.name = "use_equality_constraints"
+
+        oc = OrientationConstraint()
+
+        oc.parameterization = OrientationConstraint.ROTATION_VECTOR;
+        oc.header.frame_id = "base_link";
+        oc.header.stamp = rospy.Time(0)
+        oc.link_name = "wrist_roll_link";
+        constrained_quaternion = Quaternion();
+        constrained_quaternion.x = 0.0
+        constrained_quaternion.y = 0.0
+        constrained_quaternion.z = 0.0
+        constrained_quaternion.w = 1.0
+        oc.orientation = constrained_quaternion
+        oc.weight = 1.0
+
+        oc.absolute_x_axis_tolerance = 0.1
+        oc.absolute_y_axis_tolerance = 0.1
+        oc.absolute_z_axis_tolerance = 2 * 3.1415
+        horizontal_constraint.orientation_constraints.append(oc)
+
+        # need to set in-hand pose
+        in_hand_pose = Pose()
+        in_hand_pose.position.x = 0.0
+        in_hand_pose.position.y = 0.0
+        in_hand_pose.position.z = 0.0
+        in_hand_pose.orientation.x = 0.0
+        in_hand_pose.orientation.y = 0.0
+        in_hand_pose.orientation.z = 0.0
+        in_hand_pose.orientation.w = 1.0
+        horizontal_constraint.in_hand_pose = in_hand_pose
+
+        sample_request = GetJointWithConstraintsRequest()
+        sample_request.constraints = horizontal_constraint
+        sample_request.group_name = "arm"
+        sample_request.max_sampling_attempt = 20
+
+        count = 0
+        while count < 100:
+            start_config_val = self.sample_joint_with_constraints_service(sample_request)
+            if start_config_val.error_code.val != MoveItErrorCodes.SUCCESS:
+                count += 1
+                continue
+
+            start_joint = self.getProperJointState(start_config_val.solution.joint_state.name, start_config_val.solution.joint_state.position, self.joint_names)
+            
+            goal_config_val = self.sample_joint_with_constraints_service(sample_request)
+            if goal_config_val.error_code.val != MoveItErrorCodes.SUCCESS:
+                count += 1
+                continue
+
+            target_joint = self.getProperJointState(goal_config_val.solution.joint_state.name, goal_config_val.solution.joint_state.position, self.joint_names)
+
+            return True, start_joint, target_joint, horizontal_constraint
+        return False, None, None, None
+
+    def measurePlanningWithConstraints(self, start_joint, target_joint, task_constraints):
+        moveit_robot_state = RobotState()
+        moveit_robot_state.joint_state.name = self.joint_names
+        moveit_robot_state.joint_state.position = start_joint
+
+        self.move_group.set_start_state(moveit_robot_state)
+        self.move_group.set_joint_value_target(target_joint)
+        self.move_group.set_path_constraints(task_constraints)
+        self.move_group.set_in_hand_pose(task_constraints.in_hand_pose)
+        
+        start_time = time.time()
+        result = self.move_group.plan()
+        planning_time = time.time() - start_time
+        if result[0]:
+            sampled_trajectory = np.array([j.positions for j in result[1].joint_trajectory.points])
+            path_length = np.linalg.norm(np.diff(sampled_trajectory, axis=0), axis=1).sum()
+            return True, planning_time, path_length
+        else:
+            return False, 0.0, 0.0
+
+    def measurePlanning(self, start_joint, target_joint):
+        moveit_robot_state = RobotState()
+        moveit_robot_state.joint_state.name = self.joint_names
+        moveit_robot_state.joint_state.position = start_joint
+
+        self.move_group.set_start_state(moveit_robot_state)
+        self.move_group.set_joint_value_target(target_joint)
+        
+        start_time = time.time()
+        result = self.move_group.plan()
+        planning_time = time.time() - start_time
+        if result[0]:
+            sampled_trajectory = np.array([j.positions for j in result[1].joint_trajectory.points])
+            path_length = np.linalg.norm(np.diff(sampled_trajectory, axis=0), axis=1).sum()
+            return True, planning_time, path_length
+        else:
+            return False, 0.0, 0.0
+
+    def motionTaskPlanning(self):
+        '''
+        It first samples two valid joint values, then plan for the trajectory between them.
+        output: success, trajectory
+        '''
+        count = 0
+        while count < 100:
+            start_joint_success, start_joint = self.getValidJoints()
+            if not start_joint_success:
+                count += 1
+                continue
+            target_joint_success, target_joint = self.getValidJoints()
+            if not target_joint_success:
+                count += 1
+                continue
+
+            moveit_robot_state = RobotState()
+            moveit_robot_state.joint_state.name = self.joint_names
+            moveit_robot_state.joint_state.position = start_joint
+
+            self.start_configuration = start_joint
+            self.goal_configuration = target_joint
+
+            self.move_group.set_start_state(moveit_robot_state)
+            self.move_group.set_joint_value_target(target_joint)
+            start_time = time.time()
+            result = self.move_group.plan()
+            self.planning_time_cost = time.time() - start_time
+            if result[0]:
+                sampled_trajectory = np.array([j.positions for j in result[1].joint_trajectory.points])
+                path_length = np.linalg.norm(np.diff(sampled_trajectory, axis=0), axis=1).sum()
+                return True, path_length
+            else:
+                return False, 0.0
+        print("there are no valid task in this env")
+        return False, 0.0
+        #         sampled_trajectory = [j.positions for j in result[1].joint_trajectory.points]
+        #         return True, np.array(sampled_trajectory)
+        #     else:
+        #         count += 1
+        # return False, None
+
     def generateValidTrajectory(self):
         '''
         It first samples two valid joint values, then plan for the trajectory between them.
@@ -212,7 +378,9 @@ class TrajectoryGenerator:
 
             self.move_group.set_start_state(moveit_robot_state)
             self.move_group.set_joint_value_target(target_joint)
+            start_time = time.time()
             result = self.move_group.plan()
+            self.planning_time_cost = time.time() - start_time
             if result[0]:
                 sampled_trajectory = [j.positions for j in result[1].joint_trajectory.points]
                 return True, np.array(sampled_trajectory)
@@ -227,6 +395,9 @@ class TrajectoryGenerator:
         print(self.start_configuration)
         print("target configuration")
         print(self.goal_configuration)
+
+    def get_planning_time(self):
+        return self.planning_time_cost
 
     def visualizeTrajectory(self, trajectory_data):
         '''
