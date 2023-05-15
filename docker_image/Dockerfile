@@ -1,43 +1,8 @@
-FROM ubuntu:18.04
+# FROM ubuntu:18.04
+
+FROM nvidia/cuda:11.7.0-cudnn8-devel-ubuntu18.04
 
 WORKDIR /root/
-
-# Add libcuda dummy dependency
-ADD control .
-RUN apt-get update && \
-	apt-get install --yes equivs && \
-	equivs-build control && \
-	dpkg -i libcuda1-dummy_11.8_all.deb && \
-	rm control libcuda1-dummy_11.8* && \
-	apt-get remove --yes --purge --autoremove equivs && \
-	rm -rf /var/lib/apt/lists/*
-
-# Setup Lambda repository
-ADD lambda.gpg .
-RUN apt-get update && \
-	apt-get install --yes gnupg && \
-	apt-key add lambda.gpg && \
-	rm lambda.gpg && \
-	echo "deb http://archive.lambdalabs.com/ubuntu bionic main" > /etc/apt/sources.list.d/lambda.list && \
-	echo "Package: *" > /etc/apt/preferences.d/lambda && \
-	echo "Pin: origin archive.lambdalabs.com" >> /etc/apt/preferences.d/lambda && \
-	echo "Pin-Priority: 1001" >> /etc/apt/preferences.d/lambda && \
-	echo "cudnn cudnn/license_preseed select ACCEPT" | debconf-set-selections && \
-	apt-get update && \
-	DEBIAN_FRONTEND=noninteractive \
-		apt-get install \
-		--yes \
-		--no-install-recommends \
-		--option "Acquire::http::No-Cache=true" \
-		--option "Acquire::http::Pipeline-Depth=0" \
-		lambda-stack-cuda \
-		lambda-server && \
-	rm -rf /var/lib/apt/lists/*
-
-# Setup for nvidia-docker
-ENV NVIDIA_VISIBLE_DEVICES all
-ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
-ENV NVIDIA_REQUIRE_CUDA "cuda>=10.0"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -136,6 +101,14 @@ RUN sudo -H pip3 install -vU pygccxml pyplusplus numpy
 RUN git clone https://github.com/ompl/ompl.git && cd ompl && mkdir -p build/Release && cd build/Release && \
     cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../.. -DPYTHON_EXEC=/usr/bin/python3  -DCASTXML=/root/castxml/bin/castxml && make update_bindings && make && make install
 
+# install libtorch
+RUN apt-get install unzip && wget https://download.pytorch.org/libtorch/cu117/libtorch-cxx11-abi-shared-with-deps-2.0.0%2Bcu117.zip && unzip libtorch-cxx11-abi-shared-with-deps-2.0.0+cu117.zip
+
+# include CUDA to path
+ENV CUDA_HOME /usr/local/cuda
+ENV LD_LIBRARY_PATH /usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
+ENV PATH $CUDA_HOME/bin:$PATH
+
 # install moveit
 # setup the rosdep
 RUN sudo apt -y install python-wstool python-catkin-tools clang-format-10 python-rosdep
@@ -166,7 +139,7 @@ EXPOSE 8888
 
 # Install necessary for building
 RUN apt-get update -q && \
-    apt-get install -y ros-melodic-costmap-2d ros-melodic-rail-manipulation-msgs ros-melodic-joint-trajectory-controller ros-melodic-teleop-twist-keyboard
+    apt-get install -y ros-melodic-trac-ik-lib ros-melodic-costmap-2d ros-melodic-rail-manipulation-msgs ros-melodic-joint-trajectory-controller ros-melodic-teleop-twist-keyboard
 
 # Install fcl library
 RUN git clone https://github.com/flexible-collision-library/fcl.git && cd fcl && mkdir build && cd build && cmake .. && make && make install
@@ -292,5 +265,3 @@ RUN echo 'source $HOME/catkin_ws/devel/setup.bash' >> $HOME/.bashrc
 RUN echo 'source $HOME/ros_python3_ws/devel/setup.bash' >> $HOME/.bashrc
 
 RUN mkdir -p $HOME/catkin_ws/src/jiaming_manipulation
-
-WORKDIR /root
