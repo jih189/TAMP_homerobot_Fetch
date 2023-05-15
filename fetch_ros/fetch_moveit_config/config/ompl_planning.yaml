@@ -27,6 +27,8 @@ planner_configs:
     type: geometric::DLBIRRT
   MPNETRRTConfigDefault:
     type: geometric::MPNETRRT
+  DLCBIRRTConfigDefault:
+    type: geometric::DLCBIRRT
   CLazyPRMConfigDefault:
     type: geometric::CLazyPRM
     multi_query_planning_enabled: true
