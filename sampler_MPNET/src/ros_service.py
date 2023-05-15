@@ -29,7 +29,6 @@ try:
 except ImportError:
     raise "Run code from a container with OMPL installed"
 
-import fetch_utils as fu
 
 device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
 
@@ -81,7 +80,6 @@ class NextStepPredServer:
 
         # set the pointcloud into tensor
         pc = self.obstacle_pc
-        pc = pc.T # (3,N) -> (N,3)
         # resample the point cloud to 2000 points
         if pc.shape[0] > 2000:
             pc = pc[np.random.choice(pc.shape[0], 2000, replace=False),:]
@@ -125,6 +123,7 @@ if __name__ == "__main__":
     
     try:
         server = NextStepPredServer()
+        print("next step prediction server is ready")
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
