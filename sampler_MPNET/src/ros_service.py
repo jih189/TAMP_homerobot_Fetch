@@ -85,6 +85,8 @@ class NextStepPredServer:
             pc = pc[np.random.choice(pc.shape[0], 2000, replace=False),:]
         elif pc.shape[0] < 2000:
             pc = np.concatenate([pc, np.zeros((2000-pc.shape[0],3))], axis=0)
+        # flatten the point cloud
+        pc = pc.flatten()
         pc = torch.from_numpy(pc).float().unsqueeze(0).to(device)
         # print(pc.shape)
 
@@ -95,7 +97,12 @@ class NextStepPredServer:
         
         # normalize the start and goal configuration and set them into tensors
         tmp = (np.array([req.start_configuration, req.goal_configuration])-self.norm_params["mid"])/(self.norm_params["range"])
+        # flatten the start and goal configuration
+        tmp = tmp.reshape(1,-1)
         tmp = torch.from_numpy(tmp).float().to(device)
+
+        print("pce shape: ", pce.shape)
+        print("tmp shape: ", tmp.shape)
 
         # concatenate the start and goal configuration with the point cloud encoding
         input = torch.cat([pce, tmp], dim=1)
@@ -103,11 +110,13 @@ class NextStepPredServer:
         # predict the next step
         with torch.no_grad():
             pred = self.planner_model(input)
+        
+        print("pred shape: ", pred.shape)
 
         # denormalize the prediction
-        result = pred.cpu().numpy()*self.norm_params["range"]+self.norm_params["mid"]        
+        result = pred.cpu().numpy()*self.norm_params["range"]+self.norm_params["mid"]
 
-        return result
+        return GetNextStepResponse(result[0])
 
     def point_cloud_callback(self, point_cloud):
         self.obstacle_pc = pointcloud2_to_xyz_array(point_cloud)
