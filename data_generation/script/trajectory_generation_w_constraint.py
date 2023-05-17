@@ -389,29 +389,30 @@ class TrajectoryGenerator:
         return False, None
 
     def generateValidTrajectoryWithConstraints(self, task_constraints=None):
-        success = False
-        for i in range(100):
-            success, start_joint, target_joint, horizontal_constraint = self.getRandomTaskWithConstraints()
-            if success:
-                break
-        if not success:
-            return False, None        
-        
-        moveit_robot_state = RobotState()
-        moveit_robot_state.joint_state.name = self.joint_names
-        moveit_robot_state.joint_state.position = start_joint
+        for i in range(10):
+            success = False
+            for i in range(100):
+                success, start_joint, target_joint, horizontal_constraint = self.getRandomTaskWithConstraints()
+                if success:
+                    break
+            if not success:
+                return False, None        
+            
+            moveit_robot_state = RobotState()
+            moveit_robot_state.joint_state.name = self.joint_names
+            moveit_robot_state.joint_state.position = start_joint
 
-        self.move_group.set_start_state(moveit_robot_state)
-        self.move_group.set_joint_value_target(target_joint)
-        self.move_group.set_path_constraints(horizontal_constraint)
-        self.move_group.set_in_hand_pose(horizontal_constraint.in_hand_pose)
+            self.move_group.set_start_state(moveit_robot_state)
+            self.move_group.set_joint_value_target(target_joint)
+            self.move_group.set_path_constraints(horizontal_constraint)
+            self.move_group.set_in_hand_pose(horizontal_constraint.in_hand_pose)
 
-        for i in range(100):
-            result = self.move_group.plan()
-            if result[0]:
-                sampled_trajectory = [j.positions for j in result[1].joint_trajectory.points]
-                return True, np.array(sampled_trajectory)
-        
+            for i in range(10):
+                result = self.move_group.plan()
+                if result[0]:
+                    sampled_trajectory = [j.positions for j in result[1].joint_trajectory.points]
+                    return True, np.array(sampled_trajectory)
+                
         return False, None
 
 
