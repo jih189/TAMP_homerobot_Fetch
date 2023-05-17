@@ -494,8 +494,26 @@ def main():
         start_env_num = int(sys.argv[1])
 
     for env_num in range(start_env_num, start_env_num + scene_count):
-        print "process ", env_num-start_env_num+1, " / ", (scene_count)
-        os.mkdir(fileDir + "env_%06d/" % env_num)
+        # check if the directory exists
+        i = 0
+        if not os.path.exists(fileDir + "env_%06d/" % env_num):
+            os.mkdir(fileDir + "env_%06d/" % env_num)
+            print "Progress ", env_num-start_env_num+1, " / ", (scene_count)
+        else:
+            # if the directory exists, check the largest index of the trajectory
+            # get the largest index of the trajectory
+            largest_index = 0
+            for filename in os.listdir(fileDir + "env_%06d/" % env_num):
+                if filename.startswith('path_'):
+                    index = int(filename.split('.')[0].split('_')[-1])
+                    if index > largest_index:
+                        largest_index = index
+            # if the largest index is 99, then we have already generated 100 trajectories
+            if largest_index == trajectory_count_per_scene - 1:
+                print "skipping scene ", env_num, " as it has already been generated"
+                continue
+            i = largest_index + 1
+            print "continuing scene ", env_num, " from index ", i, " / ", trajectory_count_per_scene, " trajectories"
 
         # use the env_num as the seed
         obstacle_meshes = trajectory_generator.generate_random_mesh(env_num)
@@ -503,7 +521,7 @@ def main():
 
         write_ply(fileDir + "env_%06d/map_" % env_num + "%d.ply" % env_num, pointcloud)
 
-        i = 0
+        
         while i < trajectory_count_per_scene:
             plan_result, sampled_trajectory = trajectory_generator.generateValidTrajectoryWithConstraints()
             if not plan_result:
