@@ -390,7 +390,7 @@ class TrajectoryGenerator:
 
     def generateValidTrajectoryWithConstraints(self, task_constraints=None):
         success = False
-        for i in range(100):
+        for i in range(20):
             success, start_joint, target_joint, horizontal_constraint = self.getRandomTaskWithConstraints()
             if success:
                 break
@@ -406,7 +406,7 @@ class TrajectoryGenerator:
         self.move_group.set_path_constraints(horizontal_constraint)
         self.move_group.set_in_hand_pose(horizontal_constraint.in_hand_pose)
 
-        for i in range(100):
+        for i in range(5):
             result = self.move_group.plan()
             if result[0]:
                 sampled_trajectory = [j.positions for j in result[1].joint_trajectory.points]
@@ -473,7 +473,7 @@ class TrajectoryGenerator:
 def main():
     ###################
     scene_count = 200
-    trajectory_count_per_scene = 100
+    trajectory_count_per_scene = 20
     rospy.init_node('data_trajectory_generation')
 
     # Initialize MoveIt
