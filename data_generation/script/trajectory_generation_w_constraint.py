@@ -388,7 +388,7 @@ class TrajectoryGenerator:
                 count += 1
         return False, None
 
-    def generateValidTrajectoryWithConstraints(self, task_constraints):
+    def generateValidTrajectoryWithConstraints(self, task_constraints=None):
         success = False
         for i in range(100):
             success, start_joint, target_joint, horizontal_constraint = self.getRandomTaskWithConstraints()
@@ -472,8 +472,8 @@ class TrajectoryGenerator:
 
 def main():
     ###################
-    scene_count = 1
-    trajectory_count_per_scene = 10
+    scene_count = 200
+    trajectory_count_per_scene = 100
     rospy.init_node('data_trajectory_generation')
 
     # Initialize MoveIt
@@ -482,16 +482,19 @@ def main():
 
     fileDir = 'trajectory_data_with_constraints/'
 
-    # remove the directory for data if it exists.
-    if os.path.exists(fileDir):
-        shutil.rmtree(fileDir)
+    # if the directory does not exist, create it
+    if not os.path.exists(fileDir):
+        os.mkdir(fileDir)
 
-    os.mkdir(fileDir)
+    
 
-    scene_count += 1
+    start_env_num = 0 # this should be a command line argument
+    # read in the command line arguments
+    if len(sys.argv) > 1:
+        start_env_num = int(sys.argv[1])
 
-    for env_num in range(2000, 2000 + scene_count):
-        print "process ", env_num, " / ", (scene_count - 1)
+    for env_num in range(start_env_num, start_env_num + scene_count):
+        print "process ", env_num-start_env_num+1, " / ", (scene_count)
         os.mkdir(fileDir + "env_%06d/" % env_num)
 
         # use the env_num as the seed
@@ -502,7 +505,7 @@ def main():
 
         i = 0
         while i < trajectory_count_per_scene:
-            plan_result, sampled_trajectory = trajectory_generator.generateValidTrajectory()
+            plan_result, sampled_trajectory = trajectory_generator.generateValidTrajectoryWithConstraints()
             if not plan_result:
                 continue
             trajData = {'path': sampled_trajectory}

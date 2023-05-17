@@ -12,4 +12,5 @@ ros_tensorflow/src/contact_graspnet/pointnet2/tf_ops/grouping/tf_grouping_so.so
 ros_tensorflow/src/contact_graspnet/pointnet2/tf_ops/sampling/1.pkl
 ros_tensorflow/src/contact_graspnet/pointnet2/tf_ops/sampling/tf_sampling_g.cu.o
 ros_tensorflow/src/contact_graspnet/pointnet2/tf_ops/sampling/tf_sampling_so.so
+data_generation/trajectory_data_with_constraints/
 MPNet
