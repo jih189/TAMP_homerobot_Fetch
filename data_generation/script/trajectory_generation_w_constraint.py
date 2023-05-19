@@ -389,9 +389,9 @@ class TrajectoryGenerator:
         return False, None
 
     def generateValidTrajectoryWithConstraints(self, task_constraints=None):
-        for i in range(10):
+        for i in range(5):
             success = False
-            for i in range(100):
+            for i in range(5):
                 success, start_joint, target_joint, horizontal_constraint = self.getRandomTaskWithConstraints()
                 if success:
                     break
@@ -407,7 +407,7 @@ class TrajectoryGenerator:
             self.move_group.set_path_constraints(horizontal_constraint)
             self.move_group.set_in_hand_pose(horizontal_constraint.in_hand_pose)
 
-            for i in range(10):
+            for i in range(2):
                 result = self.move_group.plan()
                 if result[0]:
                     sampled_trajectory = [j.positions for j in result[1].joint_trajectory.points]
