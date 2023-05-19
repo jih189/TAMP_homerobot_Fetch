@@ -473,8 +473,8 @@ class TrajectoryGenerator:
 
 def main():
     ###################
-    scene_count = 200
-    trajectory_count_per_scene = 20
+    scene_count = 200 # this should also be a command line argument
+    trajectory_count_per_scene = 100
     rospy.init_node('data_trajectory_generation')
 
     # Initialize MoveIt
@@ -493,6 +493,8 @@ def main():
     # read in the command line arguments
     if len(sys.argv) > 1:
         start_env_num = int(sys.argv[1])
+    if len(sys.argv) > 2:
+        scene_count = int(sys.argv[2])
 
     for env_num in range(start_env_num, start_env_num + scene_count):
         # check if the directory exists
