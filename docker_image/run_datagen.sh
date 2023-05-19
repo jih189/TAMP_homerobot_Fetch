@@ -7,8 +7,8 @@ docker run -v $PWD/../:/root/catkin_ws/src/jiaming_manipulation \
 	-e NVIDIA_DRIVER_CAPABILITIES=all \
 	--ipc=host \
 	--gpus all \
-	--network="host" \
-	-p 8888:8888 \
+	--network=datagen \
+	-p 8884:8884 \
 	--privileged=true \
 	-v /etc/localtime:/etc/localtime:ro \
-	-v "/tmp/.X11-unix:/tmp/.X11-unix:rw" -p 19997:19997 -it constraindatagen-ubuntu18 bash
+	-v "/tmp/.X11-unix:/tmp/.X11-unix:rw" -p 19994:19994 -it constraindatagen-ubuntu18 bash
