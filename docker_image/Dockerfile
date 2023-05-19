@@ -252,6 +252,7 @@ RUN python3.8 -m pip install --no-cache-dir torch-cluster -f https://pytorch-geo
 RUN python3.8 -m pip install --no-cache-dir torch-spline-conv -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
 RUN python3.8 -m pip install --no-cache-dir torch-geometric -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
 RUN python3.8 -m pip install einops
+RUN python3.8 -m pip install tensorboard
 
 # install visual studio code
 RUN apt-get update && apt-get install -y software-properties-common apt-transport-https && wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && \
