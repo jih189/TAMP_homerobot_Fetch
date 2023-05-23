@@ -7,9 +7,15 @@
 
   <!-- GDB Debug Option -->
   <arg name="debug" default="false" />
-  <arg unless="$(arg debug)" name="launch_prefix" value="" />
-  <arg     if="$(arg debug)" name="launch_prefix"
+  <arg unless="$(arg debug)" name="GDBdebug" value="" />
+  <arg     if="$(arg debug)" name="GDBdebug"
 	   value="gdb -x $(find fetch_moveit_config)/launch/gdb_settings.gdb --ex run --args" />
+
+  <!-- Valgrind Memory Check Option -->
+  <arg name="valgrind" default="false" />
+  <arg unless="$(arg valgrind)" name="launch_prefix" value="$(arg GDBdebug)" />
+  <arg     if="$(arg valgrind)" name="launch_prefix"
+	   value="valgrind --leak-check=full --show-reachable=yes --track-origins=yes --log-file=/tmp/valgrind-%p.log $(arg GDBdebug)" />
 
   <!-- Verbose Mode Option -->
   <arg name="info" default="$(arg debug)" />

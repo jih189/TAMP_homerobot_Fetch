@@ -12,10 +12,6 @@ def main():
     moveit_commander.roscpp_initialize(sys.argv)
     path_planner_tester = TrajectoryGenerator(moveit_commander)
 
-    # set the path planner id
-    path_planner_tester.set_path_planner_id('DLBIRRTConfigDefault')
-    # path_planner_tester.set_path_planner_id('RRTConnectkConfigDefault')
-
     success_time_deep_learning = 0.0
     success_time_non_deep_learning = 0.0
     total_time_deep_learning = 0.0
@@ -23,7 +19,7 @@ def main():
     total_length_deep_learning = 0.0
     total_length_non_deep_learning = 0.0
 
-    test_number = 100
+    test_number = 1
 
     for i in range(test_number):
         env_num = i
@@ -34,6 +30,7 @@ def main():
         path_planner_tester.show_point_cloud(pointcloud)
 
         hasTask, start_joint, target_joint, task_constraints = path_planner_tester.getRandomTaskWithConstraints()
+        #hasTask, start_joint, target_joint = path_planner_tester.getRandomTask()
 
         # if not hasTask:
         #     continue
@@ -45,31 +42,36 @@ def main():
         # print(task_constraints)
 
         # path_planner_tester.set_path_planner_id('DLBIRRTConfigDefault')
-        path_planner_tester.set_path_planner_id('CBIRRTConfigDefault')
-        success, planning_time, path_length = path_planner_tester.measurePlanningWithConstraints(start_joint, target_joint, task_constraints)
+        # path_planner_tester.set_path_planner_id('CBIRRTConfigDefault')
+        path_planner_tester.set_path_planner_id('CMPNETRRTConfigDefault')
+        #success, planning_time, path_length = path_planner_tester.measurePlanningWithConstraints(start_joint, target_joint, task_constraints)
+        path_planner_tester.show_point_cloud(pointcloud)
+        success, planning_time, path_length = path_planner_tester.measurePlanningWithConstraints(start_joint, start_joint, task_constraints, pointcloud)
+        #path_planner_tester.set_path_planner_id('RRTConnectkConfigDefault')
+        #success, planning_time, path_length = path_planner_tester.measurePlanning(start_joint, target_joint)
         if success:
             success_time_deep_learning += 1
             total_time_deep_learning += planning_time
             total_length_deep_learning += path_length
 
         # path_planner_tester.set_path_planner_id('RRTConnectkConfigDefault')
-        path_planner_tester.set_path_planner_id('DLCBIRRTConfigDefault')
-        success, planning_time, path_length = path_planner_tester.measurePlanningWithConstraints(start_joint, target_joint, task_constraints)
-        if success:
-            success_time_non_deep_learning += 1
-            total_time_non_deep_learning += planning_time
-            total_length_non_deep_learning += path_length
+        # path_planner_tester.set_path_planner_id('DLCBIRRTConfigDefault')
+        # success, planning_time, path_length = path_planner_tester.measurePlanningWithConstraints(start_joint, target_joint, task_constraints)
+        # if success:
+        #     success_time_non_deep_learning += 1
+        #     total_time_non_deep_learning += planning_time
+        #     total_length_non_deep_learning += path_length
 
         # clear the planning scene.
         path_planner_tester.cleanPlanningScene()
 
-    print("test done")
-    print("success rate of deep learning ", success_time_deep_learning / test_number)
-    print("success rate of non deep learning ", success_time_non_deep_learning / test_number)
-    print("average planning time of deep learning ", total_time_deep_learning /  success_time_deep_learning)
-    print("average planning time of non deep learning ", total_time_non_deep_learning /  success_time_non_deep_learning)
-    print("average path length of deep learning ", total_length_deep_learning / success_time_deep_learning)
-    print("average path length of non deep learning ", total_length_non_deep_learning / success_time_non_deep_learning)
+    # print("test done")
+    # print("success rate of deep learning ", success_time_deep_learning / test_number)
+    # print("success rate of non deep learning ", success_time_non_deep_learning / test_number)
+    # print("average planning time of deep learning ", total_time_deep_learning /  success_time_deep_learning)
+    # print("average planning time of non deep learning ", total_time_non_deep_learning /  success_time_non_deep_learning)
+    # print("average path length of deep learning ", total_length_deep_learning / success_time_deep_learning)
+    # print("average path length of non deep learning ", total_length_non_deep_learning / success_time_non_deep_learning)
 
 if __name__ == '__main__':
     main()

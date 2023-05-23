@@ -106,7 +106,7 @@ RUN apt-get install unzip && wget https://download.pytorch.org/libtorch/cu117/li
 
 # include CUDA to path
 ENV CUDA_HOME /usr/local/cuda
-ENV LD_LIBRARY_PATH /usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH /root/libtorch/lib:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
 ENV PATH $CUDA_HOME/bin:$PATH
 
 # install moveit
@@ -252,6 +252,7 @@ RUN python3.8 -m pip install --no-cache-dir torch-cluster -f https://pytorch-geo
 RUN python3.8 -m pip install --no-cache-dir torch-spline-conv -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
 RUN python3.8 -m pip install --no-cache-dir torch-geometric -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
 RUN python3.8 -m pip install einops
+RUN python3.8 -m pip install tensorboard
 
 # install visual studio code
 RUN apt-get update && apt-get install -y software-properties-common apt-transport-https && wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && \

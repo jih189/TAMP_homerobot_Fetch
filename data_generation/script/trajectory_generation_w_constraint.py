@@ -7,7 +7,7 @@ import random
 from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest
 from moveit_msgs.msg import PlanningScene, CollisionObject, AttachedCollisionObject
 from sensor_msgs.msg import JointState
-from geometry_msgs.msg import PoseStamped, Point, Point32
+from geometry_msgs.msg import PoseStamped, Point
 from shape_msgs.msg import Mesh
 from shape_msgs.msg import MeshTriangle
 
@@ -27,7 +27,7 @@ import shutil
 import trimesh
 from trimesh_util import sample_points_on_mesh, filter_points_inside_mesh, write_ply
 
-from sensor_msgs.msg import PointCloud2, PointCloud, PointField
+from sensor_msgs.msg import PointCloud2, PointField
 import std_msgs.msg
 import struct
 
@@ -58,8 +58,7 @@ class TrajectoryGenerator:
         joint_state_publisher.publish(joint_state)
 
         # set the planner to rrt star
-        #self.move_group.set_planner_id('RRTstarkConfigDefault')
-        self.move_group.set_planner_id('RRTConnectkConfigDefault')
+        self.move_group.set_planner_id('CBIRRTConfigDefault')
         self.move_group.set_planning_time(10.0)
 
         self.pointcloud_pub = rospy.Publisher("/obstacle_point_cloud", PointCloud2, queue_size=1)
@@ -77,21 +76,6 @@ class TrajectoryGenerator:
 
     def set_path_planner_id(self, planner_id):
         self.move_group.set_planner_id(planner_id)
-        
-    def numpy_to_pointcloud(self, points, frame_id="base_link"):
-        pc_msg = PointCloud()
-        pc_msg.header.stamp = rospy.Time.now()
-        pc_msg.header.frame_id = frame_id
-
-        for point in points:
-            p = Point32()
-            p.x = point[0]
-            p.y = point[1]
-            p.z = point[2]
-            pc_msg.points.append(p)
-
-        return pc_msg
-
 
     def numpy_to_pointcloud2(self, points, frame_id="base_link"):
         '''
@@ -289,7 +273,7 @@ class TrajectoryGenerator:
             return True, start_joint, target_joint, horizontal_constraint
         return False, None, None, None
 
-    def measurePlanningWithConstraints(self, start_joint, target_joint, task_constraints, pointcloud):
+    def measurePlanningWithConstraints(self, start_joint, target_joint, task_constraints):
         moveit_robot_state = RobotState()
         moveit_robot_state.joint_state.name = self.joint_names
         moveit_robot_state.joint_state.position = start_joint
@@ -298,7 +282,6 @@ class TrajectoryGenerator:
         self.move_group.set_joint_value_target(target_joint)
         self.move_group.set_path_constraints(task_constraints)
         self.move_group.set_in_hand_pose(task_constraints.in_hand_pose)
-        self.move_group.set_obstacle_point_cloud(self.numpy_to_pointcloud(pointcloud))
         
         start_time = time.time()
         result = self.move_group.plan()
@@ -405,6 +388,34 @@ class TrajectoryGenerator:
                 count += 1
         return False, None
 
+    def generateValidTrajectoryWithConstraints(self, task_constraints=None):
+        for i in range(5):
+            success = False
+            for i in range(5):
+                success, start_joint, target_joint, horizontal_constraint = self.getRandomTaskWithConstraints()
+                if success:
+                    break
+            if not success:
+                return False, None        
+            
+            moveit_robot_state = RobotState()
+            moveit_robot_state.joint_state.name = self.joint_names
+            moveit_robot_state.joint_state.position = start_joint
+
+            self.move_group.set_start_state(moveit_robot_state)
+            self.move_group.set_joint_value_target(target_joint)
+            self.move_group.set_path_constraints(horizontal_constraint)
+            self.move_group.set_in_hand_pose(horizontal_constraint.in_hand_pose)
+
+            for i in range(2):
+                result = self.move_group.plan()
+                if result[0]:
+                    sampled_trajectory = [j.positions for j in result[1].joint_trajectory.points]
+                    return True, np.array(sampled_trajectory)
+                
+        return False, None
+
+
     def print_task(self):
         print("joint names")
         print(self.joint_names)
@@ -462,28 +473,50 @@ class TrajectoryGenerator:
 
 def main():
     ###################
-    scene_count = 200
-    trajectory_count_per_scene = 20
+    scene_count = 200 # this should also be a command line argument
+    trajectory_count_per_scene = 100
     rospy.init_node('data_trajectory_generation')
 
     # Initialize MoveIt
     moveit_commander.roscpp_initialize(sys.argv)
     trajectory_generator = TrajectoryGenerator(moveit_commander)
 
-    fileDir = 'trajectory_data/'
+    fileDir = 'trajectory_data_with_constraints/'
 
-    # remove the directory for data if it exists.
-    if os.path.exists(fileDir):
-        shutil.rmtree(fileDir)
+    # if the directory does not exist, create it
+    if not os.path.exists(fileDir):
+        os.mkdir(fileDir)
 
-    os.mkdir(fileDir)
+    
 
-    scene_count += 1
-    start_scene = 0
+    start_env_num = 0 # this should be a command line argument
+    # read in the command line arguments
+    if len(sys.argv) > 1:
+        start_env_num = int(sys.argv[1])
+    if len(sys.argv) > 2:
+        scene_count = int(sys.argv[2])
 
-    for env_num in range(start_scene, start_scene + scene_count):
-        print "process ", env_num - start_scene, " / ", (scene_count - 1)
-        os.mkdir(fileDir + "env_%06d/" % env_num)
+    for env_num in range(start_env_num, start_env_num + scene_count):
+        # check if the directory exists
+        i = 0
+        if not os.path.exists(fileDir + "env_%06d/" % env_num):
+            os.mkdir(fileDir + "env_%06d/" % env_num)
+            print "Progress ", env_num-start_env_num+1, " / ", (scene_count)
+        else:
+            # if the directory exists, check the largest index of the trajectory
+            # get the largest index of the trajectory
+            largest_index = 0
+            for filename in os.listdir(fileDir + "env_%06d/" % env_num):
+                if filename.startswith('path_'):
+                    index = int(filename.split('.')[0].split('_')[-1])
+                    if index > largest_index:
+                        largest_index = index
+            # if the largest index is 99, then we have already generated 100 trajectories
+            if largest_index == trajectory_count_per_scene - 1:
+                print "skipping scene ", env_num, " as it has already been generated"
+                continue
+            i = largest_index + 1
+            print "continuing scene ", env_num, " from index ", i, " / ", trajectory_count_per_scene, " trajectories"
 
         # use the env_num as the seed
         obstacle_meshes = trajectory_generator.generate_random_mesh(env_num)
@@ -491,9 +524,9 @@ def main():
 
         write_ply(fileDir + "env_%06d/map_" % env_num + "%d.ply" % env_num, pointcloud)
 
-        i = 0
+        
         while i < trajectory_count_per_scene:
-            plan_result, sampled_trajectory = trajectory_generator.generateValidTrajectory()
+            plan_result, sampled_trajectory = trajectory_generator.generateValidTrajectoryWithConstraints()
             if not plan_result:
                 continue
             trajData = {'path': sampled_trajectory}
