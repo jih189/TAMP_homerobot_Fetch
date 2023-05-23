@@ -106,7 +106,7 @@ RUN apt-get install unzip && wget https://download.pytorch.org/libtorch/cu117/li
 
 # include CUDA to path
 ENV CUDA_HOME /usr/local/cuda
-ENV LD_LIBRARY_PATH /usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH /root/libtorch/lib:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
 ENV PATH $CUDA_HOME/bin:$PATH
 
 # install moveit

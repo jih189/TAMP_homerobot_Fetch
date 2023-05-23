@@ -12,10 +12,6 @@ def main():
     moveit_commander.roscpp_initialize(sys.argv)
     path_planner_tester = TrajectoryGenerator(moveit_commander)
 
-    # set the path planner id
-    path_planner_tester.set_path_planner_id('DLBIRRTConfigDefault')
-    # path_planner_tester.set_path_planner_id('RRTConnectkConfigDefault')
-
     success_time_deep_learning = 0.0
     success_time_non_deep_learning = 0.0
     total_time_deep_learning = 0.0
@@ -34,6 +30,7 @@ def main():
         path_planner_tester.show_point_cloud(pointcloud)
 
         hasTask, start_joint, target_joint, task_constraints = path_planner_tester.getRandomTaskWithConstraints()
+        #hasTask, start_joint, target_joint = path_planner_tester.getRandomTask()
 
         # if not hasTask:
         #     continue
@@ -45,8 +42,13 @@ def main():
         # print(task_constraints)
 
         # path_planner_tester.set_path_planner_id('DLBIRRTConfigDefault')
-        path_planner_tester.set_path_planner_id('CBIRRTConfigDefault')
-        success, planning_time, path_length = path_planner_tester.measurePlanningWithConstraints(start_joint, target_joint, task_constraints)
+        # path_planner_tester.set_path_planner_id('CBIRRTConfigDefault')
+        path_planner_tester.set_path_planner_id('CMPNETRRTConfigDefault')
+        #success, planning_time, path_length = path_planner_tester.measurePlanningWithConstraints(start_joint, target_joint, task_constraints)
+        path_planner_tester.show_point_cloud(pointcloud)
+        success, planning_time, path_length = path_planner_tester.measurePlanningWithConstraints(start_joint, start_joint, task_constraints, pointcloud)
+        #path_planner_tester.set_path_planner_id('RRTConnectkConfigDefault')
+        #success, planning_time, path_length = path_planner_tester.measurePlanning(start_joint, target_joint)
         if success:
             success_time_deep_learning += 1
             total_time_deep_learning += planning_time

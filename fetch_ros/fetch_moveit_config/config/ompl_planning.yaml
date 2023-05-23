@@ -27,6 +27,9 @@ planner_configs:
     type: geometric::DLBIRRT
   MPNETRRTConfigDefault:
     type: geometric::MPNETRRT
+  CMPNETRRTConfigDefault:
+    type: geometric::CMPNETRRT
+    use_point_cloud: true 
   DLCBIRRTConfigDefault:
     type: geometric::DLCBIRRT
   CLazyPRMConfigDefault:
@@ -54,6 +57,7 @@ arm:
     - CLazyPRMConfigDefault
     - DLBIRRTConfigDefault
     - MPNETRRTConfigDefault
+    - CMPNETRRTConfigDefault
     - DLCBIRRTConfigDefault
   projection_evaluator: joints(shoulder_pan_joint,shoulder_lift_joint)
   longest_valid_segment_fraction: 0.005

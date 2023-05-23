@@ -7,7 +7,7 @@ import random
 from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest
 from moveit_msgs.msg import PlanningScene, CollisionObject, AttachedCollisionObject
 from sensor_msgs.msg import JointState
-from geometry_msgs.msg import PoseStamped, Point
+from geometry_msgs.msg import PoseStamped, Point, Point32
 from shape_msgs.msg import Mesh
 from shape_msgs.msg import MeshTriangle
 
@@ -27,7 +27,7 @@ import shutil
 import trimesh
 from trimesh_util import sample_points_on_mesh, filter_points_inside_mesh, write_ply
 
-from sensor_msgs.msg import PointCloud2, PointField
+from sensor_msgs.msg import PointCloud2, PointCloud, PointField
 import std_msgs.msg
 import struct
 
@@ -58,7 +58,8 @@ class TrajectoryGenerator:
         joint_state_publisher.publish(joint_state)
 
         # set the planner to rrt star
-        self.move_group.set_planner_id('RRTstarkConfigDefault')
+        #self.move_group.set_planner_id('RRTstarkConfigDefault')
+        self.move_group.set_planner_id('RRTConnectkConfigDefault')
         self.move_group.set_planning_time(10.0)
 
         self.pointcloud_pub = rospy.Publisher("/obstacle_point_cloud", PointCloud2, queue_size=1)
@@ -76,6 +77,21 @@ class TrajectoryGenerator:
 
     def set_path_planner_id(self, planner_id):
         self.move_group.set_planner_id(planner_id)
+        
+    def numpy_to_pointcloud(self, points, frame_id="base_link"):
+        pc_msg = PointCloud()
+        pc_msg.header.stamp = rospy.Time.now()
+        pc_msg.header.frame_id = frame_id
+
+        for point in points:
+            p = Point32()
+            p.x = point[0]
+            p.y = point[1]
+            p.z = point[2]
+            pc_msg.points.append(p)
+
+        return pc_msg
+
 
     def numpy_to_pointcloud2(self, points, frame_id="base_link"):
         '''
@@ -273,7 +289,7 @@ class TrajectoryGenerator:
             return True, start_joint, target_joint, horizontal_constraint
         return False, None, None, None
 
-    def measurePlanningWithConstraints(self, start_joint, target_joint, task_constraints):
+    def measurePlanningWithConstraints(self, start_joint, target_joint, task_constraints, pointcloud):
         moveit_robot_state = RobotState()
         moveit_robot_state.joint_state.name = self.joint_names
         moveit_robot_state.joint_state.position = start_joint
@@ -282,6 +298,7 @@ class TrajectoryGenerator:
         self.move_group.set_joint_value_target(target_joint)
         self.move_group.set_path_constraints(task_constraints)
         self.move_group.set_in_hand_pose(task_constraints.in_hand_pose)
+        self.move_group.set_obstacle_point_cloud(self.numpy_to_pointcloud(pointcloud))
         
         start_time = time.time()
         result = self.move_group.plan()
@@ -445,8 +462,8 @@ class TrajectoryGenerator:
 
 def main():
     ###################
-    scene_count = 500
-    trajectory_count_per_scene = 1
+    scene_count = 200
+    trajectory_count_per_scene = 20
     rospy.init_node('data_trajectory_generation')
 
     # Initialize MoveIt
@@ -462,9 +479,10 @@ def main():
     os.mkdir(fileDir)
 
     scene_count += 1
+    start_scene = 0
 
-    for env_num in range(2000, 2000 + scene_count):
-        print "process ", env_num, " / ", (scene_count - 1)
+    for env_num in range(start_scene, start_scene + scene_count):
+        print "process ", env_num - start_scene, " / ", (scene_count - 1)
         os.mkdir(fileDir + "env_%06d/" % env_num)
 
         # use the env_num as the seed
