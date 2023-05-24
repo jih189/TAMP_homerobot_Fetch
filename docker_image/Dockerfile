@@ -106,7 +106,7 @@ RUN apt-get install unzip && wget https://download.pytorch.org/libtorch/cu117/li
 
 # include CUDA to path
 ENV CUDA_HOME /usr/local/cuda
-ENV LD_LIBRARY_PATH /root/libtorch/lib:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH /usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
 ENV PATH $CUDA_HOME/bin:$PATH
 
 # install moveit
@@ -178,15 +178,15 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86
 # # Put conda in path so we can use conda activate
 ENV PATH=$PATH:$CONDA_DIR/bin
 
-# # Create a conda env for contact graspnet
-# COPY ./download/contact_graspnet_env.tar.xz /root/
-# RUN tar -xf /root/contact_graspnet_env.tar.xz -C /root && rm /root/contact_graspnet_env.tar.xz
-# RUN conda env create -f contact_graspnet_env.yml
+# Create a conda env for contact graspnet
+COPY ./download/contact_graspnet_env.tar.xz /root/
+RUN tar -xf /root/contact_graspnet_env.tar.xz -C /root && rm /root/contact_graspnet_env.tar.xz
+RUN conda env create -f contact_graspnet_env.yml
 
-# # Create a conda env for contact graspnet for 30 series
-# COPY ./download/contact_graspnet_30.tar.xz /root/
-# RUN tar -xf /root/contact_graspnet_30.tar.xz -C /root && rm /root/contact_graspnet_30.tar.xz
-# RUN conda env create -f contact_graspnet_30.yml
+# Create a conda env for contact graspnet for 30 series
+COPY ./download/contact_graspnet_30.tar.xz /root/
+RUN tar -xf /root/contact_graspnet_30.tar.xz -C /root && rm /root/contact_graspnet_30.tar.xz
+RUN conda env create -f contact_graspnet_30.yml
 
 RUN echo 'source $CONDA_DIR/etc/profile.d/conda.sh' >> $HOME/.bashrc
 
@@ -260,10 +260,10 @@ RUN git clone https://github.com/jih189/mpnet_fetch.git
 COPY ./download/models.tar.xz $HOME
 RUN tar -xf $HOME/models.tar.xz -C $HOME && rm $HOME/models.tar.xz && mv $HOME/models $HOME/mpnet_fetch/pt_dir
 
-# install visual studio code
-RUN apt-get update && apt-get install -y software-properties-common apt-transport-https && wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && \
-	install -o root -g root -m 644 packages.microsoft.gpg /etc/apt/trusted.gpg.d/ && sh -c 'echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list' && \
-	apt-get update && apt-get install -y code
+# # install visual studio code
+# RUN apt-get update && apt-get install -y software-properties-common apt-transport-https && wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && \
+# 	install -o root -g root -m 644 packages.microsoft.gpg /etc/apt/trusted.gpg.d/ && sh -c 'echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list' && \
+# 	apt-get update && apt-get install -y code
 
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME
