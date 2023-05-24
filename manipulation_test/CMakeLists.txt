@@ -183,7 +183,7 @@ add_library(${PROJECT_NAME}
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/manipulation_test_node.cpp)
-add_executable(send_constrained_planning_request src/send_constrained_planning_request.cpp)
+# add_executable(send_constrained_planning_request src/send_constrained_planning_request.cpp)
 add_executable(main_pipeline src/main_pipeline.cpp)
 add_executable(constrained_test src/constrained_test.cpp)
 add_executable(graph_test src/graph_test.cpp)
@@ -203,10 +203,10 @@ add_executable(grasp_visualizer src/grasp_visualizer.cpp)
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(send_constrained_planning_request
-  ${catkin_LIBRARIES}
-  ${PROJECT_NAME}
-)
+# target_link_libraries(send_constrained_planning_request
+#  ${catkin_LIBRARIES}
+#  ${PROJECT_NAME}
+#)
 
 target_link_libraries(main_pipeline
   ${catkin_LIBRARIES}
