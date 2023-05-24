@@ -178,15 +178,15 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86
 # # Put conda in path so we can use conda activate
 ENV PATH=$PATH:$CONDA_DIR/bin
 
-# Create a conda env for contact graspnet
-COPY ./download/contact_graspnet_env.tar.xz /root/
-RUN tar -xf /root/contact_graspnet_env.tar.xz -C /root && rm /root/contact_graspnet_env.tar.xz
-RUN conda env create -f contact_graspnet_env.yml
+# # Create a conda env for contact graspnet
+# COPY ./download/contact_graspnet_env.tar.xz /root/
+# RUN tar -xf /root/contact_graspnet_env.tar.xz -C /root && rm /root/contact_graspnet_env.tar.xz
+# RUN conda env create -f contact_graspnet_env.yml
 
-# Create a conda env for contact graspnet for 30 series
-COPY ./download/contact_graspnet_30.tar.xz /root/
-RUN tar -xf /root/contact_graspnet_30.tar.xz -C /root && rm /root/contact_graspnet_30.tar.xz
-RUN conda env create -f contact_graspnet_30.yml
+# # Create a conda env for contact graspnet for 30 series
+# COPY ./download/contact_graspnet_30.tar.xz /root/
+# RUN tar -xf /root/contact_graspnet_30.tar.xz -C /root && rm /root/contact_graspnet_30.tar.xz
+# RUN conda env create -f contact_graspnet_30.yml
 
 RUN echo 'source $CONDA_DIR/etc/profile.d/conda.sh' >> $HOME/.bashrc
 
@@ -253,6 +253,12 @@ RUN python3.8 -m pip install --no-cache-dir torch-spline-conv -f https://pytorch
 RUN python3.8 -m pip install --no-cache-dir torch-geometric -f https://pytorch-geometric.com/whl/torch-2.0.0+cu117.html
 RUN python3.8 -m pip install einops
 RUN python3.8 -m pip install tensorboard
+
+# install mpnet_fetch
+RUN git clone https://github.com/jih189/mpnet_fetch.git
+# set the model files to the proper position
+COPY ./download/models.tar.xz $HOME
+RUN tar -xf $HOME/models.tar.xz -C $HOME && rm $HOME/models.tar.xz && mv $HOME/models $HOME/mpnet_fetch/pt_dir
 
 # install visual studio code
 RUN apt-get update && apt-get install -y software-properties-common apt-transport-https && wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && \
