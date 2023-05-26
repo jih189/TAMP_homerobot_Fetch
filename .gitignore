@@ -15,3 +15,4 @@ ros_tensorflow/src/contact_graspnet/pointnet2/tf_ops/sampling/tf_sampling_so.so
 data_generation/trajectory_data_with_constraints/
 data_generation/trajectory_data_with_constraints*
 MPNet
+.ipynb_checkpoints/
