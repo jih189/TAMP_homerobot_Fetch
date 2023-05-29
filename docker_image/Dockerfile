@@ -260,11 +260,6 @@ RUN git clone https://github.com/jih189/mpnet_fetch.git
 COPY ./download/models.tar.xz $HOME
 RUN tar -xf $HOME/models.tar.xz -C $HOME && rm $HOME/models.tar.xz && mv $HOME/models $HOME/mpnet_fetch/pt_dir
 
-# install visual studio code
-RUN apt-get update && apt-get install -y software-properties-common apt-transport-https && wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && \
-	install -o root -g root -m 644 packages.microsoft.gpg /etc/apt/trusted.gpg.d/ && sh -c 'echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list' && \
-	apt-get update && apt-get install -y code
-
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME
 
