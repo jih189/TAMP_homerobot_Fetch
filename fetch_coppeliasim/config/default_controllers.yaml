@@ -53,7 +53,13 @@ gripper_controller:
   type: "position_controllers/JointTrajectoryController"
   joints:
     - r_gripper_finger_joint
-    
+
+head_controller:
+  type: "position_controllers/JointTrajectoryController"
+  joints:
+    - head_pan_joint
+    - head_tilt_joint   
+
 #- l_gripper_finger_joint
 
 mobile_base_controller:
@@ -63,9 +69,12 @@ mobile_base_controller:
   pose_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 1000.0]
   twist_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 1000.0]
   enable_odom_tf: false
-
-  wheel_radius: 0.3
+  wheel_radius: 0.06
   wheel_separation: 0.375
+  cmd_vel_timeout: 0.25
+
+
+
   
 
 # cartesian_wrist_controller:
