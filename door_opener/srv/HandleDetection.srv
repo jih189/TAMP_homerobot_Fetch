@@ -1,0 +1,5 @@
+geometry_msgs/TransformStamped camera_stamped_transform
+---
+# Response
+HandleMotion[] handle_motions
+sensor_msgs/PointCloud full_pc

@@ -260,6 +260,9 @@ RUN git clone https://github.com/jih189/mpnet_fetch.git
 COPY ./download/models.tar.xz $HOME
 RUN tar -xf $HOME/models.tar.xz -C $HOME && rm $HOME/models.tar.xz && mv $HOME/models $HOME/mpnet_fetch/pt_dir
 
+# need to install opencv
+RUN python3 -m pip install opencv-python open3d --ignore-installed PyYAML
+
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME
 
