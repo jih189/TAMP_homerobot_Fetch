@@ -14,5 +14,8 @@ ros_tensorflow/src/contact_graspnet/pointnet2/tf_ops/sampling/tf_sampling_g.cu.o
 ros_tensorflow/src/contact_graspnet/pointnet2/tf_ops/sampling/tf_sampling_so.so
 data_generation/trajectory_data_with_constraints/
 data_generation/trajectory_data_with_constraints*
+door_opener/script/darknet/obj.names
+door_opener/script/darknet/yolo-obj.cfg
+door_opener/script/darknet/yolo-obj.weights
 MPNet
 .ipynb_checkpoints/
