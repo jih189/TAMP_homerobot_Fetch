@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# move weight to darknet
+mv /root/handle_weight/obj.names /root/catkin_ws/src/jiaming_manipulation/door_opener/script/darknet
+mv /root/handle_weight/yolo-obj.cfg /root/catkin_ws/src/jiaming_manipulation/door_opener/script/darknet
+mv /root/handle_weight/yolo-obj.weights /root/catkin_ws/src/jiaming_manipulation/door_opener/script/darknet
+
 # check whether the moveit code is changed remote. If so, then recompile moveit
 cd /root/ws_moveit/src/moveit_cbirrt
 
