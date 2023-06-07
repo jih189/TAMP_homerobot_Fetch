@@ -66,15 +66,14 @@ mobile_base_controller:
   type: "diff_drive_controller/DiffDriveController"
   left_wheel: "l_wheel_joint"
   right_wheel: "r_wheel_joint"
-  pose_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 1000.0]
-  twist_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 1000.0]
-  enable_odom_tf: false
+  pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.03]
+  twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.03]
+  enable_odom_tf: true
   wheel_radius: 0.06
   wheel_separation: 0.375
   cmd_vel_timeout: 0.25
-
-
-
+  publish_rate: 50
+  open_loop: true
   
 
 # cartesian_wrist_controller:
