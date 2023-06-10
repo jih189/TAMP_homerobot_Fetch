@@ -22,6 +22,15 @@ class HandleDetectionServer:
 
         self.service = rospy.Service('handle_detection', HandleDetection, self.handle_object_detection)
 
+        rospy.Subscriber("/head_camera/rgb/image_rect_color", Image, self.image_callback)
+        rospy.Subscriber("/head_camera/depth_downsample/points", PointCloud2, self.pointcloud_callback)
+
+    def image_callback(self, img_msg):
+        self.cv2_img = cv2.cvtColor(self.imgmsg_to_cv2(img_msg), cv2.COLOR_BGR2RGB)
+        
+    def pointcloud_callback(self, pc_msg):
+        self.pointcloud = self.convert_pointcloud2_to_pc(pc_msg)
+
     def imgmsg_to_cv2(self, img_msg):
         dtype = np.dtype("uint8") # Hardcode to 8 bits...
         dtype = dtype.newbyteorder('>' if img_msg.is_bigendian else '<')
@@ -175,44 +184,6 @@ class HandleDetectionServer:
 
         return np.append(rotated_normal, -np.dot(rotated_normal, transformed_point))
 
-
-    # def transform_plane(self, plane, pose_matrix):
-    #     """
-    #     Transforms a plane with a pose matrix.
-
-    #     :param plane: Plane parameters [A, B, C, D] of the plane equation Ax + By + Cz + D = 0
-    #     :type plane: numpy.ndarray
-    #     :param pose_matrix: 4x4 pose matrix
-    #     :type pose_matrix: numpy.ndarray
-    #     :return: New plane parameters
-    #     :rtype: numpy.ndarray
-    #     """
-    #     # Extract the normal vector and distance from the plane parameters
-    #     normal = plane[:3]
-    #     distance = plane[3]
-
-    #     # Convert the normal vector to homogeneous coordinates
-    #     normal_homogeneous = np.append(normal, 0)  # No translation for normal vector
-
-    #     # Apply the pose matrix to the normal vector
-    #     new_normal = np.dot(pose_matrix, normal_homogeneous)[:3]
-
-    #     # Compute the new distance
-    #     # Since the plane equation is Ax + By + Cz + D = 0, 
-    #     # D can be calculated by substituting a point on the plane (x, y, z) into the equation.
-    #     # Assume the point on the original plane is (0, 0, -D/C) if C!=0 or (0, -D/B, 0) if B!=0 or (-D/A, 0, 0) if A!=0,
-    #     # we first rotate this point with the rotation part of the pose matrix, then calculate the new D value 
-    #     if normal[2] != 0:
-    #         original_point = np.array([0, 0, -distance / normal[2], 1])
-    #     elif normal[1] != 0:
-    #         original_point = np.array([0, -distance / normal[1], 0, 1])
-    #     else:  # normal[0] != 0
-    #         original_point = np.array([-distance / normal[0], 0, 0, 1])
-    #     new_point = np.dot(pose_matrix, original_point)
-    #     new_distance = -new_normal.dot(new_point[:3])
-
-    #     return np.append(new_normal, new_distance)
-
     def handle_object_detection(self, req):
 
         rot_mat = R.from_quat([req.camera_stamped_transform.transform.rotation.x, req.camera_stamped_transform.transform.rotation.y, \
@@ -225,18 +196,10 @@ class HandleDetectionServer:
         # get camera info
         camera_info = rospy.wait_for_message('/head_camera/rgb/camera_info', CameraInfo)
         camera_matrix = np.reshape(camera_info.K, (3, 3))
-        
-        # get color image from camera
-        image = rospy.wait_for_message("/head_camera/rgb/image_rect_color", Image)
-        # get pointcloud from camera
-        pointcloud_raw = rospy.wait_for_message("/head_camera/depth_downsample/points", PointCloud2)
-
-        cv2_img = cv2.cvtColor(self.imgmsg_to_cv2(image), cv2.COLOR_BGR2RGB)
-        pointcloud = self.convert_pointcloud2_to_pc(pointcloud_raw)
 
         # estimate the handle.
-        blob, outputs = self.detect_objects(cv2_img, self.model, self.output_layers)
-        boxes, confs, class_ids = self.get_box_dimensions(outputs, cv2_img.shape[0], cv2_img.shape[1])
+        blob, outputs = self.detect_objects(self.cv2_img, self.model, self.output_layers)
+        boxes, confs, class_ids = self.get_box_dimensions(outputs, self.cv2_img.shape[0], self.cv2_img.shape[1])
 
         res = HandleDetectionResponse()
         number_of_handles = 0
@@ -244,7 +207,7 @@ class HandleDetectionServer:
         for b, n in self.cluster_boxes(boxes, confs, class_ids, self.classes):
             if n == 'handle':
                 number_of_handles += 1
-                filter_pointcloud, rest_pointcloud = self.filter_points(pointcloud, camera_matrix, b)
+                filter_pointcloud, rest_pointcloud = self.filter_points(self.pointcloud, camera_matrix, b)
                 
                 handle_point = np.mean(filter_pointcloud, axis=0)
                 
@@ -288,8 +251,7 @@ class HandleDetectionServer:
                 res.handle_motions.append(handle_motion)
 
         # # Convert the point to world frame
-        pointcloud = np.dot(camera_pose_mat, np.hstack((pointcloud, np.ones((pointcloud.shape[0], 1)))).T).T[:, :3]
-        res.full_pc = self.convert_from_numpy_to_msg(pointcloud)
+        res.full_pc = self.convert_from_numpy_to_msg(np.dot(camera_pose_mat, np.hstack((self.pointcloud, np.ones((self.pointcloud.shape[0], 1)))).T).T[:, :3])
 
         print("detect ", number_of_handles, " handles from the scene.")
 
