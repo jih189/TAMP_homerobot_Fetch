@@ -12,7 +12,7 @@ import tensorflow.compat.v1 as tf
 tf.disable_eager_execution()
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
-#tf.config.experimental.set_memory_growth(physical_devices[1], True)
+tf.config.experimental.set_memory_growth(physical_devices[1], True)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(BASE_DIR))
