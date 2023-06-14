@@ -1,9 +1,4 @@
 CMakelists.txt
 *.pyc
-data_generation/trajectory_data_with_constraints/
-data_generation/trajectory_data_with_constraints*
-door_opener/script/darknet/obj.names
-door_opener/script/darknet/yolo-obj.cfg
-door_opener/script/darknet/yolo-obj.weights
 MPNet
 .ipynb_checkpoints/
