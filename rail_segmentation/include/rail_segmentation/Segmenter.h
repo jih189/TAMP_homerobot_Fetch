@@ -88,7 +88,7 @@ public:
     /*! The maximum interations for the plane segmenter */
     static constexpr int SAC_MAX_ITERATIONS = 100;
     /*! The padding for surface removal. */
-    static constexpr double SURFACE_REMOVAL_PADDING = 0.005;
+    static constexpr double SURFACE_REMOVAL_PADDING = 0.02;
     /*! The minimum cluster size. */
     static constexpr int DEFAULT_MIN_CLUSTER_SIZE = 200;
     /*! The maximum cluster size. */
@@ -113,7 +113,7 @@ public:
   /*! The maximum interations for the plane segmenter */
   static const int SAC_MAX_ITERATIONS = 100;
   /*! The padding for surface removal. */
-  static const double SURFACE_REMOVAL_PADDING = 0.005;
+  static const double SURFACE_REMOVAL_PADDING = 0.02;
   /*! The minimum cluster size. */
   static const int DEFAULT_MIN_CLUSTER_SIZE = 200;
   /*! The maximum cluster size. */

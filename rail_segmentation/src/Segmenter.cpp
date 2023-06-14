@@ -345,6 +345,25 @@ bool Segmenter::searchTableCallback(rail_segmentation::SearchTable::Request &req
   transformed_pc->header.seq = pc->header.seq;
   transformed_pc->header.stamp = pc->header.stamp;
 
+  // we need to filter out the points not in the zone.
+  pcl::PassThrough<pcl::PointXYZRGB> pass_through;
+  pass_through.setInputCloud(transformed_pc);
+  pass_through.setFilterFieldName("x");
+  pass_through.setFilterLimits(zone.getXMin(), zone.getXMax());
+  pass_through.filter(*transformed_pc);
+
+  // Filter along y-axis
+  pass_through.setInputCloud(transformed_pc);
+  pass_through.setFilterFieldName("y");
+  pass_through.setFilterLimits(zone.getYMin(), zone.getYMax());
+  pass_through.filter(*transformed_pc);
+
+  // Filter along z-axis
+  pass_through.setInputCloud(transformed_pc);
+  pass_through.setFilterFieldName("z");
+  pass_through.setFilterLimits(zone.getZMin(), zone.getZMax());
+  pass_through.filter(*transformed_pc);
+
   // start with every index
   pcl::IndicesPtr filter_indices(new vector<int>);
   filter_indices->resize(transformed_pc->points.size());
@@ -573,6 +592,25 @@ bool Segmenter::executeSegmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc,
   transformed_pc->header.frame_id = zone.getBoundingFrameID();
   transformed_pc->header.seq = pc->header.seq;
   transformed_pc->header.stamp = pc->header.stamp;
+  
+  // need to filter out the pointcloud out of workspace.
+  pcl::PassThrough<pcl::PointXYZRGB> pass_through;
+  pass_through.setInputCloud(transformed_pc);
+  pass_through.setFilterFieldName("x");
+  pass_through.setFilterLimits(zone.getXMin(), zone.getXMax());
+  pass_through.filter(*transformed_pc);
+
+  // Filter along y-axis
+  pass_through.setInputCloud(transformed_pc);
+  pass_through.setFilterFieldName("y");
+  pass_through.setFilterLimits(zone.getYMin(), zone.getYMax());
+  pass_through.filter(*transformed_pc);
+
+  // Filter along z-axis
+  pass_through.setInputCloud(transformed_pc);
+  pass_through.setFilterFieldName("z");
+  pass_through.setFilterLimits(zone.getZMin(), zone.getZMax());
+  pass_through.filter(*transformed_pc);
 
   // start with every index
   pcl::IndicesPtr filter_indices(new vector<int>);
