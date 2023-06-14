@@ -55,3 +55,10 @@ case $gpuname in
         echo "unknown gpu, so no way to compile in conda"
         ;;
 esac
+
+# need to place the contact grasp net weight into the checkpoint dir
+mkdir /root/catkin_ws/src/jiaming_manipulation/ros_tensorflow/src/contact_graspnet/checkpoints
+cp /root/catkin_ws/src/jiaming_manipulation/docker_image/download/scene_test_2048_bs3_hor_sigma_001.tar.xz /root/catkin_ws/src/jiaming_manipulation/ros_tensorflow/src/contact_graspnet/checkpoints
+cd /root/catkin_ws/src/jiaming_manipulation/ros_tensorflow/src/contact_graspnet/checkpoints
+tar -xf scene_test_2048_bs3_hor_sigma_001.tar.xz
+rm scene_test_2048_bs3_hor_sigma_001.tar.xz
