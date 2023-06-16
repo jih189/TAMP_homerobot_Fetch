@@ -1,11 +1,13 @@
 # Planner selection
-base_global_planner: "navfn/NavfnROS"
-base_local_planner: "base_local_planner/TrajectoryPlannerROS"
+# base_global_planner: "navfn/NavfnROS"
+base_global_planner: "global_planner/GlobalPlanner"
+# base_local_planner: "base_local_planner/TrajectoryPlannerROS"
+base_local_planner: "mpc_local_planner/MpcLocalPlannerROS"
 
 # Recovery behaviors are defined in robot folders
 
 # Oscillation
-oscillation_timeout: 10.0
+oscillation_timeout: 0.0
 oscillation_distance: 0.5
 
 # Global planner
@@ -21,7 +23,7 @@ NavfnROS:
   visualize_potential: false
 
 # Local planner
-controller_frequency: 25.0
+controller_frequency: 10.0
 controller_patience: 15.0
 TrajectoryPlannerROS:
   # base vel/accel profile is in robot folders
