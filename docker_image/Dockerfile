@@ -263,8 +263,9 @@ RUN tar -xf $HOME/models.tar.xz -C $HOME && rm $HOME/models.tar.xz && mv $HOME/m
 # need to install opencv
 RUN python3 -m pip install opencv-python open3d --ignore-installed PyYAML
 
-# install open slam thing
-RUN apt-get install ros-melodic-openslam-gmapping
+# install dependencies for mpc_local_planner
+# install control_box_rst
+RUN git clone https://github.com/rst-tu-dortmund/control_box_rst.git && cd control_box_rst && mkdir build && cmake .. && make -j$(nproc) && make install
 
 # need to save the yolo door detector weight to the proper position
 COPY ./download/handle_weight.tar.xz $HOME

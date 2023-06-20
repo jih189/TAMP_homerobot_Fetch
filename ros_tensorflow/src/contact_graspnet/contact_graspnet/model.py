@@ -11,7 +11,7 @@ import cv2
 import tensorflow.compat.v1 as tf
 tf.disable_eager_execution()
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
-for gpu_id in range(len(physical_devices))
+for gpu_id in range(len(physical_devices)):
     tf.config.experimental.set_memory_growth(physical_devices[gpu_id], True)
 # tf.config.experimental.set_memory_growth(physical_devices[1], True)
 
