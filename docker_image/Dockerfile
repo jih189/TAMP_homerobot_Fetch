@@ -262,6 +262,20 @@ RUN tar -xf $HOME/models.tar.xz -C $HOME && rm $HOME/models.tar.xz && mv $HOME/m
 
 # need to install opencv
 RUN python3 -m pip install opencv-python open3d --ignore-installed PyYAML
+RUN python3.8 -m pip install opencv-python open3d --ignore-installed PyYAML
+
+# install Detic for object detection
+RUN git clone https://github.com/facebookresearch/detectron2.git && cd detectron2 && python3.8 -m pip install -e .
+RUN git clone https://github.com/facebookresearch/Detic.git --recurse-submodules && cd Detic && python3.8 -m pip install -r requirements.txt
+
+# install models for Detic
+RUN cd Detic && mkdir models && wget https://dl.fbaipublicfiles.com/detic/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth -O models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth
+
+# install gpt4all
+# need to use g++-9
+RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:jonathonf/gcc && apt-get install -y gcc-9 g++-9
+RUN git clone --recurse-submodules https://github.com/nomic-ai/gpt4all && cd gpt4all/gpt4all-backend/ && mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=g++-9 -DCMAKE_C_COMPILER=gcc-9 .. && cmake --build . --parallel
+RUN cd gpt4all/gpt4all-bindings/python && python3.8 -m pip install -e .
 
 # install dependencies for mpc_local_planner
 # install control_box_rst
