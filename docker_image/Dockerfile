@@ -265,6 +265,7 @@ RUN python3 -m pip install opencv-python open3d --ignore-installed PyYAML
 
 # install dependencies for mpc_local_planner
 # install control_box_rst
+RUN apt-get install coinor-libipopt-dev
 RUN git clone https://github.com/rst-tu-dortmund/control_box_rst.git && cd control_box_rst && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
 
 # need to save the yolo door detector weight to the proper position
