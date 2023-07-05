@@ -279,7 +279,7 @@ RUN cd gpt4all/gpt4all-bindings/python && python3.8 -m pip install -e .
 
 # install dependencies for mpc_local_planner
 # install control_box_rst
-RUN apt-get install coinor-libipopt-dev
+RUN apt-get install -y coinor-libipopt-dev
 RUN git clone https://github.com/rst-tu-dortmund/control_box_rst.git && cd control_box_rst && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
 
 # need to save the yolo door detector weight to the proper position
