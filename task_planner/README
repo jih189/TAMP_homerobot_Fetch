@@ -1,0 +1,37 @@
+# Task planner
+
+Here is the task planner for manipulation. The paper is goint to be submitted to IRCA 2024 hopefully.
+
+## Idea
+
+The objective of this project is to leverage Gaussian Mixture Models (GMM) as an experimental approach to enhance the performance of task and motion planning. In traditional task and motion planning, a two-level planner is commonly employed. Initially, the task planner devises a sequence of tasks, while the subsequent motion planner determines the motion plan for each task in the sequence. Prominent methods such as MTG (Informing Multi-Modal Planning with Synergistic Discrete Leads) and MDP (Multi-Modal Planning on Regrasping for Stable Manipulation) are widely used. However, these methods do not effectively reuse prior planning experiences in the motion planner. Therefore, our project aims to apply GMM to refine the task graph into a more detailed level. This way, we can convey previous information as a sequence of distributions to assist the motion planner. Additionally, we also plan to incorporate deep learning techniques to analyze the point cloud data and predict the feasibility of each pre-defined distribution.
+
+## Table of Contents
+
+- [Goal](#goal)
+- [Usage](#usage)
+- [Experiments](#experiments)
+
+## Goal
+- compare MTG and MDP
+- compare MTG and MDP with GMM
+- compare MTG and MDP with deep learning based GMM
+- compared MTG and MDP with GMM and constraint preprocess
+
+## Experiments
+
+Here is the list of experiment we will have for this project:
+
+1. pick-and-place with constraint
+2. pick-and-place with constraint and regrasping
+3. opening drawer
+4. opening drawer and pick-place object
+5. Sliding and regrasping(IROS 2023)
+6. Sliding in simple maze
+
+Each experiment here will be saved as a file in directory [experiment_dir](experiment_dir) so later we can load them for testing. Thus, you may need to read the comment in the file to understand how to save and load them.
+
+## Usage
+
+[Provide examples or instructions on how to use your project. You can include code snippets or screenshots if applicable.]
+

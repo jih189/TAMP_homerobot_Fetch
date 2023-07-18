@@ -1,6 +1,4 @@
-# FROM ubuntu:18.04
-
-FROM nvidia/cuda:11.7.0-cudnn8-devel-ubuntu18.04
+FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu18.04
 
 WORKDIR /root/
 
@@ -139,7 +137,7 @@ EXPOSE 8888
 
 # Install necessary for building
 RUN apt-get update -q && \
-    apt-get install -y ros-melodic-trac-ik-lib ros-melodic-costmap-2d ros-melodic-rail-manipulation-msgs ros-melodic-joint-trajectory-controller ros-melodic-teleop-twist-keyboard
+    apt-get install -y ros-melodic-trac-ik-lib ros-melodic-costmap-2d ros-melodic-rail-manipulation-msgs ros-melodic-joint-trajectory-controller ros-melodic-teleop-twist-keyboard ros-melodic-base-local-planner ros-melodic-costmap-converter ros-melodic-mbf-costmap-core ros-melodic-mbf-msgs ros-melodic-teb-local-planner
 
 # Install fcl library
 RUN git clone https://github.com/flexible-collision-library/fcl.git && cd fcl && mkdir build && cd build && cmake .. && make && make install
