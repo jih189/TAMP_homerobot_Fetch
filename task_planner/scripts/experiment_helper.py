@@ -64,22 +64,39 @@ class Experiment:
     """
     Experiment contains information of all manifolds and itersections.
     """
-    def __init__(self, experiment_name_):
+    def __init__(self):
+        self.has_setup = False
+        
+    def setup(self, experiment_name_, obstacle_mesh_, obstacle_mesh_pose_, initial_robot_state_, joint_names_, active_joint_names_):
         self.experiment_name = experiment_name_
         self.manifolds = []
         self.intersections = []
-        self.obstacle_mesh = None
+        self.obstacle_mesh = obstacle_mesh_
+        self.obstacle_mesh_pose = obstacle_mesh_pose_
+        self.initial_robot_state = initial_robot_state_ # the initial robot state
+        self.joint_names = joint_names_ # the joint names of the robot
+        self.active_joint_names = active_joint_names_ # the joint names of arm group.
+        self.has_setup = True
 
     def add_manifold(self, manifold):
+        if not self.has_setup:
+            raise ValueError("The experiment has not been setup yet.")
+
         self.manifolds.append(manifold)
 
     def add_intersection(self, intersection):
+        if not self.has_setup:
+            raise ValueError("The experiment has not been setup yet.")
+
         self.intersections.append(intersection)
 
     def save(self, dir_name):
         """
         Save the experiment to a file.
         """
+        if not self.has_setup:
+            raise ValueError("The experiment has not been setup yet.")
+
         # check if the directory exists
         # if so, then delete it
         if os.path.exists(dir_name):
@@ -90,22 +107,145 @@ class Experiment:
 
         # Data to be saved
         experiment_data = {
-            "experiment_name": "pick_and_place",      
+            "experiment_name": self.experiment_name, 
+            "obstacle_mesh": self.obstacle_mesh,
+            "obstacle_mesh_pose": self.obstacle_mesh_pose.tolist(),
+            "initial_robot_state": self.initial_robot_state,
+            "joint_names": self.joint_names,
+            "active_joint_names": self.active_joint_names,
+            "manifolds": [],    
         }
 
+        # add manifolds into experiment data
+        for manifold in self.manifolds:
+            manifold_data = {
+                "foliation_id": manifold.foliation_id,
+                "manifold_id": manifold.manifold_id,
+                "object_name": manifold.object_name,
+                "object_mesh": manifold.object_mesh,
+                "has_object_in_hand": manifold.has_object_in_hand
+            }
+            if manifold.has_object_in_hand:
+                manifold_data["in_hand_pose"] = manifold.in_hand_pose.tolist()
+                manifold_data["constraint_pose"] = manifold.constraint_pose.tolist()
+                manifold_data["orientation_constraint"] = manifold.orientation_constraint.tolist()
+                manifold_data["position_constraint"] = manifold.position_constraint.tolist()
+            else:
+                manifold_data["object_pose"] = manifold.object_pose.tolist()
+            experiment_data["manifolds"].append(manifold_data)
+
         # Save data to a JSON file
-        with open(dir_name + '/meta_data.json', 'w') as file:
+        with open(dir_name + '/manifolds.json', 'w') as file:
             json.dump(experiment_data, file)
+
+        # Save the interface into anther file
+        if len(self.intersections) > 0:
+            for intersection_id in range(len(self.intersections)):
+                intersection_data = {
+                    "foliation_id_1": self.intersections[intersection_id].foliation_id_1,
+                    "manifold_id_1": self.intersections[intersection_id].manifold_id_1,
+                    "foliation_id_2": self.intersections[intersection_id].foliation_id_2,
+                    "manifold_id_2": self.intersections[intersection_id].manifold_id_2,
+                    "has_object_in_hand": self.intersections[intersection_id].has_object_in_hand,
+                    "trajectory_motion": self.intersections[intersection_id].trajectory_motion.tolist(),
+                    "in_hand_pose": self.intersections[intersection_id].in_hand_pose.tolist(),
+                    "object_mesh": self.intersections[intersection_id].object_mesh,
+                    "object_name": self.intersections[intersection_id].object_name
+                }
+
+                with open(dir_name + '/intersection_' + str(intersection_id) + '.json', 'w') as file:
+                    json.dump(intersection_data, file)
+
 
     def load(self, dir_name):
         """
         Load the experiment from a file.
         """
+        self.has_setup = True
+        print("Loading experiment from " + dir_name)
+
+        # check if the directory exists
+        # if not, then raise error
+        if not os.path.exists(dir_name):
+            raise ValueError("The experiment directory does not exist.")
+
+        # check if the manifolds file exists
+        # if not, then raise error
+        if not os.path.exists(dir_name + "/manifolds.json"):
+            raise ValueError("The manifolds file does not exist.")
+
+        # load the manifolds file
+        with open(dir_name + "/manifolds.json", "r") as file:
+            experiment_data = json.load(file)
+            self.experiment_name = experiment_data["experiment_name"]
+            self.obstacle_mesh = experiment_data["obstacle_mesh"]
+            self.obstacle_mesh_pose = np.array(experiment_data["obstacle_mesh_pose"])
+            self.initial_robot_state = experiment_data["initial_robot_state"]
+            self.joint_names = experiment_data["joint_names"]
+            self.active_joint_names = experiment_data["active_joint_names"]
+
+            # load manifolds
+            self.manifolds = []
+            for manifold_data in experiment_data["manifolds"]:
+                current_manifold = Manifold(manifold_data["foliation_id"],
+                                            manifold_data["manifold_id"],
+                                            manifold_data["object_name"],
+                                            manifold_data["object_mesh"],
+                                            manifold_data["has_object_in_hand"])
+
+                if manifold_data["has_object_in_hand"]:
+                    current_manifold.add_constraint(np.array(manifold_data["in_hand_pose"]),
+                                                    np.array(manifold_data["constraint_pose"]),
+                                                    np.array(manifold_data["orientation_constraint"]),
+                                                    np.array(manifold_data["position_constraint"]))
+                else:
+                    current_manifold.add_object_placement(np.array(manifold_data["object_pose"]))
+
+                self.manifolds.append(current_manifold)
+
+        # check the number of files start with "intersection_" in the directory
+        intersection_files = [f for f in os.listdir(dir_name) if os.path.isfile(os.path.join(dir_name, f)) and f.startswith("intersection_")]
+        print("Number of intersection files: " + str(len(intersection_files)))
+
+        # load the intersection files
+        self.intersections = []
+        for intersection_file in intersection_files:
+            with open(dir_name + "/" + intersection_file, "r") as file:
+                intersection_data = json.load(file)
+                current_intersection = Intersection(intersection_data["foliation_id_1"],
+                                                    intersection_data["manifold_id_1"],
+                                                    intersection_data["foliation_id_2"],
+                                                    intersection_data["manifold_id_2"],
+                                                    intersection_data["has_object_in_hand"],
+                                                    np.array(intersection_data["trajectory_motion"]),
+                                                    np.array(intersection_data["in_hand_pose"]),
+                                                    intersection_data["object_mesh"],
+                                                    intersection_data["object_name"])
+                self.intersections.append(current_intersection)
 
     def print_experiment_data(self):
         """
         Print the experiment data.
         """
+        if not self.has_setup:
+            raise ValueError("The experiment has not been setup yet.")
+
+        print("Experiment name: " + self.experiment_name)
+
+        print("Manifolds:")
+        for manifold in self.manifolds:
+            print("Foliation id: " + str(manifold.foliation_id))
+            print("Manifold id: " + str(manifold.manifold_id))
+            print("Object name: " + str(manifold.object_name))
+            print("Object mesh: " + str(manifold.object_mesh))
+            print("Has object in hand: " + str(manifold.has_object_in_hand))
+            if manifold.has_object_in_hand:
+                print("In hand pose: " + str(manifold.in_hand_pose))
+                print("Constraint pose: " + str(manifold.constraint_pose))
+                print("Orientation constraint: " + str(manifold.orientation_constraint))
+                print("Position constraint: " + str(manifold.position_constraint))
+            else:
+                print("Object pose: " + str(manifold.object_pose))
 
 
     

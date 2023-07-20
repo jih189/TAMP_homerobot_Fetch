@@ -29,7 +29,7 @@ from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 if __name__ == "__main__":
 
     moveit_commander.roscpp_initialize(sys.argv)
-    rospy.init_node('constrained_motion_planning_test', anonymous=True)
+    rospy.init_node('create_experiment_node', anonymous=True)
 
     robot = moveit_commander.RobotCommander()
     scene = moveit_commander.PlanningSceneInterface()
@@ -118,7 +118,14 @@ if __name__ == "__main__":
 
     ###################################### start to generate the pick-and-place experiment ######################################
 
-    experiment = Experiment("pick_and_place")
+    experiment = Experiment()
+    
+    experiment.setup("pick_and_place", 
+                    package_path + '/mesh_dir/table.stl', 
+                    numpify(table_pose.pose), 
+                    robot.get_current_state().joint_state.position, 
+                    robot.get_current_state().joint_state.name,
+                    move_group.get_joints())
 
     # add the manifold for pre-grasp
     pre_grasp_manifold = Manifold(0, # foliation id
@@ -128,7 +135,7 @@ if __name__ == "__main__":
                                 False) # is the object in hand
 
     # set the initial object placement pose into pre-grasp manifold
-    pre_grasp_manifold.add_object_placement(init_cup_pose.pose)
+    pre_grasp_manifold.add_object_placement(numpify(init_cup_pose.pose))
     experiment.add_manifold(pre_grasp_manifold)
 
     post_grasp_manifold = Manifold(2, # foliation id
@@ -138,7 +145,7 @@ if __name__ == "__main__":
                                 False) # is the object in hand
 
     # set the target object placement pose into post-grasp manifold
-    post_grasp_manifold.add_object_placement(target_cup_pose.pose)
+    post_grasp_manifold.add_object_placement(numpify(target_cup_pose.pose))
     experiment.add_manifold(post_grasp_manifold)
 
     num_of_grasp_manifolds = 0
@@ -310,3 +317,6 @@ if __name__ == "__main__":
     # grasp_visualizer(grasp_poses_for_vis, 
     #              [0.08 for _ in range(len(grasp_poses_for_vis))], 
     #              [0 for _ in range(len(grasp_poses_for_vis))])
+
+    # save the experiment
+    experiment.save(package_path + "/experiment_dir/pick_and_place")
