@@ -33,5 +33,8 @@ Each experiment here will be saved as a file in directory [experiment_dir](exper
 
 ## Usage
 
-[Provide examples or instructions on how to use your project. You can include code snippets or screenshots if applicable.]
+In this project, we do not need to run on the real robot, so we can run the move_group in only simulation. Here is the code to launch fake move_group.
 
+```
+roslaunch fetch_moveit_config fake_move_group.launch
+```
