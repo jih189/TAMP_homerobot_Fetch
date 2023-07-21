@@ -151,6 +151,10 @@ if __name__ == "__main__":
     for _ in range(max_attempt_times):
         # generate task sequence
         task_sequence = task_planner.generate_task_sequence()
+        if len(task_sequence) == 0:
+            print("no task sequence found")
+            break
+            
         found_solution = True
         solution_path = []
 

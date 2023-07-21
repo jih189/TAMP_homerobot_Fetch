@@ -134,6 +134,10 @@ class MTGTaskPlanner(BaseTaskPlanner):
             self.task_graph.add_edge(i, 'goal', weight=0, manifold_id=goal_manifold_id_)
 
     def generate_task_sequence(self):
+        # check the connectivity of the task graph from start to goal
+        if not nx.has_path(self.task_graph, 'start', 'goal'):
+            return []
+
         # find the shortest path from start to goal
         shortest_path = nx.shortest_path(self.task_graph, 'start', 'goal', weight='weight')
         task_sequence = []
@@ -211,6 +215,10 @@ class MDPTaskPlanner(BaseTaskPlanner):
         self.value_function['goal'] = 1.0
 
     def generate_task_sequence(self):
+        # check the connectivity of the task graph from start to goal
+        if not nx.has_path(self.task_graph, 'start', 'goal'):
+            return []
+            
         # perform value iteration
         for _ in range(100):
             new_value_function = {}
