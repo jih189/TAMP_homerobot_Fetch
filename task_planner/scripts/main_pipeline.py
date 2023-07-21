@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from experiment_helper import Experiment, Manifold, Intersection
-from jiaming_task_planner import MTGTaskPlanner
+from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner
 
 import sys
 import copy
@@ -54,7 +54,8 @@ if __name__ == "__main__":
     experiment.load(package_path + "/experiment_dir/pick_and_place")
 
     # load the experiment into the task planner
-    task_planner = MTGTaskPlanner()
+    # task_planner = MTGTaskPlanner()
+    task_planner = MDPTaskPlanner()
 
     task_planner.reset_task_planner()
 
