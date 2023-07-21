@@ -150,7 +150,7 @@ class MTGTaskPlanner(BaseTaskPlanner):
         return task_sequence
 
     def update(self, task_graph_info_, plan_):
-        if plan_.result:
+        if plan_[0]:
             self.task_graph.edges[task_graph_info_]['weight'] += 0.01
         else:
             self.task_graph.edges[task_graph_info_]['weight'] += 1
