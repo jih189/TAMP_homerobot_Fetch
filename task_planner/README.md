@@ -38,3 +38,8 @@ In this project, we do not need to run on the real robot, so we can run the move
 ```
 roslaunch fetch_moveit_config fake_move_group.launch
 ```
+
+Then you can run the following code for the main pipeline
+```
+rosrun task_planner main_pipeline.py
+```
