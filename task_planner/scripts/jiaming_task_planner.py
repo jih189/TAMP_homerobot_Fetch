@@ -45,30 +45,24 @@ class GMM:
 
         return GaussianDistribution(0, 0)
 
-class BaseTaskPlanner:
+class BaseTaskPlanner(object):
     def __init__(self):
         # Constructor
         pass
 
     # reset task planner
     def reset_task_planner(self):
-        self.task_graph = nx.Graph()
-        self.manifold_constraints = {} # the constraints of each manifold
-        self.manifold_intersections = {} # the intersections of each manifold
-        self.new_intersection_id = 0
-
+        pass
+        
     def add_manifold(self, manifold_constraint_, manifold_id_):
-        self.manifold_constraints[manifold_id_] = manifold_constraint_
-        self.manifold_intersections[manifold_id_] = []
+        pass
 
-    @abstractmethod
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_):
         """
         add intersection to the manifold
         """
         pass
 
-    @abstractmethod
     def set_start_and_goal(self,
                             start_manifold_id_,
                             start_configuration_, 
@@ -79,14 +73,12 @@ class BaseTaskPlanner:
         """
         pass
 
-    @abstractmethod
     def generate_task_sequence(self):
         """
         generate task sequence
         """
         pass
 
-    @abstractmethod
     def update(self, task_graph_info_, plan_):
         """
         update task planner
@@ -96,13 +88,18 @@ class BaseTaskPlanner:
 class MTGTaskPlanner(BaseTaskPlanner):
     def __init__(self):
         # Constructor
-        super().__init__()
+        super(BaseTaskPlanner, self).__init__() # python 2
+        # super().__init__() # python 3
 
     def reset_task_planner(self):
-        super().reset_task_planner()
+        self.task_graph = nx.Graph()
+        self.manifold_constraints = {} # the constraints of each manifold
+        self.manifold_intersections = {} # the intersections of each manifold
+        self.new_intersection_id = 0
 
     def add_manifold(self, manifold_constraint_, manifold_id_):
-        super().add_manifold(manifold_constraint_, manifold_id_)
+        self.manifold_constraints[manifold_id_] = manifold_constraint_
+        self.manifold_intersections[manifold_id_] = []
 
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_):
         self.task_graph.add_node(self.new_intersection_id, intersection=intersection_)
@@ -127,8 +124,8 @@ class MTGTaskPlanner(BaseTaskPlanner):
             self.task_graph.remove_node('goal')
 
         # include start and goal configurations in the task graph
-        self.task_graph.add_node('start', configuration=start_configuration_)
-        self.task_graph.add_node('goal', configuration=goal_configuration_)
+        self.task_graph.add_node('start', intersection = start_configuration_)
+        self.task_graph.add_node('goal', intersection = goal_configuration_)
 
         for i in self.manifold_intersections[start_manifold_id_]:
             self.task_graph.add_edge('start', i, weight=0, manifold_id=start_manifold_id_)
@@ -144,8 +141,9 @@ class MTGTaskPlanner(BaseTaskPlanner):
         # construct the task sequence.
         for node1, node2 in zip(shortest_path[:-1], shortest_path[1:]):
             task = Task(self.manifold_constraints[self.task_graph.edges[node1, node2]['manifold_id']],
-                        self.task_graph.nodes[node1]['configuration'],
-                        self.task_graph.nodes[node2]['configuration'])
+                        nx.get_node_attributes(self.task_graph, 'intersection')[node1],
+                        nx.get_node_attributes(self.task_graph, 'intersection')[node2])
+            
             task.set_task_graph_info((node1, node2))
             task_sequence.append(task)
 
