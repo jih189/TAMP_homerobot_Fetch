@@ -154,7 +154,7 @@ if __name__ == "__main__":
         if len(task_sequence) == 0:
             print("no task sequence found")
             break
-            
+
         found_solution = True
         solution_path = []
 

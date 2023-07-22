@@ -92,24 +92,45 @@ class MTGTaskPlanner(BaseTaskPlanner):
         # super().__init__() # python 3
 
     def reset_task_planner(self):
-        self.task_graph = nx.Graph()
+        self.task_graph = nx.DiGraph()
         self.manifold_constraints = {} # the constraints of each manifold
-        self.manifold_intersections = {} # the intersections of each manifold
+        self.incomming_manifold_intersections = {} # the incomming intersections of each manifold
+        self.outgoing_manifold_intersections = {} # the outgoing intersections of each manifold
         self.new_intersection_id = 0
 
     def add_manifold(self, manifold_constraint_, manifold_id_):
         self.manifold_constraints[manifold_id_] = manifold_constraint_
-        self.manifold_intersections[manifold_id_] = []
+        self.incomming_manifold_intersections[manifold_id_] = []
+        self.outgoing_manifold_intersections[manifold_id_] = []
 
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_):
-        self.task_graph.add_node(self.new_intersection_id, intersection=intersection_)
-        for i in self.manifold_intersections[manifold_id1_]:
-            self.task_graph.add_edge(i, self.new_intersection_id, weight=0, manifold_id=manifold_id1_)
-        for i in self.manifold_intersections[manifold_id2_]:
-            self.task_graph.add_edge(i, self.new_intersection_id, weight=0, manifold_id=manifold_id2_)
-        self.manifold_intersections[manifold_id1_].append(self.new_intersection_id)
-        self.manifold_intersections[manifold_id2_].append(self.new_intersection_id)
+        intersection_from_1_to_2_id = self.new_intersection_id
         self.new_intersection_id += 1
+        intersection_from_2_to_1_id = self.new_intersection_id
+        self.new_intersection_id += 1
+
+        # add node for intersection from manifold 1 to manifold 2
+        self.task_graph.add_node(intersection_from_1_to_2_id, intersection=intersection_)
+
+        inversed_intersection = (intersection_[0], intersection_[1][::-1], intersection_[2], intersection_[3], intersection_[4])
+        # add node for intersection from manifold 2 to manifold 1
+        self.task_graph.add_node(intersection_from_2_to_1_id, intersection=inversed_intersection) # here
+
+        for i in self.incomming_manifold_intersections[manifold_id1_]:
+            self.task_graph.add_edge(i, intersection_from_1_to_2_id, weight=0, manifold_id=manifold_id1_)
+        for i in self.outgoing_manifold_intersections[manifold_id2_]:
+            self.task_graph.add_edge(intersection_from_1_to_2_id, i, weight=0, manifold_id=manifold_id2_)
+
+        for i in self.outgoing_manifold_intersections[manifold_id1_]:
+            self.task_graph.add_edge(intersection_from_2_to_1_id, i, weight=0, manifold_id=manifold_id1_)
+        for i in self.incomming_manifold_intersections[manifold_id2_]:
+            self.task_graph.add_edge(i, intersection_from_2_to_1_id, weight=0, manifold_id=manifold_id2_)
+
+        self.outgoing_manifold_intersections[manifold_id1_].append(intersection_from_1_to_2_id)
+        self.incomming_manifold_intersections[manifold_id2_].append(intersection_from_1_to_2_id)
+
+        self.outgoing_manifold_intersections[manifold_id2_].append(intersection_from_2_to_1_id)
+        self.incomming_manifold_intersections[manifold_id1_].append(intersection_from_2_to_1_id)
 
     def set_start_and_goal(self,
                             start_manifold_id_,
@@ -127,10 +148,10 @@ class MTGTaskPlanner(BaseTaskPlanner):
         self.task_graph.add_node('start', intersection = start_configuration_)
         self.task_graph.add_node('goal', intersection = goal_configuration_)
 
-        for i in self.manifold_intersections[start_manifold_id_]:
+        for i in self.outgoing_manifold_intersections[start_manifold_id_]:
             self.task_graph.add_edge('start', i, weight=0, manifold_id=start_manifold_id_)
 
-        for i in self.manifold_intersections[goal_manifold_id_]:
+        for i in self.incomming_manifold_intersections[goal_manifold_id_]:
             self.task_graph.add_edge(i, 'goal', weight=0, manifold_id=goal_manifold_id_)
 
     def generate_task_sequence(self):
@@ -168,25 +189,46 @@ class MDPTaskPlanner(BaseTaskPlanner):
         # super().__init__() # python 3
 
     def reset_task_planner(self):
-        self.task_graph = nx.Graph()
+        self.task_graph = nx.DiGraph()
         self.manifold_constraints = {} # the constraints of each manifold
-        self.manifold_intersections = {} # the intersections of each manifold
+        self.incomming_manifold_intersections = {} # the incomming intersections of each manifold
+        self.outgoing_manifold_intersections = {} # the outgoing intersections of each manifold
         self.new_intersection_id = 0
         self.gamma = 0.9
 
     def add_manifold(self, manifold_constraint_, manifold_id_):
         self.manifold_constraints[manifold_id_] = manifold_constraint_
-        self.manifold_intersections[manifold_id_] = []
+        self.incomming_manifold_intersections[manifold_id_] = []
+        self.outgoing_manifold_intersections[manifold_id_] = []
 
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_):
-        self.task_graph.add_node(self.new_intersection_id, intersection=intersection_)
-        for i in self.manifold_intersections[manifold_id1_]:
-            self.task_graph.add_edge(i, self.new_intersection_id, probability=0.5, manifold_id=manifold_id1_)
-        for i in self.manifold_intersections[manifold_id2_]:
-            self.task_graph.add_edge(i, self.new_intersection_id, probability=0.5, manifold_id=manifold_id2_)
-        self.manifold_intersections[manifold_id1_].append(self.new_intersection_id)
-        self.manifold_intersections[manifold_id2_].append(self.new_intersection_id)
+        intersection_from_1_to_2_id = self.new_intersection_id
         self.new_intersection_id += 1
+        intersection_from_2_to_1_id = self.new_intersection_id
+        self.new_intersection_id += 1
+
+        # add node for intersection from manifold 1 to manifold 2
+        self.task_graph.add_node(intersection_from_1_to_2_id, intersection=intersection_)
+
+        inversed_intersection = (intersection_[0], intersection_[1][::-1], intersection_[2], intersection_[3], intersection_[4])
+        # add node for intersection from manifold 2 to manifold 1
+        self.task_graph.add_node(intersection_from_2_to_1_id, intersection=inversed_intersection) # here
+
+        for i in self.incomming_manifold_intersections[manifold_id1_]:
+            self.task_graph.add_edge(i, intersection_from_1_to_2_id, probability=0, manifold_id=manifold_id1_)
+        for i in self.outgoing_manifold_intersections[manifold_id2_]:
+            self.task_graph.add_edge(intersection_from_1_to_2_id, i, probability=0, manifold_id=manifold_id2_)
+
+        for i in self.outgoing_manifold_intersections[manifold_id1_]:
+            self.task_graph.add_edge(intersection_from_2_to_1_id, i, probability=0, manifold_id=manifold_id1_)
+        for i in self.incomming_manifold_intersections[manifold_id2_]:
+            self.task_graph.add_edge(i, intersection_from_2_to_1_id, probability=0, manifold_id=manifold_id2_)
+
+        self.outgoing_manifold_intersections[manifold_id1_].append(intersection_from_1_to_2_id)
+        self.incomming_manifold_intersections[manifold_id2_].append(intersection_from_1_to_2_id)
+
+        self.outgoing_manifold_intersections[manifold_id2_].append(intersection_from_2_to_1_id)
+        self.incomming_manifold_intersections[manifold_id1_].append(intersection_from_2_to_1_id)
 
     def set_start_and_goal(self,
                             start_manifold_id_,
@@ -204,10 +246,10 @@ class MDPTaskPlanner(BaseTaskPlanner):
         self.task_graph.add_node('start', intersection = start_configuration_)
         self.task_graph.add_node('goal', intersection = goal_configuration_)
 
-        for i in self.manifold_intersections[start_manifold_id_]:
+        for i in self.outgoing_manifold_intersections[start_manifold_id_]:
             self.task_graph.add_edge('start', i, probability=0.5, manifold_id=start_manifold_id_)
 
-        for i in self.manifold_intersections[goal_manifold_id_]:
+        for i in self.incomming_manifold_intersections[goal_manifold_id_]:
             self.task_graph.add_edge(i, 'goal', probability=0.5, manifold_id=goal_manifold_id_)
 
         # initialize the value function of each node
@@ -218,7 +260,7 @@ class MDPTaskPlanner(BaseTaskPlanner):
         # check the connectivity of the task graph from start to goal
         if not nx.has_path(self.task_graph, 'start', 'goal'):
             return []
-            
+
         # perform value iteration
         for _ in range(100):
             new_value_function = {}

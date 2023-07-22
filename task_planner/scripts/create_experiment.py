@@ -105,8 +105,8 @@ if __name__ == "__main__":
         array_name = loaded_array.files[ind]
         grasp_pose_list.append(np.dot(loaded_array[array_name], rotated_matrix))
 
-    rospy.wait_for_service('visualize_regrasp')
-    grasp_visualizer = rospy.ServiceProxy('visualize_regrasp', VisualizeRegrasp)
+    # rospy.wait_for_service('visualize_regrasp')
+    # grasp_visualizer = rospy.ServiceProxy('visualize_regrasp', VisualizeRegrasp)
 
     display_trajectory_publisher = rospy.Publisher(
             "/move_group/display_planned_path",
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     ###################################### start to generate the pick-and-place experiment ######################################
 
     experiment = Experiment()
-    
+
     experiment.setup("pick_and_place", 
                     package_path + '/mesh_dir/table.stl', 
                     numpify(table_pose.pose), 
@@ -213,7 +213,7 @@ if __name__ == "__main__":
                 continue
 
             # save the intersection motion from pre-grasp manifold to grasp manifold.
-            intersections_from_pre_grasp_to_grasp.append(np.array([p.positions for p in approach_plan.joint_trajectory.points[::-1]]))
+            intersections_from_pre_grasp_to_grasp.append(np.array([p.positions for p in approach_plan.joint_trajectory.points]))
 
         if len(intersections_from_pre_grasp_to_grasp) == 0:
             continue
@@ -298,7 +298,7 @@ if __name__ == "__main__":
 
         # need to save the intersection motion from pre-grasp manifold to grasp manifold.
         for intersection_motion in intersections_from_pre_grasp_to_grasp:
-            intersection = Intersection(0,0,1,current_grasp_manifold_id, False, intersection_motion, numpify(init_cup_pose.pose), package_path + '/mesh_dir/cup.stl', "cup")
+            intersection = Intersection(1,current_grasp_manifold_id,0,0, False, intersection_motion, numpify(init_cup_pose.pose), package_path + '/mesh_dir/cup.stl', "cup")
             experiment.add_intersection(intersection)
 
         # need to save the intersection motion from grasp manifold to post-grasp manifold.
