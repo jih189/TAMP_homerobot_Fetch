@@ -2,3 +2,4 @@ CMakelists.txt
 *.pyc
 MPNet
 .ipynb_checkpoints/
+mpt_general/
