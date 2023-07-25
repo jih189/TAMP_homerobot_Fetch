@@ -1,6 +1,8 @@
 import numpy as np
 import networkx as nx
 
+from sklearn import mixture
+
 
 class Task:
     def __init__(self, 
@@ -37,13 +39,36 @@ class GMM:
         # Constructor
         self.distributions = []
         self.edge_of_distribution = []
+        self.edge_probabilities = []
+        self._sklearn_gmm = None
 
     def get_distribution(self, configuration_):
         # find which distribution the configuration belongs to
         # then return the distribution
-        # TODO: implement this
+        # configuration_ is a (d,) element array : (d = 7)
+        dist_num = self._sklearn_gmm.predict(configuration_.reshape((1, -1))).squeeze()
+        # return GaussianDistribution(self._sklearn_gmm.means_[dist_num], self._sklearn_gmm.covariances_[dist_num])
+        return self.distributions[dist_num]
 
-        return GaussianDistribution(0, 0)
+    def load_distributions(self, dir_name = "../gmm/"):
+
+
+        means = np.load(dir_name + 'gmm_means.npy')
+        covariances = np.load(dir_name + 'gmm_covariances.npy')
+
+        # Create an sklearn Gaussian Mixture Model 
+        self._sklearn_gmm = mixture.GaussianMixture(n_components = len(means), covariance_type='full')
+        self._sklearn_gmm.precisions_cholesky_ = np.linalg.cholesky(np.linalg.inv(covariances))
+        self._sklearn_gmm.weights_ = np.load(dir_name + 'gmm_weights.npy')
+        self._sklearn_gmm.means_ = means
+        self._sklearn_gmm.covariances_ = covariances
+
+        for mean, covariance in zip(means, covariances):
+            self.distributions.append(GaussianDistribution(mean, covariance))
+
+        self.edge_of_distribution = np.load(dir_name + 'edges.npy')
+        self.edge_probabilities = np.load(dir_name + 'edge_probabilities.npy')
+
 
 class BaseTaskPlanner(object):
     def __init__(self):
