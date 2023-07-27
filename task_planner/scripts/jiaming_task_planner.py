@@ -69,7 +69,6 @@ class GMM:
         self.edge_of_distribution = np.load(dir_name + 'edges.npy')
         self.edge_probabilities = np.load(dir_name + 'edge_probabilities.npy')
 
-
 class BaseTaskPlanner(object):
     def __init__(self):
         # Constructor
@@ -335,3 +334,157 @@ class MDPTaskPlanner(BaseTaskPlanner):
             self.task_graph.edges[task_graph_info_]['probability'] *= 0.5
             # find all similar task in the task graph and decrease their transition probabilities.
             #TODO: implement this
+
+class MTGTaskPlannerWithGMM(BaseTaskPlanner):
+    def __init__(self):
+        # Constructor
+        super(BaseTaskPlanner, self).__init__()
+        # super().__init__() # python 3
+
+    def reset_task_planner(self, gmm):
+        self.task_graph = nx.DiGraph()
+        self.gmm_ = gmm
+
+    def add_manifold(self, manifold_constraint_, manifold_id_):
+        self.manifold_constraints[manifold_id_] = manifold_constraint_
+        self.incomming_manifold_intersections[manifold_id_] = []
+        self.outgoing_manifold_intersections[manifold_id_] = []
+
+        # construct a set of nodes represented by a pair (manifold id, GMM id)
+        for i in range(len(self.gmm_.distributions)):
+            self.task_graph.add_node((manifold_id_, i), weight = 0.0)
+
+        for edge in self.gmm_.edge_of_distribution:
+            self.task_graph.add_edge(
+                (manifold_id_, edge[0]), 
+                (manifold_id_, edge[1]), 
+                has_intersection=False, 
+                intersection=None
+            )
+
+    def add_intersection(self, manifold_id1_, manifold_id2_, intersection_):
+        # connect two distribution of this intersection_ between two different manifolds(manifold1 and manifold2) if they have the same ditribution id in GMM.
+        # first, find the related distribution that the intersection's ends are in in different manifolds.
+
+        # as a reminder, intersection_ is a tuple of 
+        # (has object in hand, 
+        #  trajectory motion, 
+        #  in hand pose,
+        #  object mesh,
+        #  object name)
+
+        # get the first of configuration of the intersection_
+        configuration1 = intersection_[1][0]
+        distribution_id_in_manifold1 = self.gmm_.get_distribution(configuration1)
+
+        # get the second of configuration of the intersection_
+        configuration2 = intersection_[1][-1]
+        distribution_id_in_manifold2 = self.gmm_.get_distribution(configuration2)
+
+        if(not self.task_graph.has_edge((manifold_id1_, distribution_id_in_manifold1), (manifold_id2_, distribution_id_in_manifold2)) and 
+           not self.task_graph.has_edge((manifold_id2_, distribution_id_in_manifold2), (manifold_id1_, distribution_id_in_manifold1))
+        ):
+            self.task_graph.add_edge(
+                (manifold_id1_, distribution_id_in_manifold1), 
+                (manifold_id2_, distribution_id_in_manifold2), 
+                has_intersection=True, 
+                intersection=intersection_
+            )
+
+            inversed_intersection = (intersection_[0], intersection_[1][::-1], intersection_[2], intersection_[3], intersection_[4])
+            
+            self.task_graph.add_edge(
+                (manifold_id2_, distribution_id_in_manifold2),
+                (manifold_id1_, distribution_id_in_manifold1),
+                has_intersection=True,
+                intersection=inversed_intersection
+            )
+
+    def set_start_and_goal(self,
+                            start_manifold_id_,
+                            start_configuration_, 
+                            goal_manifold_id_,
+                            goal_configuration_):
+        # if start and goal are set, then remove them from the task graph
+        if self.task_graph.has_node('start'):
+            self.task_graph.remove_node('start')
+
+        if self.task_graph.has_node('goal'):
+            self.task_graph.remove_node('goal')
+
+        # include start and goal configurations in the task graph
+        self.task_graph.add_node('start', weight = 0.0)
+        self.task_graph.add_node('goal', weight = 0.0)
+
+        self.task_graph.add_edge(
+            'start', 
+            (start_manifold_id_, self.gmm_.get_distribution(start_configuration_)), 
+            has_intersection=False, 
+            intersection=None
+        )
+
+        self.task_graph.add_edge(
+            (goal_manifold_id_, self.gmm_.get_distribution(goal_configuration_)), 
+            'goal', 
+            has_intersection=True, 
+            intersection=(
+                False, 
+                [goal_configuration_], 
+                None,
+                None,
+                None
+            )
+        )
+
+        self.current_start_configuration = (
+            False,
+            [start_configuration_],
+            None,
+            None,
+            None
+        )
+
+    def generate_task_sequence(self):
+        # find the shortest path from start to goal
+        shortest_path = nx.shortest_path(self.task_graph, 'start', 'goal', weight='weight')
+
+        task_sequence = []
+        task_start_configuration = self.current_start_configuration
+        task_gaussian_distribution = []
+
+        # construct the task sequence.
+        for node1, node2 in zip(shortest_path[:-1], shortest_path[1:]):
+            if self.task_graph.get_edge_data(node1, node2)['has_intersection']:
+                task = Task(
+                    self.manifold_constraints[self.task_graph.edges[node1, node2]['manifold_id']],
+                    task_start_configuration,
+                    self.task_graph.get_edge_data(node1, node2)['intersection'],
+                    nx.get_node_attributes(self.task_graph, 'intersection')[node2]
+                )
+
+                task.distributions = list(task_gaussian_distribution)
+                task.set_task_graph_info(node1[0]) # we use the manifold id as task graph information here
+                task_sequence.append(task)
+
+                # ready for the next task.
+                if node2 != 'goal': # if the edge is to goal, then no need to prepare for the next task
+                    task_gaussian_distribution = [self.gmm_.distribution[node2[1]]]
+                    task_start_configuration = self.task_graph.get_edge_data(node1, node2)['intersection']
+            else:
+                # edge in the same manifold except start and goal transition
+                task_gaussian_distribution.append(self.gmm_.distribution[node2[1]])
+        return task_sequence
+
+    def update(self, task_graph_info_, plan_):
+        # use the sample data to update the task graph.
+        # TODO: implement this later
+
+
+        if plan_[0]:
+            # increase the value of all distribution in the same manifold with a small value.
+            for g_id in range(len(self.gmm_.distributions)):
+                self.task_graph.nodes[(task_graph_info_, g_id)]['weight'] += 0.01
+        else:
+            # increase the value of all distribution in the same manifold with a large value.
+            for g_id in range(len(self.gmm_.distributions)):
+                self.task_graph.nodes[(task_graph_info_, g_id)]['weight'] += 1.0

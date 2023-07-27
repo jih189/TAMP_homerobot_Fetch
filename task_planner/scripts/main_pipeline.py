@@ -51,8 +51,8 @@ if __name__ == "__main__":
 
     # load the expierment
     experiment = Experiment()
-    # experiment.load(package_path + "/experiment_dir/pick_and_place")
-    experiment.load(package_path + "/experiment_dir/move_mouse")
+    experiment.load(package_path + "/experiment_dir/pick_and_place")
+    # experiment.load(package_path + "/experiment_dir/move_mouse")
 
     # load the experiment into the task planner
     task_planner = MTGTaskPlanner()
@@ -95,6 +95,7 @@ if __name__ == "__main__":
 
     robot = moveit_commander.RobotCommander()
     scene = moveit_commander.PlanningSceneInterface()
+    rospy.sleep(0.5)
     scene.clear()
     move_group = moveit_commander.MoveGroupCommander("arm")
     # move_group.set_planner_id('CBIRRTConfigDefault')
@@ -129,29 +130,9 @@ if __name__ == "__main__":
     print("Add the obstacle to the planning scene")
     scene.add_mesh("obstacle", obstacle_pose_stamped, experiment.obstacle_mesh, size=(1,1,1))
 
-    # # set start and goal configurations for pick and place
-    # task_planner.set_start_and_goal(
-    #     (0,0), # start manifold id
-    #     (
-    #         False, 
-    #         [move_group.get_current_joint_values()], 
-    #         None,
-    #         None,
-    #         None
-    #     ), # start configuration
-    #     (2,0), # goal manifold id
-    #     (
-    #         False, 
-    #         [move_group.get_current_joint_values()], 
-    #         None,
-    #         None,
-    #         None
-    #     ) # goal configuration
-    # )
-
-    # set start and goal configurations for move mouse
+    # set start and goal configurations for pick and place
     task_planner.set_start_and_goal(
-        (0,1), # start manifold id
+        (0,0), # start manifold id
         (
             False, 
             [move_group.get_current_joint_values()], 
@@ -159,7 +140,7 @@ if __name__ == "__main__":
             None,
             None
         ), # start configuration
-        (0,15), # goal manifold id
+        (2,0), # goal manifold id
         (
             False, 
             [move_group.get_current_joint_values()], 
@@ -168,6 +149,26 @@ if __name__ == "__main__":
             None
         ) # goal configuration
     )
+
+    # # set start and goal configurations for move mouse
+    # task_planner.set_start_and_goal(
+    #     (0,1), # start manifold id
+    #     (
+    #         False, 
+    #         [move_group.get_current_joint_values()], 
+    #         None,
+    #         None,
+    #         None
+    #     ), # start configuration
+    #     (0,15), # goal manifold id
+    #     (
+    #         False, 
+    #         [move_group.get_current_joint_values()], 
+    #         None,
+    #         None,
+    #         None
+    #     ) # goal configuration
+    # )
 
     for _ in range(max_attempt_times):
         # generate task sequence
