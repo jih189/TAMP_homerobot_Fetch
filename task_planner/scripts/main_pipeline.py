@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from experiment_helper import Experiment, Manifold, Intersection
-from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner
+from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, GMM
 
 import sys
 import copy
@@ -43,7 +43,17 @@ def convert_joint_values_to_robot_trajectory(joint_values_list_, joint_names_):
 
 if __name__ == "__main__":
 
+    ##########################################################
+    #################### experiment setup ####################
     max_attempt_times = 1
+
+    experiment_name = "pick_and_place"
+    # experiment_name = "move_mouse"
+
+    use_mtg = True # use mtg or mdp
+    use_gmm = True # use gmm or not
+
+    ##########################################################
 
     rospack = rospkg.RosPack()
     # Get the path of the desired package
@@ -51,15 +61,30 @@ if __name__ == "__main__":
 
     # load the expierment
     experiment = Experiment()
-    experiment.load(package_path + "/experiment_dir/pick_and_place")
-    # experiment.load(package_path + "/experiment_dir/move_mouse")
+    experiment.load(package_path + "/experiment_dir/" + experiment_name)
 
     # load the experiment into the task planner
-    task_planner = MTGTaskPlanner()
-    # task_planner = MDPTaskPlanner()
+    if use_mtg:
+        if use_gmm:
+            task_planner = MTGTaskPlannerWithGMM()
+        else:
+            task_planner = MTGTaskPlanner()
 
-    task_planner.reset_task_planner()
+    else:
+        if not use_gmm:
+            task_planner = MDPTaskPlanner()
 
+    if use_gmm:
+        # need to reset task planner with gmm
+        gmm_dir_path = package_path + '/gmm/'
+        gmm = GMM()
+        gmm.load_distributions(gmm_dir_path)
+        task_planner.reset_task_planner(gmm)
+
+    else:
+        task_planner.reset_task_planner()
+
+    #############################################################################
     # setup the task graph.
     # add manifolds
     for manifold in experiment.manifolds:
@@ -89,7 +114,8 @@ if __name__ == "__main__":
             )
         )
 
-    # initialize the motion planner
+    #############################################################################
+    # initialize the motion planner and planning scene of moveit
     moveit_commander.roscpp_initialize(sys.argv)
     rospy.init_node('main_pipeline_node', anonymous=True)
 
@@ -122,13 +148,15 @@ if __name__ == "__main__":
         rate.sleep()
     joint_state_publisher.publish(joint_state)
 
+    ##############################################################################
+
     # load the obstacle into the planning scene.
     obstacle_pose_stamped = PoseStamped()
     obstacle_pose_stamped.header.frame_id = "base_link"
     obstacle_pose_stamped.pose = msgify(geometry_msgs.msg.Pose, experiment.obstacle_mesh_pose)
-    
-    print("Add the obstacle to the planning scene")
     scene.add_mesh("obstacle", obstacle_pose_stamped, experiment.obstacle_mesh, size=(1,1,1))
+
+    ##############################################################################################
 
     # set start and goal configurations for pick and place
     task_planner.set_start_and_goal(
@@ -170,12 +198,18 @@ if __name__ == "__main__":
     #     ) # goal configuration
     # )
 
+    ##############################################################################
+    # start the main pipeline
+
     for _ in range(max_attempt_times):
         # generate task sequence
         task_sequence = task_planner.generate_task_sequence()
         if len(task_sequence) == 0:
             print("no task sequence found")
             break
+
+        print "debug done"
+        exit()
 
         found_solution = True
         solution_path = []
@@ -306,7 +340,6 @@ if __name__ == "__main__":
                     rospy.sleep(0.0001)
 
         if found_solution: # found solution, then break the
-
 
             print("found solution")
             # try to execute the solution path

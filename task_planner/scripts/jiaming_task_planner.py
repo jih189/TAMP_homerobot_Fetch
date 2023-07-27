@@ -42,6 +42,13 @@ class GMM:
         self.edge_probabilities = []
         self._sklearn_gmm = None
 
+    def get_distribution_index(self, configuration_):
+        # find which distribution the configuration belongs to
+        # then return the distribution
+        # configuration_ is a (d,) element array : (d = 7)
+        dist_num = self._sklearn_gmm.predict(configuration_.reshape((1, -1))).squeeze()
+        return dist_num.item()
+
     def get_distribution(self, configuration_):
         # find which distribution the configuration belongs to
         # then return the distribution
@@ -94,6 +101,7 @@ class BaseTaskPlanner(object):
                             goal_configuration_):
         """
         set start and goal configurations
+        both start and goal configurations are intersection here.
         """
         raise NotImplementedError("Please Implement this method")
 
@@ -343,21 +351,20 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
     def reset_task_planner(self, gmm):
         self.task_graph = nx.DiGraph()
+        self.manifold_constraints = {} # the constraints of each manifold
         self.gmm_ = gmm
 
     def add_manifold(self, manifold_constraint_, manifold_id_):
         self.manifold_constraints[manifold_id_] = manifold_constraint_
-        self.incomming_manifold_intersections[manifold_id_] = []
-        self.outgoing_manifold_intersections[manifold_id_] = []
 
-        # construct a set of nodes represented by a pair (manifold id, GMM id)
+        # construct a set of nodes represented by a pair (foliation id, manifold id, GMM id)
         for i in range(len(self.gmm_.distributions)):
-            self.task_graph.add_node((manifold_id_, i), weight = 0.0)
+            self.task_graph.add_node((manifold_id_[0], manifold_id_[1], i), weight = 0.0)
 
         for edge in self.gmm_.edge_of_distribution:
             self.task_graph.add_edge(
-                (manifold_id_, edge[0]), 
-                (manifold_id_, edge[1]), 
+                (manifold_id_[0], manifold_id_[1], edge[0]), 
+                (manifold_id_[0], manifold_id_[1], edge[1]), 
                 has_intersection=False, 
                 intersection=None
             )
@@ -375,18 +382,18 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         # get the first of configuration of the intersection_
         configuration1 = intersection_[1][0]
-        distribution_id_in_manifold1 = self.gmm_.get_distribution(configuration1)
+        distribution_id_in_manifold1 = self.gmm_.get_distribution_index(configuration1)
 
         # get the second of configuration of the intersection_
         configuration2 = intersection_[1][-1]
-        distribution_id_in_manifold2 = self.gmm_.get_distribution(configuration2)
+        distribution_id_in_manifold2 = self.gmm_.get_distribution_index(configuration2)
 
-        if(not self.task_graph.has_edge((manifold_id1_, distribution_id_in_manifold1), (manifold_id2_, distribution_id_in_manifold2)) and 
-           not self.task_graph.has_edge((manifold_id2_, distribution_id_in_manifold2), (manifold_id1_, distribution_id_in_manifold1))
+        if(not self.task_graph.has_edge((manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2)) and 
+           not self.task_graph.has_edge((manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2), (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1))
         ):
             self.task_graph.add_edge(
-                (manifold_id1_, distribution_id_in_manifold1), 
-                (manifold_id2_, distribution_id_in_manifold2), 
+                (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
+                (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2), 
                 has_intersection=True, 
                 intersection=intersection_
             )
@@ -394,8 +401,8 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             inversed_intersection = (intersection_[0], intersection_[1][::-1], intersection_[2], intersection_[3], intersection_[4])
             
             self.task_graph.add_edge(
-                (manifold_id2_, distribution_id_in_manifold2),
-                (manifold_id1_, distribution_id_in_manifold1),
+                (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2),
+                (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1),
                 has_intersection=True,
                 intersection=inversed_intersection
             )
@@ -418,31 +425,19 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         self.task_graph.add_edge(
             'start', 
-            (start_manifold_id_, self.gmm_.get_distribution(start_configuration_)), 
+            (start_manifold_id_[0], start_manifold_id_[1], self.gmm_.get_distribution_index(np.array(start_configuration_[1][0]))), 
             has_intersection=False, 
             intersection=None
         )
 
         self.task_graph.add_edge(
-            (goal_manifold_id_, self.gmm_.get_distribution(goal_configuration_)), 
+            (goal_manifold_id_[0], goal_manifold_id_[1], self.gmm_.get_distribution_index(np.array(goal_configuration_[1][0]))), 
             'goal', 
             has_intersection=True, 
-            intersection=(
-                False, 
-                [goal_configuration_], 
-                None,
-                None,
-                None
-            )
+            intersection=goal_configuration_
         )
 
-        self.current_start_configuration = (
-            False,
-            [start_configuration_],
-            None,
-            None,
-            None
-        )
+        self.current_start_configuration = start_configuration_
 
     def generate_task_sequence(self):
         # find the shortest path from start to goal
@@ -456,10 +451,9 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         for node1, node2 in zip(shortest_path[:-1], shortest_path[1:]):
             if self.task_graph.get_edge_data(node1, node2)['has_intersection']:
                 task = Task(
-                    self.manifold_constraints[self.task_graph.edges[node1, node2]['manifold_id']],
+                    self.manifold_constraints[(node1[0], node1[1])],
                     task_start_configuration,
-                    self.task_graph.get_edge_data(node1, node2)['intersection'],
-                    nx.get_node_attributes(self.task_graph, 'intersection')[node2]
+                    self.task_graph.get_edge_data(node1, node2)['intersection']
                 )
 
                 task.distributions = list(task_gaussian_distribution)
@@ -468,11 +462,11 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
                 # ready for the next task.
                 if node2 != 'goal': # if the edge is to goal, then no need to prepare for the next task
-                    task_gaussian_distribution = [self.gmm_.distribution[node2[1]]]
+                    task_gaussian_distribution = [self.gmm_.distributions[node2[1]]]
                     task_start_configuration = self.task_graph.get_edge_data(node1, node2)['intersection']
             else:
                 # edge in the same manifold except start and goal transition
-                task_gaussian_distribution.append(self.gmm_.distribution[node2[1]])
+                task_gaussian_distribution.append(self.gmm_.distributions[node2[1]])
         return task_sequence
 
     def update(self, task_graph_info_, plan_):
@@ -483,8 +477,8 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         if plan_[0]:
             # increase the value of all distribution in the same manifold with a small value.
             for g_id in range(len(self.gmm_.distributions)):
-                self.task_graph.nodes[(task_graph_info_, g_id)]['weight'] += 0.01
+                self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], g_id)]['weight'] += 0.01
         else:
             # increase the value of all distribution in the same manifold with a large value.
             for g_id in range(len(self.gmm_.distributions)):
-                self.task_graph.nodes[(task_graph_info_, g_id)]['weight'] += 1.0
+                self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], g_id)]['weight'] += 1.0
