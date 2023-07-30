@@ -92,11 +92,43 @@ if __name__ == "__main__":
         # the constraint here has (moveit constraint, has_object_in_hand, object_pose, object mesh, object name)
         # if the has_object_in_hand is true, then object pose here is the in-hand-object-pose which is the grasp pose in the object frame
         # if the has_object_in_hand is false, then object pose here is the object placement pose which is the placement pose in the world frame
-        moveit_constraint = Constraints()
+        no_constraint = Constraints()
+        no_constraint.name = "use_equality_constraints"
+
+        oc = OrientationConstraint()
+
+        oc.parameterization = OrientationConstraint.ROTATION_VECTOR
+        oc.header.frame_id = "base_link"
+        oc.header.stamp = rospy.Time(0)
+        oc.link_name = "wrist_roll_link"
+        constrained_quaternion = Quaternion()
+        constrained_quaternion.x = 0.0
+        constrained_quaternion.y = 0.0
+        constrained_quaternion.z = 0.0
+        constrained_quaternion.w = 1.0
+        oc.orientation = constrained_quaternion
+        oc.weight = 1.0
+
+        oc.absolute_x_axis_tolerance = 2 * 3.1415
+        oc.absolute_y_axis_tolerance = 2 * 3.1415
+        oc.absolute_z_axis_tolerance = 2 * 3.1415
+        no_constraint.orientation_constraints.append(oc)
+
+        # need to set in-hand pose
+        in_hand_pose = Pose()
+        in_hand_pose.position.x = 0.0
+        in_hand_pose.position.y = 0.0
+        in_hand_pose.position.z = 0.0
+        in_hand_pose.orientation.x = 0.0
+        in_hand_pose.orientation.y = 0.0
+        in_hand_pose.orientation.z = 0.0
+        in_hand_pose.orientation.w = 1.0
+        no_constraint.in_hand_pose = in_hand_pose
+
         manifold_object_pose = manifold.in_hand_pose if manifold.has_object_in_hand else manifold.object_pose
         # manifold.has_object_in_hand
         task_planner.add_manifold(
-            (moveit_constraint, manifold.has_object_in_hand, manifold_object_pose, manifold.object_mesh, manifold.object_name), 
+            (no_constraint, manifold.has_object_in_hand, manifold_object_pose, manifold.object_mesh, manifold.object_name), 
             (manifold.foliation_id, manifold.manifold_id)
         )
 
@@ -124,6 +156,10 @@ if __name__ == "__main__":
     rospy.sleep(0.5)
     scene.clear()
     move_group = moveit_commander.MoveGroupCommander("arm")
+
+    if use_gmm:
+        move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
+
     # move_group.set_planner_id('CBIRRTConfigDefault')
     rospy.wait_for_service("/compute_ik")
     compute_ik_srv = rospy.ServiceProxy("/compute_ik", GetPositionIK)
@@ -208,9 +244,6 @@ if __name__ == "__main__":
             print("no task sequence found")
             break
 
-        print "debug done"
-        exit()
-
         found_solution = True
         solution_path = []
 
@@ -236,6 +269,12 @@ if __name__ == "__main__":
             # print("task graph info:")
             # print(task.task_graph_info)
             # print("-----------")
+
+            # # check distribution
+            # print "distribution:"
+            # for d in task.distributions:
+            #     print d.mean
+            #     print d.covariance
 
             if task.constraint[1]: # has object in hand
                 
@@ -268,8 +307,13 @@ if __name__ == "__main__":
                 moveit_robot_state.joint_state.position = tuple(start_position_list)
                 move_group.set_start_state(moveit_robot_state)
                 move_group.set_joint_value_target(task.goal_configuration[1][0])
+                move_group.set_path_constraints(task.constraint[0])
 
                 motion_plan_result = move_group.plan()
+
+                # convert the sampled data from robot state into only group joints
+                for m in motion_plan_result[4].verified_motions:
+                    m.sampled_state = [m.sampled_state.joint_state.position[m.sampled_state.joint_state.name.index(j)] for j in move_group.get_active_joints()]
 
                 task_planner.update(task.task_graph_info, motion_plan_result)
 
@@ -315,8 +359,13 @@ if __name__ == "__main__":
                 moveit_robot_state.joint_state.position = tuple(start_position_list)
                 move_group.set_start_state(moveit_robot_state)
                 move_group.set_joint_value_target(task.goal_configuration[1][0])
+                move_group.set_path_constraints(task.constraint[0])
 
                 motion_plan_result = move_group.plan()
+
+                # convert the sampled data from robot state into only group joints
+                for m in motion_plan_result[4].verified_motions:
+                    m.sampled_state = [m.sampled_state.joint_state.position[m.sampled_state.joint_state.name.index(j)] for j in move_group.get_active_joints()]
 
                 task_planner.update(task.task_graph_info, motion_plan_result)
 
@@ -338,6 +387,9 @@ if __name__ == "__main__":
                 # if it is, wait for short time.
                 while task.constraint[4] in scene.get_known_object_names():
                     rospy.sleep(0.0001)
+
+            # print("debug done")
+            # exit()
 
         if found_solution: # found solution, then break the
 

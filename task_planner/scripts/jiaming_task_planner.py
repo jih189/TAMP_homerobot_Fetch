@@ -425,13 +425,21 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         self.task_graph.add_edge(
             'start', 
-            (start_manifold_id_[0], start_manifold_id_[1], self.gmm_.get_distribution_index(np.array(start_configuration_[1][0]))), 
+            (
+                start_manifold_id_[0], 
+                start_manifold_id_[1], 
+                self.gmm_.get_distribution_index(np.array(start_configuration_[1][0]))
+            ), 
             has_intersection=False, 
             intersection=None
         )
 
         self.task_graph.add_edge(
-            (goal_manifold_id_[0], goal_manifold_id_[1], self.gmm_.get_distribution_index(np.array(goal_configuration_[1][0]))), 
+            (
+                goal_manifold_id_[0], 
+                goal_manifold_id_[1], 
+                self.gmm_.get_distribution_index(np.array(goal_configuration_[1][0]))
+            ), 
             'goal', 
             has_intersection=True, 
             intersection=goal_configuration_
@@ -457,22 +465,44 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 )
 
                 task.distributions = list(task_gaussian_distribution)
-                task.set_task_graph_info(node1[0]) # we use the manifold id as task graph information here
+                task.set_task_graph_info((node1[0], node1[1])) # we use the manifold id as task graph information here
                 task_sequence.append(task)
 
                 # ready for the next task.
                 if node2 != 'goal': # if the edge is to goal, then no need to prepare for the next task
-                    task_gaussian_distribution = [self.gmm_.distributions[node2[1]]]
+                    task_gaussian_distribution = [self.gmm_.distributions[node2[2]]]
                     task_start_configuration = self.task_graph.get_edge_data(node1, node2)['intersection']
             else:
                 # edge in the same manifold except start and goal transition
-                task_gaussian_distribution.append(self.gmm_.distributions[node2[1]])
+                task_gaussian_distribution.append(self.gmm_.distributions[node2[2]])
         return task_sequence
 
     def update(self, task_graph_info_, plan_):
         # use the sample data to update the task graph.
-        # TODO: implement this later
+        # sampled_state_tag hint
+        # 0: collision free
+        # 1: arm-env collision or out of joint limit
+        # 2: path constraint violation
+        # 3: infeasble state, you should ignore this
+        # 4: obj-env collision
 
+        sampled_data_numpy = np.array([sampled_data.sampled_state for sampled_data in plan_[4].verified_motions])
+        sampled_data_distribution_id = self.gmm_._sklearn_gmm.predict(sampled_data_numpy).tolist()
+
+        for i in range(len(sampled_data_distribution_id)):
+            sampled_data_gmm_id = sampled_data_distribution_id[i]
+            sampled_data_tag = plan_[4].verified_motions[i].sampled_state_tag
+
+            if sampled_data_tag == 1:
+                # increase the value of all distribution with the same mean and covariance
+                for manifold_id in self.manifold_constraints.keys():
+                    self.task_graph.nodes[(manifold_id[0], manifold_id[1], sampled_data_gmm_id)]['weight'] += 0.5
+
+            elif sampled_data_tag == 2:
+                self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], sampled_data_gmm_id)]['weight'] += 0.3
+
+            elif sampled_data_tag == 4:
+                self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], sampled_data_gmm_id)]['weight'] += 0.3
 
         if plan_[0]:
             # increase the value of all distribution in the same manifold with a small value.
