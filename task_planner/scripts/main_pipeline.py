@@ -179,7 +179,7 @@ if __name__ == "__main__":
         # generate task sequence
         task_sequence = task_planner.generate_task_sequence()
 
-        if len(task_sequence) == 0:
+        if len(task_sequence) == 0: # if no task sequence found, then break the loop
             print("no task sequence found")
             break
 
@@ -222,9 +222,11 @@ if __name__ == "__main__":
 
                 motion_plan_result = move_group.plan()
 
-                # convert the sampled data from robot state into only group joints
-                for m in motion_plan_result[4].verified_motions:
-                    m.sampled_state = [m.sampled_state.joint_state.position[m.sampled_state.joint_state.name.index(j)] for j in move_group.get_active_joints()]
+                # if the planner uses gmm, then it will convert sampled data in the robot state format.
+                # so we need to convert it back to the numpy format based on the active joints.
+                if(use_gmm):
+                    for m in motion_plan_result[4].verified_motions:
+                        m.sampled_state = [m.sampled_state.joint_state.position[m.sampled_state.joint_state.name.index(j)] for j in move_group.get_active_joints()]
 
                 task_planner.update(task.task_graph_info, motion_plan_result)
 
@@ -270,9 +272,11 @@ if __name__ == "__main__":
 
                 motion_plan_result = move_group.plan()
 
-                # convert the sampled data from robot state into only group joints
-                for m in motion_plan_result[4].verified_motions:
-                    m.sampled_state = [m.sampled_state.joint_state.position[m.sampled_state.joint_state.name.index(j)] for j in move_group.get_active_joints()]
+                # if the planner uses gmm, then it will convert sampled data in the robot state format.
+                # so we need to convert it back to the numpy format based on the active joints.
+                if(use_gmm): 
+                    for m in motion_plan_result[4].verified_motions:
+                        m.sampled_state = [m.sampled_state.joint_state.position[m.sampled_state.joint_state.name.index(j)] for j in move_group.get_active_joints()]
 
                 task_planner.update(task.task_graph_info, motion_plan_result)
 

@@ -160,7 +160,7 @@ class BaseTaskPlanner(object):
     def add_manifold(self, manifold_info_, manifold_id_):
         raise NotImplementedError("Please Implement this method")
 
-    def add_intersection(self, manifold_id1_, manifold_id2_, intersection_):
+    def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
         """
         add intersection to the manifold
         """
@@ -483,7 +483,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             )
 
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
-        # connect two distribution of this intersection_ between two different manifolds(manifold1 and manifold2) if they have the same ditribution id in GMM.
+        # connect two distribution of this intersection_detail_ between two different manifolds(manifold1 and manifold2) if they have the same ditribution id in GMM.
         # first, find the related distribution that the intersection's ends are in in different manifolds.
 
         # get the first of configuration of the intersection_detail
@@ -558,6 +558,10 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         self.current_start_configuration = start_configuration_
 
     def generate_task_sequence(self):
+        # check the connectivity of the task graph from start to goal
+        if not nx.has_path(self.task_graph, 'start', 'goal'):
+            return []
+
         # find the shortest path from start to goal
         shortest_path = nx.shortest_path(self.task_graph, 'start', 'goal', weight='weight')
 
@@ -568,6 +572,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         # construct the task sequence.
         for node1, node2 in zip(shortest_path[:-1], shortest_path[1:]):
             if self.task_graph.get_edge_data(node1, node2)['has_intersection']:
+                # current edge is a transition from one manifold to another manifold
                 task = Task(
                     self.manifold_info[(node1[0], node1[1])],
                     task_start_configuration,
