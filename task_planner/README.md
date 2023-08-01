@@ -44,6 +44,14 @@ Then you can run the following code for the main pipeline
 rosrun task_planner main_pipeline.py
 ```
 
+In this project, we have a predictor to read the pointcloud and predict the feasibility of each predefined distribution of GMM. For this purpose, we need to generate the dataset. Here, we assume we have GMM already. (you need to have a fake move group launching for the following command)
+
+First, generate a set of self-collision-free arm configurations with following code.
+```
+rosrun data_generation random_joint_state_generation.py
+```
+This code will generate a directory(jiaming_manipulation/data_generation/gmm_data) with joint_names.npy and valid_robot_states.npy. joint_names.py contains the name of all joint of the robot, while valid_robot_state.npy contains all valid robot state(only joint values).
+
 ### Motion planning tutorial
 In this project, we will use CDistributionRRT which will read both constraints and distribution to plan the motion trajectory. We also provide an example code CDistributionRRT_example.ipynb in jupyter_note_tests.
 
