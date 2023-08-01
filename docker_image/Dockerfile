@@ -284,6 +284,9 @@ RUN git clone https://github.com/rst-tu-dortmund/control_box_rst.git && cd contr
 COPY ./download/handle_weight.tar.xz $HOME
 RUN tar -xf $HOME/handle_weight.tar.xz -C $HOME && rm $HOME/handle_weight.tar.xz
 
+# install packages needed in task planner
+RUN python -m pip install networkx scikit-learn
+
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME
 
