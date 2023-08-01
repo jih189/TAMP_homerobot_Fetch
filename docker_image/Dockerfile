@@ -111,7 +111,7 @@ ENV PATH $CUDA_HOME/bin:$PATH
 # setup the rosdep
 RUN sudo apt -y install python-wstool python-catkin-tools clang-format-10 python-rosdep
 RUN mkdir -p ws_moveit/src && cd ws_moveit/src && git clone https://github.com/jih189/moveit_cbirrt.git
-RUN rosdep init && rosdep update
+RUN rosdep init && rosdep update --include-eol-distros
 RUN cd ws_moveit && rosdep install -y --from-paths src --ignore-src --rosdistro melodic
 
 # remove the ompl from ROS
