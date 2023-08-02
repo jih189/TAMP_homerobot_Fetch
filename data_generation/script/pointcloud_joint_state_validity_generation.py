@@ -117,7 +117,7 @@ class DataGenerator:
             result.append(contact.contact_body_1)
         return list(set(result))
 
-    def checkCollision(self, joint_values, joint_names):
+    def checkValid(self, joint_values, joint_names):
         '''
         Check the collsion happening in the scene.
         '''
@@ -204,7 +204,7 @@ if __name__ == "__main__":
 
         valid_tag = np.zeros(valid_robot_states.shape[0])
         for j in range(valid_robot_states.shape[0]):
-            if data_generator.checkCollision(valid_robot_states[j], joint_names):
+            if data_generator.checkValid(valid_robot_states[j], joint_names):
                 valid_tag[j] = 1
             else:
                 valid_tag[j] = 0

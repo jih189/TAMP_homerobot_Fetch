@@ -58,6 +58,13 @@ rosrun data_generation pointcloud_joint_state_validity_generation.py _random_val
 ```
 Here, the random value is used as seed, while the total_env_num is the number of scene you want to generate. After generation, for each scene i, there will be a dir named "env_i". In this directory, there are two files. map_i.ply is the pointcloud of the obstacle, while valid_tag.npy is a vector of valid flag for each arm configuration in the valid_robot_states.npy.
 
+Third, load the gmm and predict the feasibility of each predefined distribution with the following command:
+```
+rosrun task_planner prepare_gmm_dataset.py
+```
+
+This command will first load the gmm, then find the gmm_data in the data_generation, the read the valid_robot_states.npy. Based on the gmm and valid_tag.npy in each env_i, it can calculate the total number of sampled joint state of each distribution as total_count_dic.npy. Then, it also produces the valid number of each distribution as valid_count_dic.npy. Both of them are dictionary.
+
 ### Motion planning tutorial
 In this project, we will use CDistributionRRT which will read both constraints and distribution to plan the motion trajectory. We also provide an example code CDistributionRRT_example.ipynb in jupyter_note_tests.
 
