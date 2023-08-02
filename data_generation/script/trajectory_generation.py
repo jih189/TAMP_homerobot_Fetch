@@ -49,8 +49,8 @@ class TrajectoryGenerator:
         # Create a JointState message
         joint_state = JointState()
         joint_state.header.stamp = rospy.Time.now()
-        joint_state.name = ['shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'wrist_flex_joint']
-        joint_state.position = [-1.28, 1.52, 0.35, 1.81, 1.47]
+        joint_state.name = ['torso_lift_joint', 'shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'wrist_flex_joint', 'l_gripper_finger_joint', 'r_gripper_finger_joint']
+        joint_state.position = [0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
 
         rate = rospy.Rate(10)
         while(joint_state_publisher.get_num_connections() < 1): # need to wait until the publisher is ready.
@@ -181,7 +181,7 @@ class TrajectoryGenerator:
         '''
         Check the collsion happening in the scene.
         '''
-        joint_values = self.move_group.get_random_joint_values()
+        joint_values = self.move_group.get_current_joint_values()
         # Create a GetStateValidityRequest object
         request = GetStateValidityRequest()
         request.robot_state.joint_state.name = self.joint_names
