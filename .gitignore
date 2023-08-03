@@ -3,3 +3,4 @@ CMakelists.txt
 MPNet
 .ipynb_checkpoints/
 mpt_general/
+task_planner/gmm/empty_world_trajectory_data
