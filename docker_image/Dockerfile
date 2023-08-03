@@ -143,7 +143,6 @@ RUN apt-get update -q && \
 RUN git clone https://github.com/flexible-collision-library/fcl.git && cd fcl && mkdir build && cd build && cmake .. && make && make install
 
 # install trimesh
-RUN pip2 install trimesh
 RUN apt-get install -y python-scipy python-rtree
 
 # install blender
@@ -285,7 +284,7 @@ COPY ./download/handle_weight.tar.xz $HOME
 RUN tar -xf $HOME/handle_weight.tar.xz -C $HOME && rm $HOME/handle_weight.tar.xz
 
 # install packages needed in task planner
-RUN python -m pip install networkx scikit-learn tqdm
+RUN python -m pip install networkx scikit-learn tqdm trimesh python-fcl
 
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME

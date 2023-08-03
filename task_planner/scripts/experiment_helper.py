@@ -66,6 +66,7 @@ class Experiment:
     """
     def __init__(self):
         self.has_setup = False
+        self.has_set_start_and_goal_foliation_and_manifold_id = False
         
     def setup(self, experiment_name_, obstacle_mesh_, obstacle_mesh_pose_, initial_robot_state_, joint_names_, active_joint_names_):
         self.experiment_name = experiment_name_
@@ -96,6 +97,9 @@ class Experiment:
         """
         if not self.has_setup:
             raise ValueError("The experiment has not been setup yet.")
+        
+        if not self.has_set_start_and_goal_foliation_and_manifold_id:
+            raise ValueError("The start and goal foliation, manifold id have not been set yet.")
 
         # check if the directory exists
         # if so, then delete it
@@ -156,12 +160,21 @@ class Experiment:
                 with open(dir_name + '/intersection_' + str(intersection_id) + '.json', 'w') as file:
                     json.dump(intersection_data, file)
 
+        # save the start and goal's foliation and manifold id
+        start_and_goal_data = {
+            "start_foliation_id": self.start_foliation_id,
+            "start_manifold_id": self.start_manifold_id,
+            "goal_foliation_id": self.goal_foliation_id,
+            "goal_manifold_id": self.goal_manifold_id
+        }
+
+        with open(dir_name + '/start_and_goal.json', 'w') as file:
+            json.dump(start_and_goal_data, file)
 
     def load(self, dir_name):
         """
         Load the experiment from a file.
         """
-        self.has_setup = True
         print("Loading experiment from " + dir_name)
 
         # check if the directory exists
@@ -223,6 +236,17 @@ class Experiment:
                                                     intersection_data["object_name"])
                 self.intersections.append(current_intersection)
 
+        # load the start and goal data
+        with open(dir_name + "/start_and_goal.json", "r") as file:
+            start_and_goal_data = json.load(file)
+            self.start_foliation_id = start_and_goal_data["start_foliation_id"]
+            self.start_manifold_id = start_and_goal_data["start_manifold_id"]
+            self.goal_foliation_id = start_and_goal_data["goal_foliation_id"]
+            self.goal_manifold_id = start_and_goal_data["goal_manifold_id"]
+
+        self.has_setup = True
+        self.has_set_start_and_goal_foliation_and_manifold_id = True
+
     def print_experiment_data(self):
         """
         Print the experiment data.
@@ -247,7 +271,32 @@ class Experiment:
             else:
                 print("Object pose: " + str(manifold.object_pose))
 
+    def set_start_and_goal_foliation_manifold_id(self, start_foliation_id_, start_manifold_id_, goal_foliation_id_, goal_manifold_id_):
+        """
+        Set the start and goal manifold id.
+        We suggest you run this function after you set all manifolds.
+        """
+        # need to check if the start and goal manifold id are valid
+        found_start_manifold = False
+        found_goal_manifold = False
+        for manifold in self.manifolds:
+            if manifold.foliation_id == start_foliation_id_ and manifold.manifold_id == start_manifold_id_:
+                found_start_manifold = True
+            if manifold.foliation_id == goal_foliation_id_ and manifold.manifold_id == goal_manifold_id_:
+                found_goal_manifold = True
 
+        if not found_start_manifold:
+            raise ValueError("The start manifold id is invalid.")
+
+        if not found_goal_manifold:
+            raise ValueError("The goal manifold id is invalid.")
+
+        self.start_manifold_id = start_manifold_id_
+        self.goal_manifold_id = goal_manifold_id_
+        self.start_foliation_id = start_foliation_id_
+        self.goal_foliation_id = goal_foliation_id_
+
+        self.has_set_start_and_goal_foliation_and_manifold_id = True
     
 
 if __name__ == "__main__":

@@ -33,7 +33,7 @@ if __name__ == "__main__":
     # experiment_name = "move_mouse"
 
     use_mtg = True # use mtg or mdp
-    use_gmm = True # use gmm or not
+    use_gmm = False # use gmm or not
 
     ##########################################################
 
@@ -154,23 +154,14 @@ if __name__ == "__main__":
     scene.add_mesh("obstacle", obstacle_pose_stamped, experiment.obstacle_mesh, size=(1,1,1))
 
     ##############################################################################################
-    # the way to set the start and goal configurations is different for different experiments.
 
-    # set start and goal configurations for pick and place
+    # set start and goal configurations with relative foliation and manifold id
     task_planner.set_start_and_goal(
-        (0,0), # start manifold id
+        (experiment.start_foliation_id, experiment.start_manifold_id), # start manifold id
         move_group.get_current_joint_values(), # start configuration
-        (2,0), # goal manifold id
+        (experiment.goal_foliation_id, experiment.goal_manifold_id), # goal manifold id
         move_group.get_current_joint_values() # goal configuration
     )
-
-    # # set start and goal configurations for move mouse
-    # task_planner.set_start_and_goal(
-    #     (0,1), # start manifold id
-    #     move_group.get_current_joint_values(), # start configuration
-    #     (0,15), # goal manifold id
-    #     move_group.get_current_joint_values() # goal configuration
-    # )
 
     ##############################################################################
     # start the main pipeline

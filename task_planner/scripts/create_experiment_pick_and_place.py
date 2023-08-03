@@ -318,5 +318,8 @@ if __name__ == "__main__":
     #              [0.08 for _ in range(len(grasp_poses_for_vis))], 
     #              [0 for _ in range(len(grasp_poses_for_vis))])
 
+    # need to set start and goal foliation manifold id
+    experiment.set_start_and_goal_foliation_manifold_id(0,0,2,0)
+
     # save the experiment
     experiment.save(package_path + "/experiment_dir/pick_and_place")

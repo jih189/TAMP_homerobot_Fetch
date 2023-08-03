@@ -264,4 +264,8 @@ if __name__ == "__main__":
                     "cup"
                 )
                 experiment.add_intersection(intersection)
+
+    # need to set start and goal foliation manifold id
+    experiment.set_start_and_goal_foliation_manifold_id(0,1,0,15)
+
     experiment.save(package_path + "/experiment_dir/move_mouse")
