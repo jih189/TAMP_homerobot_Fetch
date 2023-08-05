@@ -342,14 +342,14 @@ class MDPTaskPlanner(BaseTaskPlanner):
         self.task_graph.add_node(intersection_from_2_to_1_id, intersection=intersection_detail_.get_inverse_motion())
 
         for i in self.incomming_manifold_intersections[manifold_id1_]:
-            self.task_graph.add_edge(i, intersection_from_1_to_2_id, probability=0, manifold_id=manifold_id1_)
+            self.task_graph.add_edge(i, intersection_from_1_to_2_id, probability=0.5, manifold_id=manifold_id1_)
         for i in self.outgoing_manifold_intersections[manifold_id2_]:
-            self.task_graph.add_edge(intersection_from_1_to_2_id, i, probability=0, manifold_id=manifold_id2_)
+            self.task_graph.add_edge(intersection_from_1_to_2_id, i, probability=0.5, manifold_id=manifold_id2_)
 
         for i in self.outgoing_manifold_intersections[manifold_id1_]:
-            self.task_graph.add_edge(intersection_from_2_to_1_id, i, probability=0, manifold_id=manifold_id1_)
+            self.task_graph.add_edge(intersection_from_2_to_1_id, i, probability=0.5, manifold_id=manifold_id1_)
         for i in self.incomming_manifold_intersections[manifold_id2_]:
-            self.task_graph.add_edge(i, intersection_from_2_to_1_id, probability=0, manifold_id=manifold_id2_)
+            self.task_graph.add_edge(i, intersection_from_2_to_1_id, probability=0.5, manifold_id=manifold_id2_)
 
         self.outgoing_manifold_intersections[manifold_id1_].append(intersection_from_1_to_2_id)
         self.incomming_manifold_intersections[manifold_id2_].append(intersection_from_1_to_2_id)
