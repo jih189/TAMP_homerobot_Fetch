@@ -33,13 +33,18 @@ if __name__ == "__main__":
     # experiment_name = "move_mouse"
 
     use_mtg = True # use mtg or mdp
-    use_gmm = False # use gmm or not
+    use_gmm = True # use gmm or not
 
     ##########################################################
 
     rospack = rospkg.RosPack()
     # Get the path of the desired package
     package_path = rospack.get_path('task_planner')
+
+    # load the gmm
+    gmm_dir_path = package_path + '/gmm/'
+    gmm = GMM()
+    gmm.load_distributions(gmm_dir_path)
 
     # load the expierment
     experiment = Experiment()
@@ -48,7 +53,7 @@ if __name__ == "__main__":
     # load the experiment into the task planner
     if use_mtg:
         if use_gmm:
-            task_planner = MTGTaskPlannerWithGMM()
+            task_planner = MTGTaskPlannerWithGMM(gmm)
         else:
             task_planner = MTGTaskPlanner()
     else:
@@ -58,14 +63,8 @@ if __name__ == "__main__":
             task_planner = MDPTaskPlanner()
 
 
-    if use_gmm:
-        # need to reset task planner with gmm
-        gmm_dir_path = package_path + '/gmm/'
-        gmm = GMM()
-        gmm.load_distributions(gmm_dir_path)
-        task_planner.reset_task_planner(gmm)
-    else:
-        task_planner.reset_task_planner()
+
+    task_planner.reset_task_planner()
 
     #############################################################################
     # setup the task graph.
@@ -120,10 +119,11 @@ if __name__ == "__main__":
     scene.clear()
     move_group = moveit_commander.MoveGroupCommander("arm")
 
-    if use_gmm:
-        move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
-    else:
-        move_group.set_planner_id('CBIRRTConfigDefault')
+    move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
+    # if use_gmm:
+    #     move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
+    # else:
+    #     move_group.set_planner_id('CBIRRTConfigDefault')
 
     display_trajectory_publisher = rospy.Publisher(
             "/move_group/display_planned_path",

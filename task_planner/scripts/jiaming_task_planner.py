@@ -194,6 +194,7 @@ class MTGTaskPlanner(BaseTaskPlanner):
         # Constructor
         super(BaseTaskPlanner, self).__init__() # python 2
         # super().__init__() # python 3
+        self.planner_name = "MTGTaskPlanner"
 
     def reset_task_planner(self):
         self.task_graph = nx.DiGraph()
@@ -311,6 +312,8 @@ class MDPTaskPlanner(BaseTaskPlanner):
         # Constructor
         super(BaseTaskPlanner, self).__init__() # python 2
         # super().__init__() # python 3
+
+        self.planner_name = "MDPTaskPlanner"
 
     def reset_task_planner(self):
         self.task_graph = nx.DiGraph()
@@ -457,15 +460,18 @@ class MDPTaskPlanner(BaseTaskPlanner):
             #TODO: implement this
 
 class MTGTaskPlannerWithGMM(BaseTaskPlanner):
-    def __init__(self):
+    def __init__(self, gmm):
         # Constructor
         super(BaseTaskPlanner, self).__init__()
         # super().__init__() # python 3
 
-    def reset_task_planner(self, gmm):
+        self.gmm_ = gmm
+
+        self.planner_name = "MTGTaskPlannerWithGMM"
+
+    def reset_task_planner(self):
         self.task_graph = nx.DiGraph()
         self.manifold_info = {} # the constraints of each manifold
-        self.gmm_ = gmm
 
     def add_manifold(self, manifold_info_, manifold_id_):
         self.manifold_info[manifold_id_] = manifold_info_

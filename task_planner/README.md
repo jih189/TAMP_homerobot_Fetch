@@ -33,6 +33,8 @@ Each experiment here will be saved as a file in directory [experiment_dir](exper
 
 ## Usage
 
+### Base tutorial
+
 In this project, we do not need to run on the real robot, so we can run the move_group in only simulation. Here is the code to launch fake move_group.
 
 ```
@@ -43,6 +45,17 @@ Then you can run the following code for the main pipeline
 ```
 rosrun task_planner main_pipeline.py
 ```
+
+### Evaluation tutorial
+
+We also provide the code to evaluate different task planner. 
+```
+rosrun task_planner evaluation.py
+```
+
+This code will first load the experiment file in experiment_dir, then evaluate the performance of each task planner. The evaluation result will be saved in the directory jiaming_manipulation/taskplanner/evaluated_data_dir. You should modify the parameter in the file to change the experiment you want to evaluate and the task planner you want to use.
+
+### Dataset generation tutorial
 
 In this project, we have a predictor to read the pointcloud and predict the feasibility of each predefined distribution of GMM. For this purpose, we need to generate the dataset. Here, we assume we have GMM already. (you need to have a fake move group launching for the following command)
 
