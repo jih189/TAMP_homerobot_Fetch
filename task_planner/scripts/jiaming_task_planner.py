@@ -488,6 +488,14 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 intersection=None
             )
 
+            # need to add the inverse edge
+            self.task_graph.add_edge(
+                (manifold_id_[0], manifold_id_[1], edge[1]), 
+                (manifold_id_[0], manifold_id_[1], edge[0]), 
+                has_intersection=False, 
+                intersection=None
+            )
+
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
         # connect two distribution of this intersection_detail_ between two different manifolds(manifold1 and manifold2) if they have the same ditribution id in GMM.
         # first, find the related distribution that the intersection's ends are in in different manifolds.
@@ -665,6 +673,15 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 probability = 0.5,
             )
 
+            # need to add the inverse edge
+            self.task_graph.add_edge(
+                (manifold_id_[0], manifold_id_[1], edge[1]), 
+                (manifold_id_[0], manifold_id_[1], edge[0]), 
+                has_intersection=False,
+                intersection=None,
+                probability = 0.5,
+            )
+
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
         # connect two distribution of this intersection_detail_ between two different manifolds(manifold1 and manifold2) if they have the same ditribution id in GMM.
         # first, find the related distribution that the intersection's ends are in in different manifolds.
@@ -708,8 +725,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
             self.task_graph.remove_node('goal')
 
         # include start and goal configurations in the task graph
-        self.task_graph.add_node('start', weight = 0.0)
-        self.task_graph.add_node('goal', weight = 0.0)
+        self.task_graph.add_node('start')
+        self.task_graph.add_node('goal')
 
         self.task_graph.add_edge(
             'start', 
@@ -751,8 +768,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
         if not nx.has_path(self.task_graph, 'start', 'goal'):
             return []
 
-        # need to generate shortest path first
-
+        # run value iteration
         for _ in range(self.value_iteration_iters):
             new_value_function = {}
 
@@ -800,7 +816,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 )
 
                 task.distributions = list(task_gaussian_distribution)
-                task.set_task_graph_info((node1[0], node1[1])) # we use the manifold id as task graph information here
+                task.set_task_graph_info((node1[0], node1[1])) # we use the foliation id and manifold id as task graph information here
                 task_sequence.append(task)
 
                 # ready for the next task.
@@ -827,6 +843,29 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
         sampled_data_numpy = np.array([sampled_data.sampled_state for sampled_data in plan_[4].verified_motions])
         sampled_data_distribution_id = self.gmm_._sklearn_gmm.predict(sampled_data_numpy).tolist()
+
+        for i in range(len(sampled_data_distribution_id)):
+            sampled_data_gmm_id = sampled_data_distribution_id[i]
+            sampled_data_tag = plan_[4].verified_motions[i].sampled_state_tag
+
+            if sampled_data_tag == 1: # arm env collision or out of joint limit
+                for manifold_id in self.manifold_info.keys(): # for all manifolds
+                    for out_going_edge in self.task_graph.out_edges((manifold_id[0], manifold_id[1], sampled_data_gmm_id)):
+                        self.task_graph.edges[out_going_edge]['probability'] *= 0.5
+
+            elif sampled_data_tag == 4:
+                pass #TODO
+
+        #     if sampled_data_tag == 1:
+        #         # increase the value of all distribution with the same mean and covariance
+        #         for manifold_id in self.manifold_info.keys():
+        #             self.task_graph.nodes[(manifold_id[0], manifold_id[1], sampled_data_gmm_id)]['weight'] += 0.5
+
+        #     elif sampled_data_tag == 2:
+        #         self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], sampled_data_gmm_id)]['weight'] += 0.3
+
+        #     elif sampled_data_tag == 4:
+        #         self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], sampled_data_gmm_id)]['weight'] += 0.3
 
 
         if plan_[0]:
