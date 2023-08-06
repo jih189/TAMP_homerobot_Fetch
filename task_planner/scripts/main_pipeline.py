@@ -23,6 +23,7 @@ from sensor_msgs.msg import PointCloud2, PointField, PointCloud
 import struct
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 
+np.set_printoptions(suppress=True, precision = 3)
 if __name__ == "__main__":
 
     ##########################################################
@@ -169,7 +170,13 @@ if __name__ == "__main__":
     for _ in range(max_attempt_times):
         # generate task sequence
         task_sequence = task_planner.generate_task_sequence()
-
+        for task in task_sequence:
+            print("---------------")
+            for dist in task.distributions:
+                print(dist.mean)
+            # print("Distribution means ends")
+            # print(task.print_task_detail())
+        done
         if len(task_sequence) == 0: # if no task sequence found, then break the loop
             print("no task sequence found")
             break
