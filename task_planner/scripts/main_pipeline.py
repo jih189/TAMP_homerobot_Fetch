@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from experiment_helper import Experiment, Manifold, Intersection
-from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, GMM, ManifoldDetail, IntersectionDetail
+from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, MDPTaskPlannerWithGMM, GMM, ManifoldDetail, IntersectionDetail
 from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint
 
 import sys
@@ -59,7 +59,7 @@ if __name__ == "__main__":
             task_planner = MTGTaskPlanner()
     else:
         if use_gmm:
-            pass
+            task_planner = MDPTaskPlannerWithGMM(gmm)
         else:
             task_planner = MDPTaskPlanner()
 
@@ -170,13 +170,6 @@ if __name__ == "__main__":
     for _ in range(max_attempt_times):
         # generate task sequence
         task_sequence = task_planner.generate_task_sequence()
-        for task in task_sequence:
-            print("---------------")
-            for dist in task.distributions:
-                print(dist.mean)
-            # print("Distribution means ends")
-            # print(task.print_task_detail())
-        done
         if len(task_sequence) == 0: # if no task sequence found, then break the loop
             print("no task sequence found")
             break
