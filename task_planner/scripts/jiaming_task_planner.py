@@ -856,22 +856,20 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
             elif sampled_data_tag == 4:
                 pass #TODO
 
-        #     if sampled_data_tag == 1:
-        #         # increase the value of all distribution with the same mean and covariance
-        #         for manifold_id in self.manifold_info.keys():
-        #             self.task_graph.nodes[(manifold_id[0], manifold_id[1], sampled_data_gmm_id)]['weight'] += 0.5
+            if sampled_data_tag == 1:
+                # increase the value of all distribution with the same mean and covariance
+                for manifold_id in self.manifold_info.keys():
+                    for out_going_edge in self.task_graph.out_edges((manifold_id[0], manifold_id[1], sampled_data_gmm_id)):
+                        self.task_graph.edges[out_going_edge]['probability'] *= 0.75
 
-        #     elif sampled_data_tag == 2:
+            elif sampled_data_tag == 2:
+                manifold_id = (task_graph_info_[0], task_graph_info_[1])
+                for out_going_edge in self.task_graph.out_edges((manifold_id[0], manifold_id[1], sampled_data_gmm_id)):
+                    self.task_graph.edges[out_going_edge]['probability'] *= 0.75
+
+            elif sampled_data_tag == 4:
+                manifold_id = (task_graph_info_[0], task_graph_info_[1])
+                for out_going_edge in self.task_graph.out_edges((manifold_id[0], manifold_id[1], sampled_data_gmm_id)):
+                    self.task_graph.edges[out_going_edge]['probability'] *= 0.5
         #         self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], sampled_data_gmm_id)]['weight'] += 0.3
 
-        #     elif sampled_data_tag == 4:
-        #         self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], sampled_data_gmm_id)]['weight'] += 0.3
-
-
-        if plan_[0]:
-            # set the transition probability to 1 because the task is successfully completed
-            self.task_graph.edges[task_graph_info_]['probability'] = 1.0
-        else:
-            self.task_graph.edges[task_graph_info_]['probability'] *= 0.5
-            # find all similar task in the task graph and decrease their transition probabilities.
-            #TODO: implement this
