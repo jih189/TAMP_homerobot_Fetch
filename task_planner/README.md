@@ -78,6 +78,49 @@ rosrun task_planner prepare_gmm_dataset.py
 
 This command will first load the gmm, then find the gmm_data in the data_generation, the read the valid_robot_states.npy. Based on the gmm and valid_tag.npy in each env_i, it can calculate the total number of sampled joint state of each distribution as total_count_dic.npy. Then, it also produces the valid number of each distribution as valid_count_dic.npy. Both of them are dictionary.
 
+### To download the dataset(internal use only)
+We use s3cmd to save all data, so you need to download the s3cmd first.
+```
+apt-get install s3cmd
+
+```
+Then you can put the configuration file into ~/.s3cfg. Then, you can list all files in the s3 bucket with the following command:
+```
+s3cmd ls s3://my-bucket
+```
+It should print out all files in the bucket like this:
+```
+2023-08-07 06:37  66233424   s3://my-bucket/gmm-data-0000
+2023-08-07 22:28  66188139   s3://my-bucket/gmm-data-1000
+2023-08-07 06:39  66214753   s3://my-bucket/gmm-data-2000
+2023-08-07 06:46  66256142   s3://my-bucket/gmm-data-3000
+2023-08-07 06:27  66182459   s3://my-bucket/gmm-data-4000
+2023-08-07 06:30  66210384   s3://my-bucket/gmm-data-5000
+2023-08-07 06:32  66216336   s3://my-bucket/gmm-data-6000
+2023-08-07 06:33  66204653   s3://my-bucket/gmm-data-7000
+2023-08-05 17:38    990042   s3://my-bucket/my-folder
+```
+Then you can download each of them with the following command (for example, you want to download gmm-data-0000):
+```
+s3cmd get s3://my-bucket/gmm-data-0000
+```
+or you can use the following command to download all of them (In this project, you should download all of them):
+```
+s3cmd get s3://my-bucket --recursive
+```
+You can unzip and merge them together with the following command into gmm_data:
+```
+unzip my-folder && 
+unzip gmm-data-0000 &&
+unzip gmm-data-1000 &&
+unzip gmm-data-2000 &&
+unzip gmm-data-3000 &&
+unzip gmm-data-4000 &&
+unzip gmm-data-5000 &&
+unzip gmm-data-6000 &&
+unzip gmm-data-7000 
+```
+
 ### Motion planning tutorial
 In this project, we will use CDistributionRRT which will read both constraints and distribution to plan the motion trajectory. We also provide an example code CDistributionRRT_example.ipynb in jupyter_note_tests.
 
