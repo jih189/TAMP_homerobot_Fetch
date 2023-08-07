@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from experiment_helper import Experiment, Manifold, Intersection
 from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, GMM, ManifoldDetail, IntersectionDetail
-from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint
+from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint, construct_moveit_constraint
 
 import sys
 import rospy
@@ -103,9 +103,16 @@ if __name__ == "__main__":
             for manifold in experiment.manifolds:
                 manifold_object_pose = manifold.in_hand_pose if manifold.has_object_in_hand else manifold.object_pose
 
+                manifold_constraint = construct_moveit_constraint(
+                        manifold.in_hand_pose,
+                        manifold.constraint_pose,
+                        manifold.orientation_constraint,
+                        manifold.position_constraint
+                    ) if manifold.has_object_in_hand else get_no_constraint()
+
                 task_planner.add_manifold(
                     ManifoldDetail(
-                        get_no_constraint(), 
+                        manifold_constraint, 
                         manifold.has_object_in_hand, 
                         manifold_object_pose, 
                         manifold.object_mesh, 

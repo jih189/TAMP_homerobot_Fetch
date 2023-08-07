@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from experiment_helper import Experiment, Manifold, Intersection
 from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, MDPTaskPlannerWithGMM, GMM, ManifoldDetail, IntersectionDetail
-from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint
+from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint, construct_moveit_constraint
 
 import sys
 import copy
@@ -13,7 +13,6 @@ import geometry_msgs.msg
 from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest, GetJointWithConstraints, GetJointWithConstraintsRequest
 from moveit_msgs.msg import RobotState, Constraints, OrientationConstraint, MoveItErrorCodes
 from sensor_msgs.msg import JointState
-import tf.transformations as tf_trans
 from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 import trimesh
@@ -34,7 +33,7 @@ if __name__ == "__main__":
     # experiment_name = "move_mouse"
 
     use_mtg = True # use mtg or mdp
-    use_gmm = True # use gmm or not
+    use_gmm = False # use gmm or not
 
     ##########################################################
 
@@ -43,7 +42,7 @@ if __name__ == "__main__":
     package_path = rospack.get_path('task_planner')
 
     # load the gmm
-    gmm_dir_path = package_path + '/gmm/'
+    gmm_dir_path = package_path + '/dpgmm/'
     gmm = GMM()
     gmm.load_distributions(gmm_dir_path)
 
@@ -76,8 +75,13 @@ if __name__ == "__main__":
         # if the has_object_in_hand is true, then object pose here is the in-hand-object-pose which is the grasp pose in the object frame
         # if the has_object_in_hand is false, then object pose here is the object placement pose which is the placement pose in the world frame
         
-        # initialize the moveit constraint.
-        no_constraint = get_no_constraint()
+        # print hte constraint detail here if the object is in hand.
+        manifold_constraint = construct_moveit_constraint(
+                manifold.in_hand_pose,
+                manifold.constraint_pose,
+                manifold.orientation_constraint,
+                manifold.position_constraint
+            ) if manifold.has_object_in_hand else get_no_constraint()
 
         # if the manifold has object in hand, then the object pose is the grasp pose in the object frame
         # if the manifold has no object in hand, then the object pose is the placement pose in the world frame
@@ -86,7 +90,7 @@ if __name__ == "__main__":
         # manifold.has_object_in_hand
         task_planner.add_manifold(
             ManifoldDetail(
-                no_constraint, 
+                manifold_constraint, 
                 manifold.has_object_in_hand, 
                 manifold_object_pose, 
                 manifold.object_mesh, 
