@@ -28,11 +28,13 @@ if __name__ == "__main__":
 
     ##########################################################
     #################### experiment setup ####################
-    max_attempt_times = 50
+    max_attempt_times = 1
 
     # experiment_name = "pick_and_place_with_constraint"
     # experiment_name = "move_mouse_with_constraint"
-    experiment_name = "open_door"
+    # experiment_name = "open_door"
+    # experiment_name = "move_mouse"
+    experiment_name = "maze"
 
     use_mtg = True # use mtg or mdp
     use_gmm = False # use gmm or not
@@ -229,16 +231,14 @@ if __name__ == "__main__":
 
                 task_planner.update(task.task_graph_info, motion_plan_result)
 
-                if not motion_plan_result[0]: #if the motion planner can't find a solution, then replan
+                if motion_plan_result[0]: # if the motion planner find motion solution, then add it to the solution path
+                    solution_path.append(motion_plan_result[1])
+                    # add the intersection motion to the solution path
+                    if(len(task.next_motion) > 1):
+                        intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
+                        solution_path.append(intersection_motion)
+                else: # if the motion planner can't find a solution, then replan
                     found_solution = False
-                    break
-
-                solution_path.append(motion_plan_result[1])
-
-                # add the intersection motion to the solution path
-                if(len(task.next_motion) > 1):
-                    intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
-                    solution_path.append(intersection_motion)
 
                 # remove the attached object from the planning scene
                 scene.remove_attached_object("wrist_roll_link", task.manifold_detail.object_name)
@@ -247,6 +247,17 @@ if __name__ == "__main__":
                 # if it is, wait for short time.
                 while task.manifold_detail.object_name in scene.get_attached_objects():
                     rospy.sleep(0.0001)
+
+                # remove the object from the planning scene
+                scene.remove_world_object(task.manifold_detail.object_name)
+
+                # check whether the object is in the planning scene
+                # if it is, wait for short time.
+                while task.manifold_detail.object_name in scene.get_known_object_names():
+                    rospy.sleep(0.0001)
+
+                if not found_solution:
+                    break
 
             else:
                 # add the object to the planning scene
@@ -281,16 +292,14 @@ if __name__ == "__main__":
 
                 task_planner.update(task.task_graph_info, motion_plan_result)
 
-                if not motion_plan_result[0]: #if the motion planner can't find a solution, then replan
+                if motion_plan_result[0]: # if the motion planner find motion solution, then add it to the solution path
+                    solution_path.append(motion_plan_result[1])
+                    # add the intersection motion to the solution path
+                    if(len(task.next_motion) > 1):
+                        intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
+                        solution_path.append(intersection_motion)
+                else: # if the motion planner can't find a solution, then replan
                     found_solution = False
-                    break
-
-                solution_path.append(motion_plan_result[1])
-
-                # add the intersection motion to the solution path
-                if(len(task.next_motion) > 1):
-                    intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
-                    solution_path.append(intersection_motion)
 
                 # remove the object from the planning scene
                 scene.remove_world_object(task.manifold_detail.object_name)
@@ -299,6 +308,9 @@ if __name__ == "__main__":
                 # if it is, wait for short time.
                 while task.manifold_detail.object_name in scene.get_known_object_names():
                     rospy.sleep(0.0001)
+
+                if not found_solution:
+                    break
 
         if found_solution: # found solution, then break the
 
