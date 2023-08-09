@@ -34,13 +34,13 @@ if __name__ == "__main__":
 
     ##########################################################
     #################### experiment setup ####################
-    max_attempt_times = 200
+    max_attempt_times = 1
 
     # experiment_name = "pick_and_place_with_constraint"
     # experiment_name = "move_mouse_with_constraint"
-    # experiment_name = "open_door"
+    experiment_name = "open_door"
     # experiment_name = "move_mouse"
-    experiment_name = "maze"
+    # experiment_name = "maze"
 
     use_mtg = True # use mtg or mdp
     use_gmm = False # use gmm or not
@@ -202,12 +202,25 @@ if __name__ == "__main__":
 
     object_marker_array = MarkerArray()
 
+    # add the obstacle into the marker array
+    obstacle_marker = Marker()
+    obstacle_marker.header.frame_id = "base_link"
+    obstacle_marker.id = 0
+    obstacle_marker.type = Marker.MESH_RESOURCE
+    obstacle_marker.action = Marker.ADD
+    obstacle_marker.pose = msgify(geometry_msgs.msg.Pose, experiment.obstacle_mesh_pose)
+    obstacle_marker.scale = Point(1,1,1)
+    obstacle_marker.color = ColorRGBA(0.5,0.5,0.5,1)
+    obstacle_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(experiment.obstacle_mesh)
+
+    object_marker_array.markers.append(obstacle_marker)
+
     if not task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].has_object_in_hand:
         # the object is not in hand initially, so we can publish the object marker here.
 
         init_object_marker = Marker()
         init_object_marker.header.frame_id = "base_link"
-        init_object_marker.id = 0
+        init_object_marker.id = 1
         init_object_marker.type = Marker.MESH_RESOURCE
         init_object_marker.action = Marker.ADD
         init_object_marker.pose = msgify(geometry_msgs.msg.Pose, task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].object_pose)
@@ -221,7 +234,7 @@ if __name__ == "__main__":
     if not task_planner.manifold_info[(experiment.goal_foliation_id, experiment.goal_manifold_id)].has_object_in_hand:
         goal_object_marker = Marker()
         goal_object_marker.header.frame_id = "base_link"
-        goal_object_marker.id = 1
+        goal_object_marker.id = 2
         goal_object_marker.type = Marker.MESH_RESOURCE
         goal_object_marker.action = Marker.ADD
         goal_object_marker.pose = msgify(geometry_msgs.msg.Pose, task_planner.manifold_info[(experiment.goal_foliation_id, experiment.goal_manifold_id)].object_pose)
@@ -396,7 +409,7 @@ if __name__ == "__main__":
             break
 
     # wait for user to press enter to continue
-    # raw_input("Press Enter to continue...")
+    raw_input("Press Enter to continue...")
     
     # make the marker thread stop
     running_flag = False
