@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     ##########################################################
     #################### experiment setup ####################
-    max_attempt_times = 1
+    max_attempt_times = 200
 
     # experiment_name = "pick_and_place_with_constraint"
     # experiment_name = "move_mouse_with_constraint"
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
     # move_group.set_planner_id('CBIRRTConfigDefault')
 
-    move_group.set_planning_time(5)
+    move_group.set_planning_time(2)
 
     display_trajectory_publisher = rospy.Publisher(
             "/move_group/display_planned_path",
@@ -213,6 +213,7 @@ if __name__ == "__main__":
         init_object_marker.pose = msgify(geometry_msgs.msg.Pose, task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].object_pose)
         init_object_marker.scale = Point(1,1,1)
         init_object_marker.color = ColorRGBA(0,0,1,1)
+        # the rviz only takes the mesh file name start with package://
         init_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].object_mesh)
 
         object_marker_array.markers.append(init_object_marker)

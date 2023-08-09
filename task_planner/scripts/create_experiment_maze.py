@@ -138,7 +138,7 @@ if __name__ == "__main__":
             collision_manager.add_object('obj' + str(i * num_of_col + j), obj_mesh)
 
             if(not collision_manager.in_collision_internal()):
-                scene.add_mesh('cup' + str(i * num_of_col + j), obj_pose, package_path + '/mesh_dir/cup.stl')
+                # scene.add_mesh('cup' + str(i * num_of_col + j), obj_pose, package_path + '/mesh_dir/cup.stl')
 
                 # add manifold with current placement pose as parameter
                 current_manifold = Manifold(
@@ -156,8 +156,6 @@ if __name__ == "__main__":
                 experiment.add_manifold(current_manifold)
 
             collision_manager.remove_object('obj' + str(i * num_of_col + j))
-
-    exit()
 
     # load all grasp poses over the object.
     grasp_pose_list = []
@@ -195,7 +193,7 @@ if __name__ == "__main__":
             g, # grasp pose in the object frame
             table_top_pose, # constraint pose
             np.array([0.1,0.1,3.14*2]), # orientation constraint
-            np.array([2000,2000,0.0005]) # position constraint
+            np.array([2000,2000,0.01]) # position constraint
         )
 
         grasp_pose_manifolds.append(grasp_manifold)
@@ -273,7 +271,7 @@ if __name__ == "__main__":
                 experiment.add_intersection(intersection)
 
     # need to set start and goal foliation manifold id
-    experiment.set_start_and_goal_foliation_manifold_id(0,0,0,4)
+    experiment.set_start_and_goal_foliation_manifold_id(0,17,0,18)
 
     experiment.save(package_path + "/experiment_dir/" + experiment.experiment_name)
 
