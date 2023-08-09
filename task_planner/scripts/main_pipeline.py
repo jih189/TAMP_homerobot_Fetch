@@ -19,9 +19,15 @@ import trimesh
 from trimesh import transformations
 import numpy as np
 from sensor_msgs.msg import PointCloud2, PointField, PointCloud
-import struct
+# import struct
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 import time
+from visualization_msgs.msg import Marker, MarkerArray
+from std_msgs.msg import ColorRGBA
+import threading
+import os
+
+running_flag = True
 
 np.set_printoptions(suppress=True, precision = 3)
 if __name__ == "__main__":
@@ -153,6 +159,29 @@ if __name__ == "__main__":
         rate.sleep()
     joint_state_publisher.publish(initial_joint_state)
 
+    ############################ marker publisher ################################
+
+    marker_publisher = rospy.Publisher('/visualization_marker', MarkerArray, queue_size=10)
+
+    # publish a marker with threading.
+    def publish_marker_thread(object_marker_array_, marker_publisher_):
+        # we use this as the helper to publish the marker for debugging.
+        global running_flag
+
+        while not rospy.is_shutdown() and running_flag:
+            for m in object_marker_array_.markers:
+                m.header.stamp = rospy.Time.now()
+            marker_publisher_.publish(object_marker_array_)
+            rospy.sleep(0.1)
+        
+        # clear the marker
+        for m in object_marker_array_.markers:
+            m.header.stamp = rospy.Time.now()
+            m.action = Marker.DELETE
+        marker_publisher_.publish(object_marker_array_)
+
+    ##############################################################################################
+
     ##############################################################################
 
     # load the obstacle into the planning scene.
@@ -170,6 +199,46 @@ if __name__ == "__main__":
         (experiment.goal_foliation_id, experiment.goal_manifold_id), # goal manifold id
         move_group.get_current_joint_values() # goal configuration
     )
+
+    object_marker_array = MarkerArray()
+
+    if not task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].has_object_in_hand:
+        # the object is not in hand initially, so we can publish the object marker here.
+
+        init_object_marker = Marker()
+        init_object_marker.header.frame_id = "base_link"
+        init_object_marker.id = 0
+        init_object_marker.type = Marker.MESH_RESOURCE
+        init_object_marker.action = Marker.ADD
+        init_object_marker.pose = msgify(geometry_msgs.msg.Pose, task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].object_pose)
+        init_object_marker.scale = Point(1,1,1)
+        init_object_marker.color = ColorRGBA(0,0,1,1)
+        init_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].object_mesh)
+
+        object_marker_array.markers.append(init_object_marker)
+
+    if not task_planner.manifold_info[(experiment.goal_foliation_id, experiment.goal_manifold_id)].has_object_in_hand:
+        goal_object_marker = Marker()
+        goal_object_marker.header.frame_id = "base_link"
+        goal_object_marker.id = 1
+        goal_object_marker.type = Marker.MESH_RESOURCE
+        goal_object_marker.action = Marker.ADD
+        goal_object_marker.pose = msgify(geometry_msgs.msg.Pose, task_planner.manifold_info[(experiment.goal_foliation_id, experiment.goal_manifold_id)].object_pose)
+        goal_object_marker.scale = Point(1,1,1)
+        goal_object_marker.color = ColorRGBA(1,0,0,1)
+        goal_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_planner.manifold_info[(experiment.goal_foliation_id, experiment.goal_manifold_id)].object_mesh)
+
+        object_marker_array.markers.append(goal_object_marker)
+
+    marker_thread = threading.Thread(
+            target=publish_marker_thread, 
+            args=(
+                object_marker_array,
+                marker_publisher
+            )
+        )
+
+    marker_thread.start()
 
     ##############################################################################
     # start the main pipeline
@@ -324,3 +393,14 @@ if __name__ == "__main__":
             display_trajectory_publisher.publish(display_trajectory)
             
             break
+
+    # wait for user to press enter to continue
+    # raw_input("Press Enter to continue...")
+    
+    # make the marker thread stop
+    running_flag = False
+    marker_thread.join()
+
+    # shutdown the moveit
+    moveit_commander.roscpp_shutdown()
+    moveit_commander.os._exit(0)

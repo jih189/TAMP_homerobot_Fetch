@@ -323,3 +323,7 @@ if __name__ == "__main__":
 
     # save the experiment
     experiment.save(package_path + "/experiment_dir/" + experiment.experiment_name)
+
+    # shutdown the moveit
+    moveit_commander.roscpp_shutdown()
+    moveit_commander.os._exit(0)

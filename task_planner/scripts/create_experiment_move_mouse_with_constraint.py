@@ -269,3 +269,7 @@ if __name__ == "__main__":
     experiment.set_start_and_goal_foliation_manifold_id(0,1,0,16)
 
     experiment.save(package_path + "/experiment_dir/" + experiment.experiment_name)
+    
+    # shutdown the moveit
+    moveit_commander.roscpp_shutdown()
+    moveit_commander.os._exit(0)

@@ -306,3 +306,6 @@ if __name__ == "__main__":
     with open(package_path + "/evaluated_data_dir/evaluated_data.json", 'w') as outfile:
         json.dump(evaluated_data, outfile, indent=4)
 
+    # shutdown the moveit
+    moveit_commander.roscpp_shutdown()
+    moveit_commander.os._exit(0)

@@ -70,7 +70,7 @@ if __name__ == "__main__":
     env_pose.header.frame_id = "base_link"
     env_pose.pose.position.x = 0.51
     env_pose.pose.position.y = 0.05
-    env_pose.pose.position.z = 0
+    env_pose.pose.position.z = -0.18
     env_pose.pose.orientation.x = 0
     env_pose.pose.orientation.y = 0
     env_pose.pose.orientation.z = 0.707
@@ -138,7 +138,7 @@ if __name__ == "__main__":
             collision_manager.add_object('obj' + str(i * num_of_col + j), obj_mesh)
 
             if(not collision_manager.in_collision_internal()):
-                # scene.add_mesh('cup' + str(i * num_of_col + j), obj_pose, package_path + '/mesh_dir/cup.stl')
+                scene.add_mesh('cup' + str(i * num_of_col + j), obj_pose, package_path + '/mesh_dir/cup.stl')
 
                 # add manifold with current placement pose as parameter
                 current_manifold = Manifold(
@@ -156,6 +156,8 @@ if __name__ == "__main__":
                 experiment.add_manifold(current_manifold)
 
             collision_manager.remove_object('obj' + str(i * num_of_col + j))
+
+    exit()
 
     # load all grasp poses over the object.
     grasp_pose_list = []
@@ -192,7 +194,7 @@ if __name__ == "__main__":
         grasp_manifold.add_constraint(
             g, # grasp pose in the object frame
             table_top_pose, # constraint pose
-            np.array([0.05,0.05,3.14*2]), # orientation constraint
+            np.array([0.1,0.1,3.14*2]), # orientation constraint
             np.array([2000,2000,0.0005]) # position constraint
         )
 
@@ -274,3 +276,7 @@ if __name__ == "__main__":
     experiment.set_start_and_goal_foliation_manifold_id(0,0,0,4)
 
     experiment.save(package_path + "/experiment_dir/" + experiment.experiment_name)
+
+    # shutdown the moveit
+    moveit_commander.roscpp_shutdown()
+    moveit_commander.os._exit(0)
