@@ -68,19 +68,19 @@ if __name__ == "__main__":
     # load the obstacle
     env_pose = PoseStamped()
     env_pose.header.frame_id = "base_link"
-    env_pose.pose.position.x = 0.51
-    env_pose.pose.position.y = 0.05
-    env_pose.pose.position.z = 0
+    env_pose.pose.position.x = 0.8
+    env_pose.pose.position.y = 0.8
+    env_pose.pose.position.z = 0.1
     env_pose.pose.orientation.x = 0
     env_pose.pose.orientation.y = 0
     env_pose.pose.orientation.z = 0.707
     env_pose.pose.orientation.w = -0.707
-    print("Add the desk to the planning scene")
+    print("Add the door frame to the planning scene")
     
-    scene.add_mesh('desk', env_pose, package_path + '/mesh_dir/desk_with_object.stl')
+    scene.add_mesh('door_frame', env_pose, package_path + '/mesh_dir/door_frame.stl')
 
-    experiment.setup("move_mouse", 
-                     package_path + '/mesh_dir/desk_with_object.stl',
+    experiment.setup("open_door", 
+                     package_path + '/mesh_dir/door_frame.stl',
                      numpify(env_pose.pose),
                      robot.get_current_state().joint_state.position,
                      robot.get_current_state().joint_state.name,
@@ -88,7 +88,7 @@ if __name__ == "__main__":
                     )
 
     # load the object into trimesh
-    env_mesh = trimesh.load_mesh(package_path + '/mesh_dir/desk_with_object.stl')
+    env_mesh = trimesh.load_mesh(package_path + '/mesh_dir/door_frame.stl')
     env_pose_matrix = transformations.quaternion_matrix([env_pose.pose.orientation.w, 
                                                         env_pose.pose.orientation.x, 
                                                         env_pose.pose.orientation.y, 
@@ -101,73 +101,67 @@ if __name__ == "__main__":
     collision_manager = trimesh.collision.CollisionManager()
     collision_manager.add_object('env', env_mesh)
     
-    num_of_row = 6
-    num_of_col = 10
-    x_shift = 0.56
-    y_shift = 0.0
-    z_shift = 0.8
+    door_angle_step  = 0.1
+    open_angle = 1.0
+    number_of_door_angle = int(open_angle / door_angle_step)
+
+    initial_door_pose = PoseStamped()
+    initial_door_pose.header.frame_id = "base_link"
+    initial_door_pose.pose.position.x = env_pose.pose.position.x
+    initial_door_pose.pose.position.y = env_pose.pose.position.y
+    initial_door_pose.pose.position.z = env_pose.pose.position.z
+    initial_door_pose.pose.orientation.x = env_pose.pose.orientation.x
+    initial_door_pose.pose.orientation.y = env_pose.pose.orientation.y
+    initial_door_pose.pose.orientation.z = env_pose.pose.orientation.z
+    initial_door_pose.pose.orientation.w = env_pose.pose.orientation.w
+
+    initial_door_pose_matrix = numpify(initial_door_pose.pose)
 
     placement_pose_manifolds = []
 
-    # for each feasible placement pose, add a manifold
-    for i in range(num_of_row):
-        for j in range(num_of_col):
-
-            obj_mesh = trimesh.load_mesh(package_path + '/mesh_dir/cup.stl')
+    # # for each feasible placement pose, add a manifold
+    for i in range(number_of_door_angle):
+        # rotate the initial door pose matrix around the z axis by door_angle_step
+        current_door_pose_matrix = np.dot(initial_door_pose_matrix, transformations.rotation_matrix(-door_angle_step * i, [0, 0, 1]))
+        obj_mesh = trimesh.load_mesh(package_path + '/mesh_dir/door.stl')
+        obj_mesh.apply_transform(current_door_pose_matrix)
         
-            # generate a random pose
-            obj_pose = PoseStamped()
-            obj_pose.header.frame_id = "base_link"
-            obj_pose.pose.position.x = i * 0.1 - num_of_row * 0.1 / 2 + x_shift
-            obj_pose.pose.position.y = j * 0.1 - num_of_col * 0.1 / 2 + y_shift
-            obj_pose.pose.position.z = z_shift
-            obj_pose.pose.orientation.x = 0
-            obj_pose.pose.orientation.y = 0
-            obj_pose.pose.orientation.z = 0
-            obj_pose.pose.orientation.w = 1
-            
-            obj_pose_matrix = transformations.quaternion_matrix([obj_pose.pose.orientation.w, 
-                                                                obj_pose.pose.orientation.x, 
-                                                                obj_pose.pose.orientation.y, 
-                                                                obj_pose.pose.orientation.z])
-            obj_pose_matrix[0, 3] = obj_pose.pose.position.x
-            obj_pose_matrix[1, 3] = obj_pose.pose.position.y
-            obj_pose_matrix[2, 3] = obj_pose.pose.position.z
-            obj_mesh.apply_transform(obj_pose_matrix)
-            
-            collision_manager.add_object('obj' + str(i * num_of_col + j), obj_mesh)
+        collision_manager.add_object('obj' + str(i), obj_mesh)
 
-            if(not collision_manager.in_collision_internal()):
-                # scene.add_mesh('cup' + str(i * num_of_col + j), obj_pose, package_path + '/mesh_dir/cup.stl')
+        if(not collision_manager.in_collision_internal()):
+            # obj_pose = PoseStamped()
+            # obj_pose.header.frame_id = "base_link"
+            # obj_pose.pose = msgify(geometry_msgs.msg.Pose, current_door_pose_matrix)
+            # scene.add_mesh('door' + str(i), obj_pose, package_path + '/mesh_dir/door.stl')
 
-                # add manifold with current placement pose as parameter
-                current_manifold = Manifold(
-                    0, # placement foliation id
-                    len(placement_pose_manifolds), # placement manifold id
-                    "cup", # object name
-                    package_path + '/mesh_dir/cup.stl', # object mesh file name
-                    False # is the object in hand
-                )
+            # add manifold with current placement pose as parameter
+            current_manifold = Manifold(
+                0, # placement foliation id
+                len(placement_pose_manifolds), # placement manifold id
+                "door", # object name
+                package_path + '/mesh_dir/door.stl', # object mesh file name
+                False # is the object in hand
+            )
 
-                current_manifold.add_object_placement(obj_pose_matrix)
+            current_manifold.add_object_placement(current_door_pose_matrix)
 
-                placement_pose_manifolds.append(current_manifold)
+            placement_pose_manifolds.append(current_manifold)
 
-                experiment.add_manifold(current_manifold)
+            experiment.add_manifold(current_manifold)
 
-            collision_manager.remove_object('obj' + str(i * num_of_col + j))
+        collision_manager.remove_object('obj' + str(i))
 
     # load all grasp poses over the object.
     grasp_pose_list = []
 
-    loaded_array = np.load(package_path + '/mesh_dir/cup.npz')
+    loaded_array = np.load(package_path + '/mesh_dir/door.npz')
 
     rotated_matrix = np.array([[1, 0, 0, -0.17],
                                [0, 1, 0, 0],
                                [0, 0, 1, 0],
                                [0, 0, 0, 1]])
 
-    for ind in random.sample(list(range(len(loaded_array.files))), 30):
+    for ind in random.sample(list(range(len(loaded_array.files))), 50):
         grasp_pose_list.append(np.dot(loaded_array[loaded_array.files[ind]], rotated_matrix))
     
     grasp_pose_manifolds = []
@@ -179,16 +173,16 @@ if __name__ == "__main__":
         grasp_manifold = Manifold(
             1, # foliation id
             len(grasp_pose_manifolds), # manifold id
-            "cup", # object name
-            package_path + '/mesh_dir/cup.stl', # object mesh file name
+            "door", # object name
+            package_path + '/mesh_dir/door.stl', # object mesh file name
             True # is the object in hand
         )
 
         grasp_manifold.add_constraint(
             g, # grasp pose in the object frame
-            np.eye(4), # constraint pose
-            np.array([3.14,3.14,3.14]), # orientation constraint
-            np.array([2000,2000,2000]) # position constraint
+            initial_door_pose_matrix, # constraint pose
+            np.array([0.1,0.1,3.14*2]), # orientation constraint
+            np.array([0.05,0.05,0.2]) # position constraint
         )
 
         grasp_pose_manifolds.append(grasp_manifold)
@@ -260,12 +254,12 @@ if __name__ == "__main__":
                     False, 
                     intersection_motion, 
                     placement_manifold.object_pose, 
-                    package_path + '/mesh_dir/cup.stl', 
-                    "cup"
+                    package_path + '/mesh_dir/door.stl', 
+                    "door"
                 )
                 experiment.add_intersection(intersection)
 
     # need to set start and goal foliation manifold id
-    experiment.set_start_and_goal_foliation_manifold_id(0,1,0,15)
+    experiment.set_start_and_goal_foliation_manifold_id(0,0,0,2)
 
     experiment.save(package_path + "/experiment_dir/" + experiment.experiment_name)

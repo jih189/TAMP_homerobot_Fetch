@@ -79,7 +79,7 @@ if __name__ == "__main__":
     
     scene.add_mesh('desk', env_pose, package_path + '/mesh_dir/desk_with_object.stl')
 
-    experiment.setup("move_mouse", 
+    experiment.setup("move_mouse_with_constraint", 
                      package_path + '/mesh_dir/desk_with_object.stl',
                      numpify(env_pose.pose),
                      robot.get_current_state().joint_state.position,
@@ -167,7 +167,7 @@ if __name__ == "__main__":
                                [0, 0, 1, 0],
                                [0, 0, 0, 1]])
 
-    for ind in random.sample(list(range(len(loaded_array.files))), 30):
+    for ind in random.sample(list(range(len(loaded_array.files))), 100):
         grasp_pose_list.append(np.dot(loaded_array[loaded_array.files[ind]], rotated_matrix))
     
     grasp_pose_manifolds = []
@@ -187,7 +187,7 @@ if __name__ == "__main__":
         grasp_manifold.add_constraint(
             g, # grasp pose in the object frame
             np.eye(4), # constraint pose
-            np.array([3.14,3.14,3.14]), # orientation constraint
+            np.array([0.05,0.05,3.14*2]), # orientation constraint
             np.array([2000,2000,2000]) # position constraint
         )
 
@@ -266,6 +266,6 @@ if __name__ == "__main__":
                 experiment.add_intersection(intersection)
 
     # need to set start and goal foliation manifold id
-    experiment.set_start_and_goal_foliation_manifold_id(0,1,0,15)
+    experiment.set_start_and_goal_foliation_manifold_id(0,1,0,16)
 
     experiment.save(package_path + "/experiment_dir/" + experiment.experiment_name)

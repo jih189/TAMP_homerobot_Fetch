@@ -101,7 +101,7 @@ if __name__ == "__main__":
                                [0, 0, 0, 1]])
 
     # randomly select 20 elements from the loaded_array.files
-    for ind in random.sample(list(range(len(loaded_array.files))), 30):
+    for ind in random.sample(list(range(len(loaded_array.files))), 5):
         array_name = loaded_array.files[ind]
         grasp_pose_list.append(np.dot(loaded_array[array_name], rotated_matrix))
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
     experiment = Experiment()
 
-    experiment.setup("pick_and_place", 
+    experiment.setup("pick_and_place_with_constraint", 
                     package_path + '/mesh_dir/table.stl', 
                     numpify(table_pose.pose), 
                     robot.get_current_state().joint_state.position, 
@@ -289,7 +289,7 @@ if __name__ == "__main__":
         grasp_manifold.add_constraint(
             g, # grasp pose in the object frame
             np.eye(4), # constraint pose
-            np.array([3.14,3.14,3.14]), # orientation constraint
+            np.array([0.1,0.1,3.14*2]), # orientation constraint
             np.array([2000,2000,2000]) # position constraint
         )
 

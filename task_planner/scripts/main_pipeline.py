@@ -21,16 +21,18 @@ import numpy as np
 from sensor_msgs.msg import PointCloud2, PointField, PointCloud
 import struct
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
+import time
 
 np.set_printoptions(suppress=True, precision = 3)
 if __name__ == "__main__":
 
     ##########################################################
     #################### experiment setup ####################
-    max_attempt_times = 1
+    max_attempt_times = 50
 
-    experiment_name = "pick_and_place"
-    # experiment_name = "move_mouse"
+    # experiment_name = "pick_and_place_with_constraint"
+    # experiment_name = "move_mouse_with_constraint"
+    experiment_name = "open_door"
 
     use_mtg = True # use mtg or mdp
     use_gmm = False # use gmm or not
@@ -77,7 +79,7 @@ if __name__ == "__main__":
         
         # print hte constraint detail here if the object is in hand.
         manifold_constraint = construct_moveit_constraint(
-                manifold.in_hand_pose,
+                np.linalg.inv(manifold.in_hand_pose),
                 manifold.constraint_pose,
                 manifold.orientation_constraint,
                 manifold.position_constraint
@@ -125,10 +127,9 @@ if __name__ == "__main__":
     move_group = moveit_commander.MoveGroupCommander("arm")
 
     move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
-    # if use_gmm:
-    #     move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
-    # else:
-    #     move_group.set_planner_id('CBIRRTConfigDefault')
+    # move_group.set_planner_id('CBIRRTConfigDefault')
+
+    move_group.set_planning_time(5)
 
     display_trajectory_publisher = rospy.Publisher(
             "/move_group/display_planned_path",
@@ -171,7 +172,8 @@ if __name__ == "__main__":
     ##############################################################################
     # start the main pipeline
 
-    for _ in range(max_attempt_times):
+    for attempt_time in range(max_attempt_times):
+        print "attempt: ", attempt_time
         # generate task sequence
         task_sequence = task_planner.generate_task_sequence()
         if len(task_sequence) == 0: # if no task sequence found, then break the loop
@@ -208,12 +210,14 @@ if __name__ == "__main__":
                 
                 # do the motion planning
                 move_group.clear_path_constraints()
+                move_group.clear_in_hand_pose()
                 
                 # set start and goal congfiguration to motion planner.
                 start_moveit_robot_state = convert_joint_values_to_robot_state(task.start_configuration, move_group.get_active_joints(), robot)
                 move_group.set_start_state(start_moveit_robot_state)
                 move_group.set_joint_value_target(task.goal_configuration)
                 move_group.set_path_constraints(task.manifold_detail.constraint)
+                move_group.set_in_hand_pose(msgify(geometry_msgs.msg.Pose, np.linalg.inv(task.manifold_detail.object_pose)))
 
                 motion_plan_result = move_group.plan()
 
@@ -258,12 +262,14 @@ if __name__ == "__main__":
 
                 # do the motion planning
                 move_group.clear_path_constraints()
+                move_group.clear_in_hand_pose()
                 
                 # set start and goal congfiguration to motion planner.
                 start_moveit_robot_state = convert_joint_values_to_robot_state(task.start_configuration, move_group.get_active_joints(), robot)
                 move_group.set_start_state(start_moveit_robot_state)
                 move_group.set_joint_value_target(task.goal_configuration)
                 move_group.set_path_constraints(task.manifold_detail.constraint)
+                # because the object is not grasped in the hand, no need to set the in-hand pose.
 
                 motion_plan_result = move_group.plan()
 

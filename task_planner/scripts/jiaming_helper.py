@@ -106,6 +106,10 @@ def construct_moveit_constraint(in_hand_pose_, constraint_pose_, orientation_con
     pc.target_point_offset.y = moveit_translation[1]
     pc.target_point_offset.z = moveit_translation[2]
 
+    pc.target_point_offset.x = 0.0
+    pc.target_point_offset.y = 0.0
+    pc.target_point_offset.z = 0.0
+
     pc.weight = 1.0
 
     solid_primitive = SolidPrimitive()
