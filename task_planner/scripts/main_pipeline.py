@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from experiment_helper import Experiment, Manifold, Intersection
 from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, MDPTaskPlannerWithGMM, GMM, ManifoldDetail, IntersectionDetail
-from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint, construct_moveit_constraint
+from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint, construct_moveit_constraint, make_mesh
 
 import sys
 import copy
@@ -11,7 +11,7 @@ import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
 from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest, GetJointWithConstraints, GetJointWithConstraintsRequest
-from moveit_msgs.msg import RobotState, Constraints, OrientationConstraint, MoveItErrorCodes
+from moveit_msgs.msg import RobotState, Constraints, OrientationConstraint, MoveItErrorCodes, AttachedCollisionObject
 from sensor_msgs.msg import JointState
 from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
@@ -29,18 +29,18 @@ import os
 
 running_flag = True
 
-np.set_printoptions(suppress=True, precision = 3)
+# np.set_printoptions(suppress=True, precision = 3)
 if __name__ == "__main__":
 
     ##########################################################
     #################### experiment setup ####################
-    max_attempt_times = 1
+    max_attempt_times = 100
 
     # experiment_name = "pick_and_place_with_constraint"
     # experiment_name = "move_mouse_with_constraint"
-    experiment_name = "open_door"
+    # experiment_name = "open_door"
     # experiment_name = "move_mouse"
-    # experiment_name = "maze"
+    experiment_name = "maze"
 
     use_mtg = True # use mtg or mdp
     use_gmm = False # use gmm or not
@@ -255,6 +255,24 @@ if __name__ == "__main__":
     marker_thread.start()
 
     ##############################################################################
+
+    # create the manipulated object as a collision object.
+    current_object_pose_stamped = PoseStamped()
+    current_object_pose_stamped.header.frame_id = "wrist_roll_link"
+    current_object_pose_stamped.pose = Pose()
+    manipulated_object = make_mesh(
+        "object", 
+        current_object_pose_stamped, 
+        experiment.manipulated_object_mesh
+    )
+
+    # create attachedCollisionObject
+    attached_object = AttachedCollisionObject()
+    attached_object.link_name = "wrist_roll_link"
+    attached_object.object = manipulated_object
+    attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
+
+    ##############################################################################
     # start the main pipeline
 
     for attempt_time in range(max_attempt_times):
@@ -275,23 +293,23 @@ if __name__ == "__main__":
 
             if task.manifold_detail.has_object_in_hand: # has object in hand
                 
-                # attach the object to the hand in the planning scene
-                target_object_pose = PoseStamped()
-                target_object_pose.header.frame_id = "base_link"
-                target_object_pose.pose = msgify(geometry_msgs.msg.Pose, numpify(move_group.get_current_pose().pose).dot(np.linalg.inv(task.manifold_detail.object_pose)))
-                scene.attach_mesh(
-                    "wrist_roll_link", # link
-                    task.manifold_detail.object_name, # name
-                    target_object_pose, # pose
-                    task.manifold_detail.object_mesh, # filename
-                    size=(1,1,1), #size
-                    touch_links=["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"] #touch_links
-                )
+                # # attach the object to the hand in the planning scene
+                # target_object_pose = PoseStamped()
+                # target_object_pose.header.frame_id = "base_link"
+                # target_object_pose.pose = msgify(geometry_msgs.msg.Pose, numpify(move_group.get_current_pose().pose).dot(np.linalg.inv(task.manifold_detail.object_pose)))
+                # scene.attach_mesh(
+                #     "wrist_roll_link", # link
+                #     task.manifold_detail.object_name, # name
+                #     target_object_pose, # pose
+                #     task.manifold_detail.object_mesh, # filename
+                #     size=(1,1,1), #size
+                #     touch_links=["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"] #touch_links
+                # )
 
-                # check whether the attached object is in the planning scene
-                # if it is not, wait for short time.
-                while task.manifold_detail.object_name not in scene.get_attached_objects():
-                    rospy.sleep(0.0001)
+                # # check whether the attached object is in the planning scene
+                # # if it is not, wait for short time.
+                # while task.manifold_detail.object_name not in scene.get_attached_objects():
+                #     rospy.sleep(0.0001)
                 
                 # do the motion planning
                 move_group.clear_path_constraints()
@@ -299,6 +317,11 @@ if __name__ == "__main__":
                 
                 # set start and goal congfiguration to motion planner.
                 start_moveit_robot_state = convert_joint_values_to_robot_state(task.start_configuration, move_group.get_active_joints(), robot)
+                
+                # add the attached object to the start state
+                attached_object.object.pose = msgify(geometry_msgs.msg.Pose, np.linalg.inv(task.manifold_detail.object_pose))
+                start_moveit_robot_state.attached_collision_objects.append(attached_object)
+                
                 move_group.set_start_state(start_moveit_robot_state)
                 move_group.set_joint_value_target(task.goal_configuration)
                 move_group.set_path_constraints(task.manifold_detail.constraint)
@@ -323,21 +346,21 @@ if __name__ == "__main__":
                 else: # if the motion planner can't find a solution, then replan
                     found_solution = False
 
-                # remove the attached object from the planning scene
-                scene.remove_attached_object("wrist_roll_link", task.manifold_detail.object_name)
+                # # remove the attached object from the planning scene
+                # scene.remove_attached_object("wrist_roll_link", task.manifold_detail.object_name)
 
-                # check whether the attached object is in the planning scene
-                # if it is, wait for short time.
-                while task.manifold_detail.object_name in scene.get_attached_objects():
-                    rospy.sleep(0.0001)
+                # # check whether the attached object is in the planning scene
+                # # if it is, wait for short time.
+                # while task.manifold_detail.object_name in scene.get_attached_objects():
+                #     rospy.sleep(0.0001)
 
-                # remove the object from the planning scene
-                scene.remove_world_object(task.manifold_detail.object_name)
+                # # remove the object from the planning scene
+                # scene.remove_world_object(task.manifold_detail.object_name)
 
-                # check whether the object is in the planning scene
-                # if it is, wait for short time.
-                while task.manifold_detail.object_name in scene.get_known_object_names():
-                    rospy.sleep(0.0001)
+                # # check whether the object is in the planning scene
+                # # if it is, wait for short time.
+                # while task.manifold_detail.object_name in scene.get_known_object_names():
+                #     rospy.sleep(0.0001)
 
                 if not found_solution:
                     break

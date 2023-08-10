@@ -79,6 +79,7 @@ if __name__ == "__main__":
     scene.add_mesh('door_frame', env_pose, package_path + '/mesh_dir/door_frame.stl')
 
     experiment.setup("open_door", 
+                     package_path + '/mesh_dir/door.stl',
                      package_path + '/mesh_dir/door_frame.stl',
                      numpify(env_pose.pose),
                      robot.get_current_state().joint_state.position,

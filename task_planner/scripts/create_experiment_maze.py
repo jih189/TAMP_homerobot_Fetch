@@ -70,7 +70,7 @@ if __name__ == "__main__":
     env_pose.header.frame_id = "base_link"
     env_pose.pose.position.x = 0.51
     env_pose.pose.position.y = 0.05
-    env_pose.pose.position.z = -0.18
+    env_pose.pose.position.z = -0.02
     env_pose.pose.orientation.x = 0
     env_pose.pose.orientation.y = 0
     env_pose.pose.orientation.z = 0.707
@@ -80,6 +80,7 @@ if __name__ == "__main__":
     scene.add_mesh('maze', env_pose, package_path + '/mesh_dir/maze.stl')
 
     experiment.setup("maze", 
+                     package_path + '/mesh_dir/cup.stl',
                      package_path + '/mesh_dir/maze.stl',
                      numpify(env_pose.pose),
                      robot.get_current_state().joint_state.position,
@@ -271,7 +272,7 @@ if __name__ == "__main__":
                 experiment.add_intersection(intersection)
 
     # need to set start and goal foliation manifold id
-    experiment.set_start_and_goal_foliation_manifold_id(0,17,0,18)
+    experiment.set_start_and_goal_foliation_manifold_id(0,3,0,4)
 
     experiment.save(package_path + "/experiment_dir/" + experiment.experiment_name)
 
