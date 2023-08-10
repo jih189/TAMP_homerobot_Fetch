@@ -26,12 +26,15 @@ import shutil
 
 import trimesh
 from trimesh_util import sample_points_on_mesh, filter_points_inside_mesh, write_ply
+from trimesh import transformations
 
 from sensor_msgs.msg import PointCloud2, PointField
 import std_msgs.msg
 import struct
 
 import time
+
+import rospkg
 
 class TrajectoryGenerator:
     def __init__(self, mc):
@@ -471,6 +474,16 @@ class TrajectoryGenerator:
 
         return result
 
+    def generate_table_mesh(self):
+        rospack = rospkg.RosPack()
+        table_obj = trimesh.load_mesh(rospack.get_path('task_planner') + '/mesh_dir/table.stl')
+        table_pose = transformations.compose_matrix()
+        table_pose[:3, :3] = transformations.quaternion_matrix([-0.707, 0, 0, 0.707])[:3, :3]
+        table_pose[:3, 3] = transformations.translation_matrix([0.28, 0.92, 0])[:3, 3]
+        return table_obj.apply_transform(table_pose)
+
+
+
 def main():
     ###################
     scene_count = 1 # this should also be a command line argument
@@ -521,8 +534,10 @@ def main():
         # use the env_num as the seed
         # obstacle_meshes = trajectory_generator.generate_random_mesh(env_num)
         # pointcloud = trajectory_generator.setObstaclesInScene(obstacle_meshes)
+        table_mesh = trajectory_generator.generate_table_mesh()
+        pointcloud = trajectory_generator.setObstaclesInScene([table_mesh])
 
-        # write_ply(fileDir + "env_%06d/map_" % env_num + "%d.ply" % env_num, pointcloud)
+        write_ply(fileDir + "env_%06d/map_" % env_num + "%d.ply" % env_num, pointcloud)
 
         
         while i < trajectory_count_per_scene:
