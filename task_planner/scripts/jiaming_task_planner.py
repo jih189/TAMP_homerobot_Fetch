@@ -848,14 +848,6 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
             sampled_data_gmm_id = sampled_data_distribution_id[i]
             sampled_data_tag = plan_[4].verified_motions[i].sampled_state_tag
 
-            if sampled_data_tag == 1: # arm env collision or out of joint limit
-                for manifold_id in self.manifold_info.keys(): # for all manifolds
-                    for out_going_edge in self.task_graph.out_edges((manifold_id[0], manifold_id[1], sampled_data_gmm_id)):
-                        self.task_graph.edges[out_going_edge]['probability'] *= 0.5
-
-            elif sampled_data_tag == 4:
-                pass #TODO
-
             if sampled_data_tag == 1:
                 # increase the value of all distribution with the same mean and covariance
                 for manifold_id in self.manifold_info.keys():
@@ -871,5 +863,4 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 manifold_id = (task_graph_info_[0], task_graph_info_[1])
                 for out_going_edge in self.task_graph.out_edges((manifold_id[0], manifold_id[1], sampled_data_gmm_id)):
                     self.task_graph.edges[out_going_edge]['probability'] *= 0.5
-        #         self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], sampled_data_gmm_id)]['weight'] += 0.3
 
