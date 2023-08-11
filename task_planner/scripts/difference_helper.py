@@ -6,6 +6,7 @@ def gaussian_similarity(distance, max_distance, sigma=0.05):
     distance: the distance between two configurations
     sigma: the sigma of the Gaussian function
     max_distance: the maximum distance between two configurations
+    The score is between 0 and 1. The larger the score, the more similar the two configurations are.
     """
     if distance == 0: # when the distance is 0, the score should be 1
         return 1.0

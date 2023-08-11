@@ -386,14 +386,14 @@ class MTGTaskPlanner(BaseTaskPlanner):
         if plan_[0]:
             self.task_graph.edges[task_graph_info_]['weight'] += 0.01
         else:
-            self.task_graph.edges[task_graph_info_]['weight'] += 1
+            self.task_graph.edges[task_graph_info_]['weight'] += 1.0
             ##############################################################################
             # find all similar task in the task graph and increase their weights.
             for e in self.task_graph.edges:
                 e_manifold_id = self.task_graph.edges[e]['manifold_id']
                 if e_manifold_id[0] == current_manifold_id[0]: # we only update the edge in the same foliation.
                     similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_manifold_id[1], current_manifold_id[1])]
-                    self.task_graph.edges[e]['weight'] += 1 * similarity_score
+                    self.task_graph.edges[e]['weight'] += 1.0 * similarity_score
             
 class MDPTaskPlanner(BaseTaskPlanner):
     def __init__(self):
@@ -411,11 +411,15 @@ class MDPTaskPlanner(BaseTaskPlanner):
         self.new_intersection_id = 0
         self.gamma = 0.9
 
+        self.reset_manifold_similarity_table()
+
     def add_manifold(self, manifold_info_, manifold_id_):
         self.manifold_info[manifold_id_] = manifold_info_
 
         self.incomming_manifold_intersections[manifold_id_] = []
         self.outgoing_manifold_intersections[manifold_id_] = []
+
+        self.update_manifold_similarity_table(manifold_info_, manifold_id_)
 
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
         intersection_from_1_to_2_id = self.new_intersection_id
@@ -539,13 +543,27 @@ class MDPTaskPlanner(BaseTaskPlanner):
         return task_sequence
 
     def update(self, task_graph_info_, plan_):
+        current_manifold_id = self.task_graph.edges[task_graph_info_]['manifold_id']
         if plan_[0]:
             # set the transition probability to 1 because the task is successfully completed
             self.task_graph.edges[task_graph_info_]['probability'] = 1.0
+            # find all similar task in the task graph and increase their transition probabilities.
+            for e in self.task_graph.edges:
+                e_manifold_id = self.task_graph.edges[e]['manifold_id']
+                if e_manifold_id[0] == current_manifold_id[0]: # we only update the edge in the same foliation.
+                    similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_manifold_id[1], current_manifold_id[1])]
+                    # self.task_graph.edges[e]['probability'] *= (1.0 - 0.5 * similarity_score)
+                    p = self.task_graph.edges[e]['probability']
+                    self.task_graph.edges[e]['probability'] = (similarity_score + 2.0 * p - similarity_score * p) / 2.0
+            
         else:
-            self.task_graph.edges[task_graph_info_]['probability'] *= 0.5
+            # self.task_graph.edges[task_graph_info_]['probability'] *= 0.5
             # find all similar task in the task graph and decrease their transition probabilities.
-            #TODO: implement this
+            for e in self.task_graph.edges:
+                e_manifold_id = self.task_graph.edges[e]['manifold_id']
+                if e_manifold_id[0] == current_manifold_id[0]: # we only update the edge in the same foliation.
+                    similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_manifold_id[1], current_manifold_id[1])]
+                    self.task_graph.edges[e]['probability'] *= (1.0 - 0.5 * similarity_score)
 
 class MTGTaskPlannerWithGMM(BaseTaskPlanner):
     def __init__(self, gmm):
