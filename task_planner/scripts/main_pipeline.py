@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     ##########################################################
     #################### experiment setup ####################
-    max_attempt_times = 100
+    max_attempt_times = 50
 
     # experiment_name = "pick_and_place_with_constraint"
     # experiment_name = "move_mouse_with_constraint"
@@ -71,8 +71,6 @@ if __name__ == "__main__":
             task_planner = MDPTaskPlannerWithGMM(gmm)
         else:
             task_planner = MDPTaskPlanner()
-
-
 
     task_planner.reset_task_planner()
 
@@ -122,6 +120,13 @@ if __name__ == "__main__":
                 intersection.object_name
             )
         )
+
+    #############################################################################
+    # task_planner.draw_similarity_distance_plot()
+
+    # moveit_commander.roscpp_shutdown()
+    # moveit_commander.os._exit(0)
+    # exit()
 
     #############################################################################
     # initialize the motion planner and planning scene of moveit
