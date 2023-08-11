@@ -385,6 +385,8 @@ class MTGTaskPlanner(BaseTaskPlanner):
 
         if plan_[0]:
             self.task_graph.edges[task_graph_info_]['weight'] += 0.01
+            # # need to save the trajectory motion
+            # self.task_graph.nodes[task_graph_info_[1]]['intersection'].trajectory_motion = plan_[1]
         else:
             self.task_graph.edges[task_graph_info_]['weight'] += 1.0
             ##############################################################################
@@ -499,24 +501,37 @@ class MDPTaskPlanner(BaseTaskPlanner):
             return []
 
         # perform value iteration
-        for _ in range(100):
+        for iteration_step in range(1000):
             new_value_function = {}
             # update the value function for each node
             for node in self.task_graph.nodes:
                 if node == 'goal': # goal node is the terminal node, so no need to update
-                    new_value_function[node] = 1.0
+                    new_value_function[node] = 10.0
+                    continue
+
+                # ignore the node which is not reachable from start
+                if not nx.has_path(self.task_graph, 'start', node):
+                    new_value_function[node] = 0.0
+                    continue
+
+                # if the node has no outgoing edges, then set the value function to 0
+                if self.task_graph.out_degree(node) == 0:
+                    new_value_function[node] = 0.0
                     continue
 
                 # find the max expected value of current node
                 value_of_all_neighbors = [
-                    self.task_graph.edges[node, neighbor]['probability'] * (1.0 + self.gamma * self.value_function[neighbor]) - 1.0
+                    # self.task_graph.edges[node, neighbor]['probability'] * (1.0 + self.gamma * self.value_function[neighbor]) - 1.0
+                    (self.task_graph.edges[node, neighbor]['probability'] * (1.0 + self.value_function[neighbor]) - 1.0) * self.gamma
                         for neighbor in self.task_graph.neighbors(node)
                 ]
+
                 new_value_function[node] = max(value_of_all_neighbors)
 
             # if the value function converges, then stop
-            if np.all(np.isclose(list(self.value_function.values()), list(new_value_function.values()), rtol=1e-04, atol=1e-04)):
+            if np.all(np.isclose(list(self.value_function.values()), list(new_value_function.values()), rtol=1e-05, atol=1e-05)):
                 break
+
             self.value_function = new_value_function
 
         # find the shortest path from start to goal
@@ -524,6 +539,7 @@ class MDPTaskPlanner(BaseTaskPlanner):
         current_node = 'start'
         while current_node != 'goal':
             shortest_path.append(current_node)
+            # if the node has no outgoing edges, you may need to increase the value of the target node.
             current_node = max(self.task_graph.neighbors(current_node), key=lambda x: self.value_function[x])
         shortest_path.append('goal')
 
@@ -564,6 +580,12 @@ class MDPTaskPlanner(BaseTaskPlanner):
                 if e_manifold_id[0] == current_manifold_id[0]: # we only update the edge in the same foliation.
                     similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_manifold_id[1], current_manifold_id[1])]
                     self.task_graph.edges[e]['probability'] *= (1.0 - 0.5 * similarity_score)
+
+    def debug(self):
+        print "in debug mode"
+        # # print all manifold id
+        # for manifold_id in self.manifold_info:
+        #     print manifold_id, " in ", len(self.incomming_manifold_intersections[manifold_id]), " out ", len(self.outgoing_manifold_intersections[manifold_id])
 
 class MTGTaskPlannerWithGMM(BaseTaskPlanner):
     def __init__(self, gmm):
@@ -886,7 +908,9 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
                 # find the value of the current node
                 value_of_all_neighbors = [
-                    self.task_graph.edges[node, neighbor]['probability'] * (1.0 + self.gamma * self.value_function[neighbor]) - 1.0 for neighbor in self.task_graph.neighbors(node)
+                    # self.task_graph.edges[node, neighbor]['probability'] * (1.0 + self.gamma * self.value_function[neighbor]) - 1.0
+                    (self.task_graph.edges[node, neighbor]['probability'] * (1.0 + self.value_function[neighbor]) - 1.0) * self.gamma
+                        for neighbor in self.task_graph.neighbors(node)
                 ]
 
                 # Update the value function of node with max of neighbors
