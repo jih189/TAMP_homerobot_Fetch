@@ -1,6 +1,6 @@
 import numpy as np
 
-def gaussian_similarity(distance, max_distance, sigma=0.005):
+def gaussian_similarity(distance, max_distance, sigma=0.01):
     """
     Calculate the similarity score using Gaussian function.
     distance: the distance between two configurations
@@ -11,11 +11,15 @@ def gaussian_similarity(distance, max_distance, sigma=0.005):
     """
     if distance == 0: # when the distance is 0, the score should be 1
         return 1.0
-    
+
+    if distance > (0.1 * max_distance): # when the distance is larger than the maximum distance with ratio, the score should be 0
+        return 0.0
+
     # Calculate the similarity score using Gaussian function
     score = np.exp(-(distance**2) / (2 * sigma**2))
     max_score = np.exp(-(max_distance**2) / (2 * sigma**2))
     score = (score - max_score) / (1 - max_score)
+
     return score
 
 def get_difference_between_poses(pose_1_, pose_2_):

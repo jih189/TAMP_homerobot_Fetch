@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     ##########################################################
     #################### experiment setup ####################
-    max_attempt_times = 1
+    max_attempt_times = 100
 
     # experiment_name = "pick_and_place_with_constraint"
     # experiment_name = "move_mouse_with_constraint"
@@ -137,7 +137,7 @@ if __name__ == "__main__":
         )
 
     # #############################################################################
-    ## uncomment this to draw the similarity distance plot
+    # # uncomment this to draw the similarity distance plot
     
     # task_planner.draw_similarity_distance_plot()
 
@@ -307,9 +307,9 @@ if __name__ == "__main__":
         solution_path = []
 
         # motion planner tries to solve each task in the task sequence
-        print "---"
+        print "--- task ---"
         for task in task_sequence:
-            print task_planner.task_graph.edges[task.task_graph_info]['manifold_id']
+            print task_planner.task_graph.edges[task.task_graph_info]['manifold_id'], " with ", task.task_graph_info
 
         for task in task_sequence:
             # print the task detail here
@@ -326,8 +326,7 @@ if __name__ == "__main__":
                 
                 # add the attached object to the start state
                 attached_object.object.pose = msgify(geometry_msgs.msg.Pose, np.linalg.inv(task.manifold_detail.object_pose))
-                if len(task_sequence) < 4: # for debugging
-                    start_moveit_robot_state.attached_collision_objects.append(attached_object)
+                start_moveit_robot_state.attached_collision_objects.append(attached_object)
                 
                 move_group.set_start_state(start_moveit_robot_state)
                 move_group.set_joint_value_target(task.goal_configuration)
