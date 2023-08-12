@@ -412,22 +412,26 @@ class MTGTaskPlanner(BaseTaskPlanner):
             self.task_graph.edges[task_graph_info_]['solution_trajectory'] = plan_[1]
 
         else:
-            # we want to only update the edges if their have the similar current manifold, previous manifold, and next manifold.
-            for e in self.task_graph.edges:
-                e_current_manifold_id = self.task_graph.edges[e]['manifold_id']
-                e_previous_manifold_id = self.task_graph.nodes[e[0]]['previous_manifold_id']
-                e_next_manifold_id = self.task_graph.nodes[e[1]]['next_manifold_id']
-                
-                if e_current_manifold_id[0] == current_manifold_id[0] and \
-                    e_previous_manifold_id[0] == previous_manifold_id[0] and \
-                    e_next_manifold_id[0] == next_manifold_id[0]: # we only update the edge in the same foliation.
+            if previous_manifold_id != None and next_manifold_id != None:
+                # we want to only update the edges if their have the similar current manifold, previous manifold, and next manifold.
+                for e in self.task_graph.edges:
+                    e_current_manifold_id = self.task_graph.edges[e]['manifold_id']
+                    e_previous_manifold_id = self.task_graph.nodes[e[0]]['previous_manifold_id']
+                    e_next_manifold_id = self.task_graph.nodes[e[1]]['next_manifold_id']
+
+                    if e_previous_manifold_id == None or e_next_manifold_id == None:
+                        continue
                     
-                    # update the similarity score
-                    current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_current_manifold_id[1], current_manifold_id[1])]
-                    previous_similarity_score = self.total_similiarity_table[previous_manifold_id[0]][(e_previous_manifold_id[1], previous_manifold_id[1])]
-                    next_similarity_score = self.total_similiarity_table[next_manifold_id[0]][(e_next_manifold_id[1], next_manifold_id[1])]
-                    total_similarity_score = current_similarity_score * previous_similarity_score * next_similarity_score
-                    self.task_graph.edges[e]['weight'] += 1.0 * total_similarity_score
+                    if e_current_manifold_id[0] == current_manifold_id[0] and \
+                        e_previous_manifold_id[0] == previous_manifold_id[0] and \
+                        e_next_manifold_id[0] == next_manifold_id[0]: # we only update the edge in the same foliation.
+                        
+                        # update the similarity score
+                        current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_current_manifold_id[1], current_manifold_id[1])]
+                        previous_similarity_score = self.total_similiarity_table[previous_manifold_id[0]][(e_previous_manifold_id[1], previous_manifold_id[1])]
+                        next_similarity_score = self.total_similiarity_table[next_manifold_id[0]][(e_next_manifold_id[1], next_manifold_id[1])]
+                        total_similarity_score = current_similarity_score * previous_similarity_score * next_similarity_score
+                        self.task_graph.edges[e]['weight'] += 1.0 * total_similarity_score
             
 class MDPTaskPlanner(BaseTaskPlanner):
     def __init__(self):
@@ -609,29 +613,39 @@ class MDPTaskPlanner(BaseTaskPlanner):
         previous_manifold_id = self.task_graph.nodes[task_graph_info_[0]]['previous_manifold_id']
         next_manifold_id = self.task_graph.nodes[task_graph_info_[1]]['next_manifold_id']
 
-        for e in self.task_graph.edges:
-            e_current_manifold_id = self.task_graph.edges[e]['manifold_id']
-            e_previous_manifold_id = self.task_graph.nodes[e[0]]['previous_manifold_id']
-            e_next_manifold_id = self.task_graph.nodes[e[1]]['next_manifold_id']
+        # TODO: we now ignore the case if the edge is at the beginning or the end of the task graph.
+        # we may need to consider this case in the future.
 
-            # we only update the edge in the same foliation and they have the same 
-            # previous manifold and next manifold.
-            if e_current_manifold_id[0] == current_manifold_id[0] and \
-                e_previous_manifold_id[0] == previous_manifold_id[0] and \
-                e_next_manifold_id[0] == next_manifold_id[0]:
+        # for the edge at the beginning or the end of the task graph, we do not update the probability
+        if previous_manifold_id != None and next_manifold_id != None:
 
-                # update the similarity score
-                current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_current_manifold_id[1], current_manifold_id[1])]
-                previous_similarity_score = self.total_similiarity_table[previous_manifold_id[0]][(e_previous_manifold_id[1], previous_manifold_id[1])]
-                next_similarity_score = self.total_similiarity_table[next_manifold_id[0]][(e_next_manifold_id[1], next_manifold_id[1])]
-                
-                total_similarity_score = current_similarity_score * previous_similarity_score * next_similarity_score
+            for e in self.task_graph.edges:
+                e_current_manifold_id = self.task_graph.edges[e]['manifold_id']
+                e_previous_manifold_id = self.task_graph.nodes[e[0]]['previous_manifold_id']
+                e_next_manifold_id = self.task_graph.nodes[e[1]]['next_manifold_id']
 
-                p = self.task_graph.edges[e]['probability']
-                if plan_[0]:
-                    self.task_graph.edges[e]['probability'] = (total_similarity_score + (2.0 - total_similarity_score) * p) / 2.0
-                else:
-                    self.task_graph.edges[e]['probability'] = p * (1.0 - 0.5 * total_similarity_score)
+                if e_previous_manifold_id == None or e_next_manifold_id == None:
+                    # for the edge at the beginning or the end of the task graph, we do not update the probability
+                    continue
+
+                # we only update the edge in the same foliation and they have the same 
+                # previous manifold and next manifold.
+                if e_current_manifold_id[0] == current_manifold_id[0] and \
+                    e_previous_manifold_id[0] == previous_manifold_id[0] and \
+                    e_next_manifold_id[0] == next_manifold_id[0]:
+
+                    # update the similarity score
+                    current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_current_manifold_id[1], current_manifold_id[1])]
+                    previous_similarity_score = self.total_similiarity_table[previous_manifold_id[0]][(e_previous_manifold_id[1], previous_manifold_id[1])]
+                    next_similarity_score = self.total_similiarity_table[next_manifold_id[0]][(e_next_manifold_id[1], next_manifold_id[1])]
+                    
+                    total_similarity_score = current_similarity_score * previous_similarity_score * next_similarity_score
+
+                    p = self.task_graph.edges[e]['probability']
+                    if plan_[0]:
+                        self.task_graph.edges[e]['probability'] = (total_similarity_score + (2.0 - total_similarity_score) * p) / 2.0
+                    else:
+                        self.task_graph.edges[e]['probability'] = p * (1.0 - 0.5 * total_similarity_score)
 
         if plan_[0]:
             # save the solution trajectory to the task graph.
