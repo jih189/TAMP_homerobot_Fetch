@@ -194,7 +194,7 @@ if __name__ == "__main__":
             g, # grasp pose in the object frame
             table_top_pose, # constraint pose
             np.array([0.1,0.1,3.14*2]), # orientation constraint
-            np.array([2000,2000,0.01]) # position constraint
+            np.array([2000,2000,0.05]) # position constraint
         )
 
         grasp_pose_manifolds.append(grasp_manifold)

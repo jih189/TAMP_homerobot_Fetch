@@ -29,12 +29,27 @@ import os
 
 running_flag = True
 
+
+def combine_robot_trajectory_list(robot_trajectory_list):
+    result_trajectory = moveit_msgs.msg.RobotTrajectory()
+    result_trajectory.joint_trajectory.header.frame_id = robot_trajectory_list[0].joint_trajectory.header.frame_id
+    result_trajectory.joint_trajectory.joint_names = robot_trajectory_list[0].joint_trajectory.joint_names
+    time_from_start = rospy.Duration(0)
+    for robot_trajectory in robot_trajectory_list:
+        for joint_trajectory_point in robot_trajectory.joint_trajectory.points:
+            # append the deep copy of joint_trajectory_point to the result_trajectory
+            result_trajectory.joint_trajectory.points.append(copy.deepcopy(joint_trajectory_point))
+            result_trajectory.joint_trajectory.points[-1].time_from_start = time_from_start
+            time_from_start += rospy.Duration(0.01)
+
+    return result_trajectory
+
 # np.set_printoptions(suppress=True, precision = 3)
 if __name__ == "__main__":
 
     ##########################################################
     #################### experiment setup ####################
-    max_attempt_times = 50
+    max_attempt_times = 1
 
     # experiment_name = "pick_and_place_with_constraint"
     # experiment_name = "move_mouse_with_constraint"
@@ -42,7 +57,7 @@ if __name__ == "__main__":
     # experiment_name = "move_mouse"
     experiment_name = "maze"
 
-    use_mtg = False # use mtg or mdp
+    use_mtg = True # use mtg or mdp
     use_gmm = False # use gmm or not
 
     ##########################################################
@@ -121,7 +136,9 @@ if __name__ == "__main__":
             )
         )
 
-    #############################################################################
+    # #############################################################################
+    ## uncomment this to draw the similarity distance plot
+    
     # task_planner.draw_similarity_distance_plot()
 
     # moveit_commander.roscpp_shutdown()
@@ -142,10 +159,10 @@ if __name__ == "__main__":
     move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
     # move_group.set_planner_id('CBIRRTConfigDefault')
 
-    move_group.set_planning_time(2)
+    move_group.set_planning_time(2.0)
 
     display_trajectory_publisher = rospy.Publisher(
-            "/move_group/display_planned_path",
+            "/move_group/result_display_trajectory",
             moveit_msgs.msg.DisplayTrajectory,
             queue_size=10,
         )
@@ -260,8 +277,7 @@ if __name__ == "__main__":
     marker_thread.start()
 
     ##############################################################################
-
-    # create the manipulated object as a collision object.
+    # create attachedCollisionObject
     current_object_pose_stamped = PoseStamped()
     current_object_pose_stamped.header.frame_id = "wrist_roll_link"
     current_object_pose_stamped.pose = Pose()
@@ -271,7 +287,6 @@ if __name__ == "__main__":
         experiment.manipulated_object_mesh
     )
 
-    # create attachedCollisionObject
     attached_object = AttachedCollisionObject()
     attached_object.link_name = "wrist_roll_link"
     attached_object.object = manipulated_object
@@ -292,29 +307,15 @@ if __name__ == "__main__":
         solution_path = []
 
         # motion planner tries to solve each task in the task sequence
+        print "---"
+        for task in task_sequence:
+            print task_planner.task_graph.edges[task.task_graph_info]['manifold_id']
+
         for task in task_sequence:
             # print the task detail here
             # task.print_task_detail()
-
+            
             if task.manifold_detail.has_object_in_hand: # has object in hand
-                
-                # # attach the object to the hand in the planning scene
-                # target_object_pose = PoseStamped()
-                # target_object_pose.header.frame_id = "base_link"
-                # target_object_pose.pose = msgify(geometry_msgs.msg.Pose, numpify(move_group.get_current_pose().pose).dot(np.linalg.inv(task.manifold_detail.object_pose)))
-                # scene.attach_mesh(
-                #     "wrist_roll_link", # link
-                #     task.manifold_detail.object_name, # name
-                #     target_object_pose, # pose
-                #     task.manifold_detail.object_mesh, # filename
-                #     size=(1,1,1), #size
-                #     touch_links=["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"] #touch_links
-                # )
-
-                # # check whether the attached object is in the planning scene
-                # # if it is not, wait for short time.
-                # while task.manifold_detail.object_name not in scene.get_attached_objects():
-                #     rospy.sleep(0.0001)
                 
                 # do the motion planning
                 move_group.clear_path_constraints()
@@ -325,7 +326,8 @@ if __name__ == "__main__":
                 
                 # add the attached object to the start state
                 attached_object.object.pose = msgify(geometry_msgs.msg.Pose, np.linalg.inv(task.manifold_detail.object_pose))
-                start_moveit_robot_state.attached_collision_objects.append(attached_object)
+                if len(task_sequence) < 4: # for debugging
+                    start_moveit_robot_state.attached_collision_objects.append(attached_object)
                 
                 move_group.set_start_state(start_moveit_robot_state)
                 move_group.set_joint_value_target(task.goal_configuration)
@@ -350,22 +352,6 @@ if __name__ == "__main__":
                         solution_path.append(intersection_motion)
                 else: # if the motion planner can't find a solution, then replan
                     found_solution = False
-
-                # # remove the attached object from the planning scene
-                # scene.remove_attached_object("wrist_roll_link", task.manifold_detail.object_name)
-
-                # # check whether the attached object is in the planning scene
-                # # if it is, wait for short time.
-                # while task.manifold_detail.object_name in scene.get_attached_objects():
-                #     rospy.sleep(0.0001)
-
-                # # remove the object from the planning scene
-                # scene.remove_world_object(task.manifold_detail.object_name)
-
-                # # check whether the object is in the planning scene
-                # # if it is, wait for short time.
-                # while task.manifold_detail.object_name in scene.get_known_object_names():
-                #     rospy.sleep(0.0001)
 
                 if not found_solution:
                     break
@@ -423,21 +409,26 @@ if __name__ == "__main__":
                 if not found_solution:
                     break
 
-        if found_solution: # found solution, then break the
+        if found_solution: # found solution, then break the loop
+
+            # save the solution_path into a file
 
             print("found solution")
             # try to execute the solution path
 
             display_trajectory = moveit_msgs.msg.DisplayTrajectory()
             display_trajectory.trajectory_start = move_group.get_current_state()
-            display_trajectory.trajectory = solution_path
-
-            display_trajectory_publisher.publish(display_trajectory)
+            # display_trajectory.trajectory = [solution_path]
+            display_trajectory.trajectory = [combine_robot_trajectory_list(solution_path)]
+            print "press ctrl+c to display the trajectory"
+            while not rospy.is_shutdown():
+                display_trajectory_publisher.publish(display_trajectory)
             
             break
 
-    # wait for user to press enter to continue
-    raw_input("Press Enter to continue...")
+    if not found_solution:
+        # wait for user to press enter to continue
+        raw_input("Press any button to continue...")
     
     # make the marker thread stop
     running_flag = False
