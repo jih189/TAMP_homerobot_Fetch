@@ -309,11 +309,20 @@ if __name__ == "__main__":
         # motion planner tries to solve each task in the task sequence
         print "--- task ---"
         for task in task_sequence:
-            print task_planner.task_graph.edges[task.task_graph_info]['manifold_id'], " with ", task.task_graph_info
+            print task_planner.task_graph.edges[task.task_graph_info]['manifold_id'], " with ", task.task_graph_info, " has solution: ", task.has_solution
 
         for task in task_sequence:
             # print the task detail here
             # task.print_task_detail()
+
+            # if solution exists for the task, then we can skip the task.
+            if task.has_solution:
+                solution_path.append(task.solution_trajectory)
+                # add the intersection motion to the solution path
+                if(len(task.next_motion) > 1):
+                    intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
+                    solution_path.append(intersection_motion)
+                continue
             
             if task.manifold_detail.has_object_in_hand: # has object in hand
                 
