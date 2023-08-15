@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     ##########################################################
     #################### experiment setup ####################
-    max_attempt_times = 100
+    max_attempt_times = 1
 
     # experiment_name = "pick_and_place_with_constraint"
     # experiment_name = "move_mouse_with_constraint"
@@ -266,15 +266,15 @@ if __name__ == "__main__":
 
         object_marker_array.markers.append(goal_object_marker)
 
-    marker_thread = threading.Thread(
-            target=publish_marker_thread, 
-            args=(
-                object_marker_array,
-                marker_publisher
-            )
-        )
+    # marker_thread = threading.Thread(
+    #         target=publish_marker_thread, 
+    #         args=(
+    #             object_marker_array,
+    #             marker_publisher
+    #         )
+    #     )
 
-    marker_thread.start()
+    # marker_thread.start()
 
     ##############################################################################
     # create attachedCollisionObject
@@ -307,9 +307,9 @@ if __name__ == "__main__":
         solution_path = []
 
         # motion planner tries to solve each task in the task sequence
-        print "--- task ---"
+        print "--- tasks ---"
         for task in task_sequence:
-            print task_planner.task_graph.edges[task.task_graph_info]['manifold_id'], " with ", task.task_graph_info, " has solution: ", task.has_solution
+            print " has solution: ", task.has_solution
 
         for task in task_sequence:
             # print the task detail here
@@ -343,6 +343,8 @@ if __name__ == "__main__":
                 move_group.set_in_hand_pose(msgify(geometry_msgs.msg.Pose, np.linalg.inv(task.manifold_detail.object_pose)))
 
                 motion_plan_result = move_group.plan()
+
+                print "number of verified motions: ", len(motion_plan_result[4].verified_motions)
 
                 # if the planner uses gmm, then it will convert sampled data in the robot state format.
                 # so we need to convert it back to the numpy format based on the active joints.
@@ -388,6 +390,8 @@ if __name__ == "__main__":
                 # because the object is not grasped in the hand, no need to set the in-hand pose.
 
                 motion_plan_result = move_group.plan()
+
+                print "number of verified motions: ", len(motion_plan_result[4].verified_motions)
 
                 # if the planner uses gmm, then it will convert sampled data in the robot state format.
                 # so we need to convert it back to the numpy format based on the active joints.
@@ -440,7 +444,7 @@ if __name__ == "__main__":
     
     # make the marker thread stop
     running_flag = False
-    marker_thread.join()
+    # marker_thread.join()
 
     # shutdown the moveit
     moveit_commander.roscpp_shutdown()
