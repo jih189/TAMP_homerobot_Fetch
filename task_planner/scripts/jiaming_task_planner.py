@@ -148,7 +148,7 @@ class GMM:
         # Create an sklearn Gaussian Mixture Model 
         self._sklearn_gmm = mixture.GaussianMixture(n_components = len(means), covariance_type='full')
         self._sklearn_gmm.precisions_cholesky_ = np.linalg.cholesky(np.linalg.inv(covariances))
-        self._sklearn_gmm.weights_ = np.load(dir_name + 'weights.npy')
+        self._sklearn_gmm.weights_ = np.load(dir_name + 'weights.npy') # how common this distribution is.
         self._sklearn_gmm.means_ = means
         self._sklearn_gmm.covariances_ = covariances
 
@@ -199,7 +199,6 @@ class BaseTaskPlanner(object):
         """
         raise NotImplementedError("Please Implement this method")
 
-    
     def get_difference_between_coparameter(self, variable1_, variable2_):
         '''
         You can use different difference function here. This function will 
@@ -209,6 +208,7 @@ class BaseTaskPlanner(object):
         is higher, the difference is higher. If the value is lower, the difference
         is lower.
         '''
+        # return get_difference_between_poses(variable1_, variable2_)
         return get_position_difference_between_poses(variable1_, variable2_)
 
     def reset_manifold_similarity_table(self):
@@ -217,6 +217,10 @@ class BaseTaskPlanner(object):
         self.max_distance_table = {} # the max distance table contains the max distance of each foliation
 
     def update_manifold_similarity_table(self, manifold_info_, manifold_id_):
+        """
+        This function updates the similarity table of each foliation. You should
+        call this function when each manifold is added.
+        """
         if not manifold_id_[0] in self.total_similiarity_table:
             self.total_similiarity_table[manifold_id_[0]] = {} # create foliation similarity table for a new foliation
             self.total_distance_table[manifold_id_[0]] = {} # create foliation distance table for a new foliation
@@ -227,22 +231,27 @@ class BaseTaskPlanner(object):
         for id in self.manifold_info:
             if manifold_id_[0] == id[0]:
                 # calculate the distance score for the distance table
+                # here we use the poses to determine the difference.
                 distance_score = self.get_difference_between_coparameter(manifold_info_.object_pose, self.manifold_info[id].object_pose)
+                # save the difference score to the distance table of this foliation
                 self.total_distance_table[manifold_id_[0]][(id[1],manifold_id_[1])] = distance_score
                 self.total_distance_table[manifold_id_[0]][(manifold_id_[1],id[1])] = distance_score
 
+                # we keep which manifolds should be updated in the similarity table later.
                 new_keys_in_table.append((id[1],manifold_id_[1]))
                 new_keys_in_table.append((manifold_id_[1],id[1]))
 
         # get the max distance score in current foliation
         current_max_distance = max(self.total_distance_table[manifold_id_[0]].values())
+
         if current_max_distance > self.max_distance_table[manifold_id_[0]]:
-            # the max distance score is updated, so the whole similarity table of current foliation should be updated
+            # the max distance score of current foliation is updated, so the whole similarity table of current foliation should be updated
             self.max_distance_table[manifold_id_[0]] = current_max_distance
+            # update the similarity score of each manifold in the similarity table
             for key in self.total_distance_table[manifold_id_[0]]:
                 self.total_similiarity_table[manifold_id_[0]][key] = gaussian_similarity(self.total_distance_table[manifold_id_[0]][key], current_max_distance)
         else:
-            # the max distance score is not updated, so only the similarity score of new manifold should be updated
+            # the max distance score is not updated, so only the similarity score of new manifold should be updated.
             for new_key in new_keys_in_table:
                 self.total_similiarity_table[manifold_id_[0]][new_key] = gaussian_similarity(self.total_distance_table[manifold_id_[0]][new_key], self.max_distance_table[manifold_id_[0]])
 
@@ -268,6 +277,123 @@ class BaseTaskPlanner(object):
             plt.title("foliation " + str(foliation_id))
 
         plt.show()
+
+    def reset_task_solution_graph(self):
+        self.task_solution_graph = nx.DiGraph()
+        self.incomming_manifold_intersections = {} # the incomming intersections of each manifold
+        self.outgoing_manifold_intersections = {} # the outgoing intersections of each manifold
+        self.new_intersection_id = 0
+
+    def add_manifold_for_task_solution_graph(self, manifold_id_):
+        self.incomming_manifold_intersections[manifold_id_] = []
+        self.outgoing_manifold_intersections[manifold_id_] = []
+
+    def add_intersection_for_task_solution_graph(self, manifold_id1_, manifold_id2_):
+        intersection_from_1_to_2_id = self.new_intersection_id
+        self.new_intersection_id += 1
+        intersection_from_2_to_1_id = self.new_intersection_id
+        self.new_intersection_id += 1
+
+        self.task_solution_graph.add_node(
+            intersection_from_1_to_2_id, 
+            previous_manifold_id=manifold_id1_, 
+            next_manifold_id=manifold_id2_)
+        self.task_solution_graph.add_node(
+            intersection_from_2_to_1_id, 
+            previous_manifold_id=manifold_id2_, 
+            next_manifold_id=manifold_id1_)
+
+        for i in self.incomming_manifold_intersections[manifold_id1_]:
+            self.task_solution_graph.add_edge(
+                i, 
+                intersection_from_1_to_2_id, 
+                manifold_id=manifold_id1_, 
+                has_solution=False, 
+                solution_trajectory=None)
+
+        for i in self.outgoing_manifold_intersections[manifold_id2_]:
+            self.task_solution_graph.add_edge(
+                intersection_from_1_to_2_id, 
+                i, 
+                manifold_id=manifold_id2_, 
+                has_solution=False, 
+                solution_trajectory=None)
+
+        for i in self.outgoing_manifold_intersections[manifold_id1_]:
+            self.task_solution_graph.add_edge(
+                intersection_from_2_to_1_id, 
+                i, 
+                manifold_id=manifold_id1_, 
+                has_solution=False, 
+                solution_trajectory=None)
+        
+        for i in self.incomming_manifold_intersections[manifold_id2_]:
+            self.task_solution_graph.add_edge(
+                i, 
+                intersection_from_2_to_1_id, 
+                manifold_id=manifold_id2_, 
+                has_solution=False, 
+                solution_trajectory=None)
+
+        self.outgoing_manifold_intersections[manifold_id1_].append(intersection_from_1_to_2_id)
+        self.incomming_manifold_intersections[manifold_id2_].append(intersection_from_1_to_2_id)
+
+        self.outgoing_manifold_intersections[manifold_id2_].append(intersection_from_2_to_1_id)
+        self.incomming_manifold_intersections[manifold_id1_].append(intersection_from_2_to_1_id)
+
+        return intersection_from_1_to_2_id, intersection_from_2_to_1_id
+
+    def set_start_and_goal_for_task_solution_graph(self, start_manifold_id_, goal_manifold_id_):
+        if self.task_solution_graph.has_node('start'):
+            self.task_solution_graph.remove_node('start')
+
+        if self.task_solution_graph.has_node('goal'):
+            self.task_solution_graph.remove_node('goal')
+
+        self.task_solution_graph.add_node(
+            'start', 
+            previous_manifold_id = None,
+            next_manifold_id = start_manifold_id_
+        )
+
+        self.task_solution_graph.add_node(
+            'goal',
+            previous_manifold_id = goal_manifold_id_,
+            next_manifold_id = None
+        )
+
+        for i in self.outgoing_manifold_intersections[start_manifold_id_]:
+            self.task_solution_graph.add_edge(
+                'start', 
+                i, 
+                manifold_id=start_manifold_id_, 
+                has_solution=False, 
+                solution_trajectory=None)
+
+        for i in self.incomming_manifold_intersections[goal_manifold_id_]:
+            self.task_solution_graph.add_edge(
+                i, 
+                'goal', 
+                manifold_id=goal_manifold_id_, 
+                has_solution=False, 
+                solution_trajectory=None)
+
+    def check_solution_existence(self, intersection_id1_, intersection_id2_):
+        '''
+        check if the solution exists between two intersections. If the solution exists,
+        then return the solution trajectory. Otherwise, return None.
+        '''
+        if self.task_solution_graph.edges[intersection_id1_, intersection_id2_]['has_solution']:
+            return self.task_solution_graph.edges[intersection_id1_, intersection_id2_]['solution_trajectory']
+        else:
+            return None
+
+    def save_solution_to_task_solution_graph(self, intersection_id1_, intersection_id2_, solution_trajectory_):
+        self.task_solution_graph.edges[intersection_id1_, intersection_id2_]['has_solution'] = True
+        self.task_solution_graph.edges[intersection_id1_, intersection_id2_]['solution_trajectory'] = solution_trajectory_
+
+    def get_manifold_id_from_task_solution_graph(self, intersection_id1_, intersection_id2_):
+        return self.task_solution_graph.edges[intersection_id1_, intersection_id2_]['manifold_id']
 
 class MTGTaskPlanner(BaseTaskPlanner):
     def __init__(self):
@@ -666,22 +792,32 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
     # MTGTaskPlannerWithGMM
     def reset_task_planner(self):
+
+        self.reset_task_solution_graph()
+
         self.task_graph = nx.DiGraph()
         self.manifold_info = {} # the constraints of each manifold
 
+        self.reset_manifold_similarity_table()
+
     # MTGTaskPlannerWithGMM
     def add_manifold(self, manifold_info_, manifold_id_):
+
+        self.add_manifold_for_task_solution_graph(manifold_id_)
+
         self.manifold_info[manifold_id_] = manifold_info_
 
         # construct a set of nodes represented by a tuple (foliation id, manifold id, GMM id)
         for i in range(len(self.gmm_.distributions)):
-            self.task_graph.add_node((manifold_id_[0], manifold_id_[1], i), weight = 0.0)
+            self.task_graph.add_node((manifold_id_[0], manifold_id_[1], i)) #, weight = 0.0)
 
         for edge in self.gmm_.edge_of_distribution:
             self.task_graph.add_edge(
                 (manifold_id_[0], manifold_id_[1], edge[0]), 
                 (manifold_id_[0], manifold_id_[1], edge[1]), 
+                weight = 0.0,
                 has_intersection=False, 
+                intersection_id=None,
                 intersection=None
             )
 
@@ -689,12 +825,17 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             self.task_graph.add_edge(
                 (manifold_id_[0], manifold_id_[1], edge[1]), 
                 (manifold_id_[0], manifold_id_[1], edge[0]), 
+                weight = 0.0,
                 has_intersection=False, 
+                intersection_id=None,
                 intersection=None
-            )
+            )        
+
+        self.update_manifold_similarity_table(manifold_info_, manifold_id_)
 
     # MTGTaskPlannerWithGMM
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
+
         # connect two distribution of this intersection_detail_ between two different manifolds(manifold1 and manifold2) if they have the same ditribution id in GMM.
         # first, find the related distribution that the intersection's ends are in in different manifolds.
 
@@ -706,21 +847,31 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         configuration2 = intersection_detail_.trajectory_motion[-1]
         distribution_id_in_manifold2 = self.gmm_.get_distribution_index(configuration2)
 
-        if(not self.task_graph.has_edge((manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2)) and 
-           not self.task_graph.has_edge((manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2), (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1))
+        if(not self.task_graph.has_edge(
+                (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
+                (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2)) and 
+           not self.task_graph.has_edge(
+                (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2), 
+                (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1))
         ):
+            intersection_from_1_to_2_id, intersection_from_2_to_1_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
+
             self.task_graph.add_edge(
                 (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
                 (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2), 
+                weight = 0.0,
                 has_intersection=True, 
-                intersection=intersection_detail_
+                intersection=intersection_detail_, 
+                intersection_id=intersection_from_1_to_2_id
             )
 
             self.task_graph.add_edge(
                 (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2),
                 (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1),
+                weight = 0.0,
                 has_intersection=True,
-                intersection=intersection_detail_.get_inverse_motion()
+                intersection=intersection_detail_.get_inverse_motion(),
+                intersection_id=intersection_from_2_to_1_id
             )
 
     # MTGTaskPlannerWithGMM
@@ -729,6 +880,9 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                             start_configuration_, 
                             goal_manifold_id_,
                             goal_configuration_):
+
+        self.set_start_and_goal_for_task_solution_graph(start_manifold_id_, goal_manifold_id_)
+
         # if start and goal are set, then remove them from the task graph
         if self.task_graph.has_node('start'):
             self.task_graph.remove_node('start')
@@ -737,8 +891,8 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             self.task_graph.remove_node('goal')
 
         # include start and goal configurations in the task graph
-        self.task_graph.add_node('start', weight = 0.0)
-        self.task_graph.add_node('goal', weight = 0.0)
+        self.task_graph.add_node('start') #, weight = 0.0)
+        self.task_graph.add_node('goal') #, weight = 0.0)
 
         self.task_graph.add_edge(
             'start', 
@@ -747,8 +901,10 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 start_manifold_id_[1], 
                 self.gmm_.get_distribution_index(np.array(start_configuration_))
             ), 
+            weight = 0.0,
             has_intersection=False, 
-            intersection=None
+            intersection=None, 
+            intersection_id=None
         )
 
         self.task_graph.add_edge(
@@ -758,14 +914,15 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 self.gmm_.get_distribution_index(np.array(goal_configuration_))
             ), 
             'goal', 
+            weight = 0.0,
             has_intersection=True, 
             intersection=IntersectionDetail(
                 False,
                 [goal_configuration_],
                 None,
                 None,
-                None
-            )
+                None),
+            intersection_id='goal'
         )
 
         self.current_start_configuration = start_configuration_
@@ -780,31 +937,46 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         shortest_path = nx.shortest_path(self.task_graph, 'start', 'goal', weight='weight')
 
         task_sequence = []
+
         task_start_configuration = self.current_start_configuration
         task_gaussian_distribution = []
+        last_intersection_id = 'start'
 
         # construct the task sequence.
         for node1, node2 in zip(shortest_path[:-1], shortest_path[1:]):
-            if self.task_graph.get_edge_data(node1, node2)['has_intersection']:
+            current_edge = self.task_graph.get_edge_data(node1, node2)
+
+            if current_edge['has_intersection']:
                 # current edge is a transition from one manifold to another manifold
                 task = Task(
-                    self.manifold_info[(node1[0], node1[1])],
-                    task_start_configuration,
-                    self.task_graph.get_edge_data(node1, node2)['intersection'].trajectory_motion[0],
-                    self.task_graph.get_edge_data(node1, node2)['intersection'].trajectory_motion
+                    self.manifold_info[self.get_manifold_id_from_task_solution_graph(last_intersection_id, current_edge['intersection_id'])],
+                    task_start_configuration, # start configuration of the task
+                    current_edge['intersection'].trajectory_motion[0], # target configuration of the task
+                    current_edge['intersection'].trajectory_motion # the motion after the task.
                 )
 
                 task.distributions = list(task_gaussian_distribution)
-                task.set_task_graph_info((node1[0], node1[1])) # we use the manifold id as task graph information here
+
+                # we use the intersection id as task graph information here
+                task.set_task_graph_info((last_intersection_id, current_edge['intersection_id'])) 
+                
+                # check if solution exists for this task, if yes, then set the solution trajectory to the task
+                existing_solution = self.check_solution_existence(last_intersection_id, current_edge['intersection_id'])
+                if existing_solution != None:
+                    task.set_solution(existing_solution)
+
                 task_sequence.append(task)
 
                 # ready for the next task.
                 if node2 != 'goal': # if the edge is to goal, then no need to prepare for the next task
                     task_gaussian_distribution = [self.gmm_.distributions[node2[2]]]
-                    task_start_configuration = self.task_graph.get_edge_data(node1, node2)['intersection'].trajectory_motion[-1]
+                    # consider the last state of the intersection motion as the start state of next task.
+                    task_start_configuration = current_edge['intersection'].trajectory_motion[-1] 
+                    last_intersection_id = current_edge['intersection_id']
             else:
                 # edge in the same manifold except start and goal transition
                 task_gaussian_distribution.append(self.gmm_.distributions[node2[2]])
+
         return task_sequence
 
     # MTGTaskPlannerWithGMM
@@ -818,31 +990,62 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         # 4: obj-env collision
 
         sampled_data_numpy = np.array([sampled_data.sampled_state for sampled_data in plan_[4].verified_motions])
+        # if sampled_data_numpy is empty, then skip it.
         sampled_data_distribution_id = self.gmm_._sklearn_gmm.predict(sampled_data_numpy).tolist()
+        current_manifold_id = self.get_manifold_id_from_task_solution_graph(task_graph_info_[0], task_graph_info_[1])
+
+        if plan_[0]:
+            # save the solution if it exists.
+            self.save_solution_to_task_solution_graph(task_graph_info_[0], task_graph_info_[1], plan_[1])
+
+        # initialize a table with number of distributions in GMM times 4.
+        # each row is a distribution in GMM, and each column is a tag of sampled data.
+        # the value in the table is the number of sampled data with the same distribution id and tag.
+        # tag in column 0: collision free
+        # tag in column 1: arm-env collision or out of joint limit
+        # tag in column 2: path constraint violation
+        # tag in column 3: obj-env collision
+        sampled_data_distribution_tag_table = np.zeros((len(self.gmm_.distributions), 4))
 
         for i in range(len(sampled_data_distribution_id)):
             sampled_data_gmm_id = sampled_data_distribution_id[i]
             sampled_data_tag = plan_[4].verified_motions[i].sampled_state_tag
 
-            if sampled_data_tag == 1:
-                # increase the value of all distribution with the same mean and covariance
-                for manifold_id in self.manifold_info.keys():
-                    self.task_graph.nodes[(manifold_id[0], manifold_id[1], sampled_data_gmm_id)]['weight'] += 0.5
-
+            if sampled_data_tag == 0:
+                sampled_data_distribution_tag_table[sampled_data_gmm_id][0] += 1
+            elif sampled_data_tag == 1:
+                sampled_data_distribution_tag_table[sampled_data_gmm_id][1] += 1
             elif sampled_data_tag == 2:
-                self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], sampled_data_gmm_id)]['weight'] += 0.3
-
+                sampled_data_distribution_tag_table[sampled_data_gmm_id][2] += 1
             elif sampled_data_tag == 4:
-                self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], sampled_data_gmm_id)]['weight'] += 0.3
+                sampled_data_distribution_tag_table[sampled_data_gmm_id][3] += 1
 
-        if plan_[0]:
-            # increase the value of all distribution in the same manifold with a small value.
-            for g_id in range(len(self.gmm_.distributions)):
-                self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], g_id)]['weight'] += 0.01
-        else:
-            # increase the value of all distribution in the same manifold with a large value.
-            for g_id in range(len(self.gmm_.distributions)):
-                self.task_graph.nodes[(task_graph_info_[0], task_graph_info_[1], g_id)]['weight'] += 1.0
+        # update the weight of each distribution in the task graph.
+        for e in self.task_graph.edges:
+            # if this is the edge accross different manifolds, then skip it for now.
+            if self.task_graph.edges[e]['has_intersection']:
+                continue
+
+            # get the manifold id of this edge(both nodes are in the same manifold)
+            e_current_manifold_id = e[0][:2]
+
+            # if this edge is in different foliation, then skip it. We only update the edge in the same foliation.
+            if e_current_manifold_id[0] != current_manifold_id[0]:
+                continue
+
+            # get the current similarity score between the current manifold and the manifold of this edge
+            current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_current_manifold_id[1], current_manifold_id[1])]
+
+            # get the distribution id of the edge
+            distribution_id_1 = e[0][2]
+            distribution_id_2 = e[1][2]
+
+            collision_free_score = (sampled_data_distribution_tag_table[distribution_id_1][0] + sampled_data_distribution_tag_table[distribution_id_2][0]) * 0.01
+            arm_env_collision_score = (sampled_data_distribution_tag_table[distribution_id_1][1] + sampled_data_distribution_tag_table[distribution_id_2][1]) * 1.0
+            path_constraint_violation_score = (sampled_data_distribution_tag_table[distribution_id_1][2] + sampled_data_distribution_tag_table[distribution_id_2][2]) * 1.0 * current_similarity_score
+            obj_env_collision_score = (sampled_data_distribution_tag_table[distribution_id_1][3] + sampled_data_distribution_tag_table[distribution_id_2][3]) * 1.0 * current_similarity_score
+
+            self.task_graph.edges[e]['weight'] += collision_free_score + arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
 
 class MDPTaskPlannerWithGMM(BaseTaskPlanner):
     def __init__(self, gmm):
@@ -1050,7 +1253,6 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
     # MDPTaskPlannerWithGMM
     def update(self, task_graph_info_, plan_):
 
-
         # use the sample data to update the task graph.
         # sampled_state_tag hint
         # 0: collision free
@@ -1059,7 +1261,6 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
         # 3: infeasble state, you should ignore this
         # 4: obj-env collision
         # TODO () update fn - do not really understand task_graph_info_
-
 
         sampled_data_numpy = np.array([sampled_data.sampled_state for sampled_data in plan_[4].verified_motions])
         sampled_data_distribution_id = self.gmm_._sklearn_gmm.predict(sampled_data_numpy).tolist()
