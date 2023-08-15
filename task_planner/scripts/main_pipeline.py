@@ -57,7 +57,7 @@ if __name__ == "__main__":
     # experiment_name = "move_mouse"
     experiment_name = "maze"
 
-    use_mtg = True # use mtg or mdp
+    use_mtg = False # use mtg or mdp
     use_gmm = True # use gmm or not
 
     ##########################################################
