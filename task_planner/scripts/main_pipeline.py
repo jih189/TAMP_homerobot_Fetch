@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     ##########################################################
     #################### experiment setup ####################
-    max_attempt_times = 1
+    max_attempt_times = 30
 
     # experiment_name = "pick_and_place_with_constraint"
     # experiment_name = "move_mouse_with_constraint"
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     experiment_name = "maze"
 
     use_mtg = True # use mtg or mdp
-    use_gmm = False # use gmm or not
+    use_gmm = True # use gmm or not
 
     ##########################################################
 
@@ -344,8 +344,6 @@ if __name__ == "__main__":
 
                 motion_plan_result = move_group.plan()
 
-                print "number of verified motions: ", len(motion_plan_result[4].verified_motions)
-
                 # if the planner uses gmm, then it will convert sampled data in the robot state format.
                 # so we need to convert it back to the numpy format based on the active joints.
                 if(use_gmm):
@@ -390,8 +388,6 @@ if __name__ == "__main__":
                 # because the object is not grasped in the hand, no need to set the in-hand pose.
 
                 motion_plan_result = move_group.plan()
-
-                print "number of verified motions: ", len(motion_plan_result[4].verified_motions)
 
                 # if the planner uses gmm, then it will convert sampled data in the robot state format.
                 # so we need to convert it back to the numpy format based on the active joints.

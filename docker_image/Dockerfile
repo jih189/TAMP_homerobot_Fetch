@@ -284,7 +284,9 @@ COPY ./download/handle_weight.tar.xz $HOME
 RUN tar -xf $HOME/handle_weight.tar.xz -C $HOME && rm $HOME/handle_weight.tar.xz
 
 # install packages needed in task planner
-RUN python -m pip install networkx scikit-learn tqdm trimesh python-fcl
+RUN apt-get install python-tk
+RUN python -m pip install networkx scikit-learn tqdm trimesh==3.21.0
+RUN python -m pip install python-fcl --upgrade
 
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME

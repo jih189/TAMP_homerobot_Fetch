@@ -989,6 +989,11 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         # 3: infeasble state, you should ignore this
         # 4: obj-env collision
 
+        # if sampled data is empty, then skip it.
+        if len(plan_[4].verified_motions) == 0:
+            print "sampled data is empty."
+            return
+
         sampled_data_numpy = np.array([sampled_data.sampled_state for sampled_data in plan_[4].verified_motions])
         # if sampled_data_numpy is empty, then skip it.
         sampled_data_distribution_id = self.gmm_._sklearn_gmm.predict(sampled_data_numpy).tolist()
