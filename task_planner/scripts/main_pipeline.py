@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     ##########################################################
     #################### experiment setup ####################
-    max_attempt_times = 30
+    max_attempt_times = 200
 
     # experiment_name = "pick_and_place_with_constraint"
     # experiment_name = "move_mouse_with_constraint"
@@ -122,6 +122,7 @@ if __name__ == "__main__":
             (manifold.foliation_id, manifold.manifold_id)
         )
 
+
     # add intersections
     for intersection in experiment.intersections:
         task_planner.add_intersection(
@@ -140,6 +141,25 @@ if __name__ == "__main__":
     # # uncomment this to draw the similarity distance plot
     
     # task_planner.draw_similarity_distance_plot()
+
+    # #############################################################################
+
+    # # debug task sequence generation.
+    # task_planner.set_start_and_goal(
+    #     (experiment.start_foliation_id, experiment.start_manifold_id), # start manifold id
+    #     [0,0,0,0,0,0,0], # start configuration
+    #     (experiment.goal_foliation_id, experiment.goal_manifold_id), # goal manifold id
+    #     [0,0,0,0,0,0,0] # goal configuration
+    # )
+
+    # # print "generate task sequence"
+
+    # start_time = time.time()
+    # task_sequence = task_planner.generate_task_sequence()
+    # end_time = time.time()
+    # print "task planning time: ", end_time - start_time
+
+    ##########################
 
     # moveit_commander.roscpp_shutdown()
     # moveit_commander.os._exit(0)
@@ -298,7 +318,10 @@ if __name__ == "__main__":
     for attempt_time in range(max_attempt_times):
         print "attempt: ", attempt_time
         # generate task sequence
+        task_planning_start_time = time.time()
         task_sequence = task_planner.generate_task_sequence()
+        task_planning_end_time = time.time()
+        print "task planning time: ", task_planning_end_time - task_planning_start_time
         if len(task_sequence) == 0: # if no task sequence found, then break the loop
             print("no task sequence found")
             break
@@ -308,8 +331,9 @@ if __name__ == "__main__":
 
         # motion planner tries to solve each task in the task sequence
         print "--- tasks ---"
-        for task in task_sequence:
-            print " has solution: ", task.has_solution
+        print "length: ", len(task_sequence)
+        # for task in task_sequence:
+        #     print " has solution: ", task.has_solution
 
         for task in task_sequence:
             # print the task detail here
