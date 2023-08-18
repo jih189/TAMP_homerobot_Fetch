@@ -121,6 +121,7 @@ if __name__ == "__main__":
     experiment = Experiment()
 
     experiment.setup("pick_and_place_with_constraint", 
+                    package_path + '/mesh_dir/cup.stl',
                     package_path + '/mesh_dir/table.stl', 
                     numpify(table_pose.pose), 
                     robot.get_current_state().joint_state.position, 

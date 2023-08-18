@@ -1,10 +1,22 @@
 import rospy
 from moveit_msgs.msg import RobotTrajectory
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from moveit_msgs.msg import RobotState, Constraints, OrientationConstraint, PositionConstraint, BoundingVolume, MoveItErrorCodes
+from moveit_msgs.msg import CollisionObject, RobotState, Constraints, OrientationConstraint, PositionConstraint, BoundingVolume, MoveItErrorCodes
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 import tf.transformations as tf_trans
-from shape_msgs.msg import SolidPrimitive
+from shape_msgs.msg import SolidPrimitive, Mesh, MeshTriangle
+
+try:
+    from pyassimp import pyassimp
+except:
+    # support pyassimp > 3.0
+    try:
+        import pyassimp
+    except:
+        pyassimp = False
+        print(
+            "Failed to import pyassimp, see https://github.com/ros-planning/moveit/issues/86 for more info"
+        )
 
 # convert a list of joint values to robotTrajectory
 def convert_joint_values_to_robot_trajectory(joint_values_list_, joint_names_):
@@ -152,3 +164,58 @@ def construct_moveit_constraint(in_hand_pose_, constraint_pose_, orientation_con
     moveit_constraint.in_hand_pose = in_hand_pose
 
     return moveit_constraint
+
+def make_mesh(name, pose, filename, scale=(1,1,1)):
+    co = CollisionObject()
+    if pyassimp is False:
+        raise MoveItCommanderException(
+            "Pyassimp needs patch https://launchpadlibrarian.net/319496602/patchPyassim.txt"
+        )
+    scene = pyassimp.load(filename)
+    if not scene.meshes or len(scene.meshes) == 0:
+        raise MoveItCommanderException("There are no meshes in the file")
+    if len(scene.meshes[0].faces) == 0:
+        raise MoveItCommanderException("There are no faces in the mesh")
+    co.operation = CollisionObject.ADD
+    co.id = name
+    co.header = pose.header
+    co.pose = pose.pose
+
+    mesh = Mesh()
+    first_face = scene.meshes[0].faces[0]
+    if hasattr(first_face, "__len__"):
+        for face in scene.meshes[0].faces:
+            if len(face) == 3:
+                triangle = MeshTriangle()
+                triangle.vertex_indices = [face[0], face[1], face[2]]
+                mesh.triangles.append(triangle)
+    elif hasattr(first_face, "indices"):
+        for face in scene.meshes[0].faces:
+            if len(face.indices) == 3:
+                triangle = MeshTriangle()
+                triangle.vertex_indices = [
+                    face.indices[0],
+                    face.indices[1],
+                    face.indices[2],
+                ]
+                mesh.triangles.append(triangle)
+    else:
+        raise MoveItCommanderException(
+            "Unable to build triangles from mesh due to mesh object structure"
+        )
+    for vertex in scene.meshes[0].vertices:
+        point = Point()
+        point.x = vertex[0] * scale[0]
+        point.y = vertex[1] * scale[1]
+        point.z = vertex[2] * scale[2]
+        mesh.vertices.append(point)
+    co.meshes = [mesh]
+    identity_pose = Pose()
+    identity_pose.orientation.w = 1.0
+    identity_pose.position.x = 0.0
+    identity_pose.position.y = 0.0
+    identity_pose.position.z = 0.0
+
+    co.mesh_poses = [identity_pose]
+    pyassimp.release(scene)
+    return co

@@ -80,6 +80,7 @@ if __name__ == "__main__":
     scene.add_mesh('desk', env_pose, package_path + '/mesh_dir/desk_with_object.stl')
 
     experiment.setup("move_mouse_with_constraint", 
+                     package_path + '/mesh_dir/cup.stl',
                      package_path + '/mesh_dir/desk_with_object.stl',
                      numpify(env_pose.pose),
                      robot.get_current_state().joint_state.position,

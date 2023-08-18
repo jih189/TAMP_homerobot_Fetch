@@ -68,7 +68,7 @@ class Experiment:
         self.has_setup = False
         self.has_set_start_and_goal_foliation_and_manifold_id = False
         
-    def setup(self, experiment_name_, obstacle_mesh_, obstacle_mesh_pose_, initial_robot_state_, joint_names_, active_joint_names_):
+    def setup(self, experiment_name_, manipulated_object_mesh_, obstacle_mesh_, obstacle_mesh_pose_, initial_robot_state_, joint_names_, active_joint_names_):
         self.experiment_name = experiment_name_
         self.manifolds = []
         self.intersections = []
@@ -78,6 +78,7 @@ class Experiment:
         self.joint_names = joint_names_ # the joint names of the robot
         self.active_joint_names = active_joint_names_ # the joint names of arm group.
         self.has_setup = True
+        self.manipulated_object_mesh = manipulated_object_mesh_
 
     def add_manifold(self, manifold):
         if not self.has_setup:
@@ -117,6 +118,7 @@ class Experiment:
             "initial_robot_state": self.initial_robot_state,
             "joint_names": self.joint_names,
             "active_joint_names": self.active_joint_names,
+            "manipulated_object_mesh": self.manipulated_object_mesh,
             "manifolds": [],    
         }
 
@@ -196,6 +198,7 @@ class Experiment:
             self.initial_robot_state = experiment_data["initial_robot_state"]
             self.joint_names = experiment_data["joint_names"]
             self.active_joint_names = experiment_data["active_joint_names"]
+            self.manipulated_object_mesh = experiment_data["manipulated_object_mesh"]
 
             # load manifolds
             self.manifolds = []

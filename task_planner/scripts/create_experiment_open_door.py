@@ -42,7 +42,6 @@ if __name__ == "__main__":
     rospy.sleep(0.5)
     scene.clear()
     
-    
     move_group = moveit_commander.MoveGroupCommander("arm")
     rospy.wait_for_service("/compute_ik")
     compute_ik_srv = rospy.ServiceProxy("/compute_ik", GetPositionIK)
@@ -80,6 +79,7 @@ if __name__ == "__main__":
     scene.add_mesh('door_frame', env_pose, package_path + '/mesh_dir/door_frame.stl')
 
     experiment.setup("open_door", 
+                     package_path + '/mesh_dir/door.stl',
                      package_path + '/mesh_dir/door_frame.stl',
                      numpify(env_pose.pose),
                      robot.get_current_state().joint_state.position,
@@ -161,7 +161,8 @@ if __name__ == "__main__":
                                [0, 0, 1, 0],
                                [0, 0, 0, 1]])
 
-    for ind in random.sample(list(range(len(loaded_array.files))), 50):
+    # for ind in random.sample(list(range(len(loaded_array.files))), 50):
+    for ind in range(len(loaded_array.files)):
         grasp_pose_list.append(np.dot(loaded_array[loaded_array.files[ind]], rotated_matrix))
     
     grasp_pose_manifolds = []
@@ -181,8 +182,8 @@ if __name__ == "__main__":
         grasp_manifold.add_constraint(
             g, # grasp pose in the object frame
             initial_door_pose_matrix, # constraint pose
-            np.array([0.1,0.1,3.14*2]), # orientation constraint
-            np.array([0.05,0.05,0.2]) # position constraint
+            np.array([0.05,0.05,3.14*2]), # orientation constraint
+            np.array([0.0005,0.0005,0.0005]) # position constraint
         )
 
         grasp_pose_manifolds.append(grasp_manifold)
@@ -213,7 +214,7 @@ if __name__ == "__main__":
 
             possible_ik_solutions = []
 
-            for _ in range(10):
+            for _ in range(5):
                 # set the robot state randomly
                 random_moveit_robot_state = robot.get_current_state()
                 random_position_list = list(random_moveit_robot_state.joint_state.position)
