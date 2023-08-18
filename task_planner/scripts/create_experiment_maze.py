@@ -271,8 +271,8 @@ if __name__ == "__main__":
                 )
                 experiment.add_intersection(intersection)
 
-    # need to set start and goal foliation manifold id
-    experiment.set_start_and_goal_foliation_manifold_id(0,3,0,4)
+    # need to set start and goal foliation manifold id(You need to modify here.)
+    experiment.set_start_and_goal_foliation_manifold_id(0,0,0,4)
 
     experiment.save(package_path + "/experiment_dir/" + experiment.experiment_name)
 

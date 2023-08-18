@@ -58,7 +58,7 @@ if __name__ == "__main__":
     experiment_name = "maze"
 
     use_mtg = False # use mtg or mdp
-    use_gmm = True # use gmm or not
+    use_gmm = False # use gmm or not
 
     ##########################################################
 
@@ -122,6 +122,23 @@ if __name__ == "__main__":
             (manifold.foliation_id, manifold.manifold_id)
         )
 
+    # # add intersections
+    # list_of_manifold_id1 = []
+    # list_of_manifold_id2 = []
+    # list_of_intersection_detail = []
+    # for intersection in experiment.intersections:
+    #     list_of_manifold_id1.append((intersection.foliation_id_1, intersection.manifold_id_1))
+    #     list_of_manifold_id2.append((intersection.foliation_id_2, intersection.manifold_id_2))
+    #     list_of_intersection_detail.append(
+    #         IntersectionDetail(
+    #             intersection.has_object_in_hand,
+    #             intersection.trajectory_motion,
+    #             intersection.in_hand_pose,
+    #             intersection.object_mesh,
+    #             intersection.object_name
+    #         )
+    #     )
+    # task_planner.add_intersections(list_of_manifold_id1, list_of_manifold_id2, list_of_intersection_detail)
 
     # add intersections
     for intersection in experiment.intersections:
@@ -314,6 +331,7 @@ if __name__ == "__main__":
 
     ##############################################################################
     # start the main pipeline
+    found_solution = False
 
     for attempt_time in range(max_attempt_times):
         print "attempt: ", attempt_time

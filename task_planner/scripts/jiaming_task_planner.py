@@ -404,6 +404,67 @@ class BaseTaskPlanner(object):
     def get_manifold_id_from_task_solution_graph(self, intersection_id1_, intersection_id2_):
         return self.task_solution_graph.edges[intersection_id1_, intersection_id2_]['manifold_id']
 
+    def value_iteration(self):
+        '''
+        Traditional value iteration.
+        '''
+
+        # if planner name is not start with "MDP", then we do not use value iteration.
+        if self.planner_name[:3] != "MDP":
+            # throw an error if the planner name is not start with "MDP"
+            raise NotImplementedError("Call value iteration if only the planner is MDP planner.")
+
+        for t in range(self.value_iteration_iters):
+
+            # start_time = time.time()
+
+            new_value_function = {}
+
+            self.value_function['goal'] = self.reward_of_goal
+
+            #update the value function for each node
+            for node in self.task_graph.nodes:
+
+                # if the node has no outgoing edges, then set the value function to 0.0
+                if self.task_graph.out_degree(node) == 0:
+                    new_value_function[node] = -1.0
+                    continue
+
+                # Update the value function of node with max of neighbors
+                new_value_function[node] = (max(p * (1.0 + self.value_function[v]) for _, v, p in self.task_graph.out_edges(node, data='probability')) - 1.0) * self.gamma
+
+            new_value_function['goal'] = self.reward_of_goal
+
+            # if the value function converges, then stop
+            if np.all(np.isclose(list(self.value_function.values()), list(new_value_function.values()), rtol=self.epsilon , atol=self.epsilon)):
+                break
+
+            # print "value iteration: ", t, " time: ", time.time() - start_time, " diff ", np.max(np.abs(np.array(list(self.value_function.values())) - np.array(list(new_value_function.values()))))
+            self.value_function = new_value_function
+
+    def plan_on_value_function(self):
+        '''
+        Traditional value iteration. This function is called after value iteration. 
+        '''
+        if self.planner_name[:3] != "MDP":
+            # throw an error if the planner name is not start with "MDP"
+            raise NotImplementedError("Call this function if only the planner is MDP planner.")
+
+        result = []
+        current_node = 'start'
+        while current_node != 'goal':
+            # print current_node, self.value_function[current_node]
+            if current_node in result:
+                print "loop detected!"
+                return []
+
+            result.append(current_node)
+
+            current_node = max(self.task_graph.neighbors(current_node), key=lambda x: self.task_graph.edges[(current_node, x)]['probability'] * (self.value_function[x] + 1))
+        result.append('goal')
+
+        return result
+
 class MTGTaskPlanner(BaseTaskPlanner):
     def __init__(self):
         # Constructor
@@ -584,6 +645,10 @@ class MDPTaskPlanner(BaseTaskPlanner):
         self.outgoing_manifold_intersections = {} # the outgoing intersections of each manifold
         self.new_intersection_id = 0
         self.gamma = 0.9
+        self.value_iteration_iters = 100
+        self.epsilon = 0.01
+        self.reward_of_goal = 100.0
+
 
         self.reset_manifold_similarity_table()
 
@@ -672,7 +737,6 @@ class MDPTaskPlanner(BaseTaskPlanner):
 
         # initialize the value function of each node
         self.value_function = {node: 0 for node in self.task_graph.nodes}
-        self.value_function['goal'] = 1.0
 
     # MDPTaskPlanner
     def generate_task_sequence(self):
@@ -680,49 +744,10 @@ class MDPTaskPlanner(BaseTaskPlanner):
         if not nx.has_path(self.task_graph, 'start', 'goal'):
             return []
 
-        # perform value iteration
-        for iteration_step in range(1000):
-            new_value_function = {}
-            # update the value function for each node
-            for node in self.task_graph.nodes:
-                if node == 'goal': # goal node is the terminal node, so no need to update
-                    new_value_function[node] = 10.0
-                    continue
-
-                # ignore the node which is not reachable from start
-                # TODO: has_path is quite expensice here. We may need to find a better way to do this.
-                if not nx.has_path(self.task_graph, 'start', node):
-                    new_value_function[node] = 0.0
-                    continue
-
-                # if the node has no outgoing edges, then set the value function to 0
-                if self.task_graph.out_degree(node) == 0:
-                    new_value_function[node] = 0.0
-                    continue
-
-                # find the max expected value of current node
-                value_of_all_neighbors = [
-                    # self.task_graph.edges[node, neighbor]['probability'] * (1.0 + self.gamma * self.value_function[neighbor]) - 1.0
-                    (self.task_graph.edges[node, neighbor]['probability'] * (1.0 + self.value_function[neighbor]) - 1.0) * self.gamma
-                        for neighbor in self.task_graph.neighbors(node)
-                ]
-
-                new_value_function[node] = max(value_of_all_neighbors)
-
-            # if the value function converges, then stop
-            if np.all(np.isclose(list(self.value_function.values()), list(new_value_function.values()), rtol=1e-05, atol=1e-05)):
-                break
-
-            self.value_function = new_value_function
+        self.value_iteration()
 
         # find the shortest path from start to goal
-        shortest_path = []
-        current_node = 'start'
-        while current_node != 'goal':
-            shortest_path.append(current_node)
-            # if the node has no outgoing edges, you may need to increase the value of the target node.
-            current_node = max(self.task_graph.neighbors(current_node), key=lambda x: self.value_function[x])
-        shortest_path.append('goal')
+        shortest_path = self.plan_on_value_function()
 
         task_sequence = []
         # construct the task sequence.
@@ -1076,8 +1101,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
         self.task_graph = nx.DiGraph()
         self.manifold_info = {} # the constraints of each manifold
-        self.gamma = 0.8
-        self.epsilon = 5e-2
+        self.gamma = 0.99
+        self.epsilon = 0.001
         self.value_iteration_iters = 100
         self.reward_of_goal = 100.0
         # this table contains the arm_env_collision count for each distribution in GMM
@@ -1162,6 +1187,48 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
             )
     
     # MDPTaskPlannerWithGMM
+    def add_intersections(self, list_of_manifold_id1_, list_of_manifold_id2_, list_of_intersection_detail_):
+        # find the related distribution that the intersection's ends are in in different manifolds.
+        list_of_configuration1 = [ i.trajectory_motion[0] for i in list_of_intersection_detail_ ]
+        list_of_configuration2 = [ i.trajectory_motion[-1] for i in list_of_intersection_detail_ ]
+
+        list_of_distribution_id_in_manifold1 = self.gmm_.get_distribution_indexs(list_of_configuration1)
+        list_of_distribution_id_in_manifold2 = self.gmm_.get_distribution_indexs(list_of_configuration2)
+
+        for distribution_id_in_manifold1, distribution_id_in_manifold2, manifold_id1, manifold_id2, intersection_detail in zip(
+                                                                                                            list_of_distribution_id_in_manifold1, 
+                                                                                                            list_of_distribution_id_in_manifold2, 
+                                                                                                            list_of_manifold_id1_, 
+                                                                                                            list_of_manifold_id2_,
+                                                                                                            list_of_intersection_detail_):
+            if(not self.task_graph.has_edge(
+                    (manifold_id1[0], manifold_id1[1], distribution_id_in_manifold1), 
+                    (manifold_id2[0], manifold_id2[1], distribution_id_in_manifold2)) and 
+               not self.task_graph.has_edge(
+                    (manifold_id2[0], manifold_id2[1], distribution_id_in_manifold2), 
+                    (manifold_id1[0], manifold_id1[1], distribution_id_in_manifold1))
+            ):
+                intersection_from_1_to_2_id, intersection_from_2_to_1_id = self.add_intersection_for_task_solution_graph(manifold_id1, manifold_id2)
+
+                self.task_graph.add_edge(
+                    (manifold_id1[0], manifold_id1[1], distribution_id_in_manifold1), 
+                    (manifold_id2[0], manifold_id2[1], distribution_id_in_manifold2), 
+                    has_intersection=True, 
+                    intersection=intersection_detail,
+                    intersection_id=intersection_from_1_to_2_id,
+                    probability = 0.5,
+                )
+
+                self.task_graph.add_edge(
+                    (manifold_id2[0], manifold_id2[1], distribution_id_in_manifold2),
+                    (manifold_id1[0], manifold_id1[1], distribution_id_in_manifold1),
+                    has_intersection=True,
+                    intersection=intersection_detail.get_inverse_motion(),
+                    intersection_id=intersection_from_2_to_1_id,
+                    probability = 0.5,
+                )
+
+    # MDPTaskPlannerWithGMM
     def set_start_and_goal(self,
                             start_manifold_id_,
                             start_configuration_, 
@@ -1224,10 +1291,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
         # initialize the value function of each node
         self.value_function = {node: 0 for node in self.task_graph.nodes}
-
-        # self.prepare_value_iteration()
         
-
     # MDPTaskPlannerWithGMM
     def generate_task_sequence(self):
         # check the connectivity of the task graph from start to goal
@@ -1237,20 +1301,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
         # self.new_value_iteration()
         self.value_iteration()
 
-        # print "value of start: ", self.value_function['start']
-
         # find the shortest path from start to goal
-        shortest_path = []
-        current_node = 'start'
-        while current_node != 'goal':
-            # print current_node, self.value_function[current_node]
-            if current_node in shortest_path:
-                print "loop detected!"
-                return []
-
-            shortest_path.append(current_node)
-            current_node = max(self.task_graph.neighbors(current_node), key=lambda x: self.value_function[x])
-        shortest_path.append('goal')
+        shortest_path = self.plan_on_value_function()
 
         task_sequence = []
 
@@ -1385,111 +1437,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
             else:
                 self.task_graph.edges[e]['probability'] = collision_free_score / (collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score)
 
-        for s,d,p in self.task_graph.edges(data='probability'):
+        for _,_,p in self.task_graph.edges(data='probability'):
             if p < 0.0 or p > 1.0:
                 # throw an exception here
                 raise Exception("probability error")
-
-    def prepare_value_iteration(self):
-        '''
-        Convert the MDP graph into matrix format for value iteration later.
-        '''
-        n_states = self.task_graph.number_of_nodes()
-
-        self.value_function_vector = np.zeros(n_states)
-
-        self.state_indices = {state: idx for idx, state in enumerate(self.task_graph.nodes)}
-        self.indices_state = {idx: state for idx, state in enumerate(self.task_graph.nodes)}
-
-        self.transition_matrices = np.zeros((n_states, n_states))
-        self.failure_trandition_matrices = np.zeros((n_states, n_states))
-
-        self.goal_index = self.state_indices['goal']
-
-    def value_iteration(self):
-        '''
-        Traditional value iteration.
-        '''
-
-        for t in range(self.value_iteration_iters):
-
-            start_time = time.time()
-
-            new_value_function = {}
-
-            self.value_function['goal'] = self.reward_of_goal
-
-            #update the value function for each node
-            for node in self.task_graph.nodes:
-
-                # if the node has no outgoing edges, then set the value function to -1
-                if self.task_graph.out_degree(node) == 0:
-                    new_value_function[node] = -1.0
-                    continue
-
-                # Update the value function of node with max of neighbors
-                new_value_function[node] = (max(p * (1.0 + self.value_function[v]) for _, v, p in self.task_graph.out_edges(node, data='probability')) - 1.0) * self.gamma
-
-            new_value_function['goal'] = self.reward_of_goal
-
-            # if the value function converges, then stop
-            if np.all(np.isclose(list(self.value_function.values()), list(new_value_function.values()), rtol=self.epsilon , atol=self.epsilon)):
-                break
-
-            print "value iteration: ", t, " time: ", time.time() - start_time, " diff ", np.max(np.abs(np.array(list(self.value_function.values())) - np.array(list(new_value_function.values()))))
-            self.value_function = new_value_function
-
-    def new_value_iteration(self):
-        '''
-        Value iteration to find the optimal policy.
-        '''
-
-        start_time = time.time()
-
-        # load the value function to value_function_vector as a sparse matrix.
-        for key, value in self.value_function.items():
-            self.value_function_vector[self.state_indices[key]] = value
-
-        print "time of load value function: ", time.time() - start_time
-        start_time = time.time()
-
-        # convert the task graph to transition_matrices and failure_trandition_matrices
-        # print the edge with its property in graph
-        # for state1, state2 in self.task_graph.edges:
-
-
-        # self.transition_matrices = nx.to_numpy_matrix(self.renamed_task_graph, weight='probability')
-
-        for state1, state2, probability in self.task_graph.edges(data='probability'):
-            p1 = self.state_indices[state1]
-            p2 = self.state_indices[state2]
-            self.transition_matrices[p1, p2] = probability
-            self.failure_trandition_matrices[p1, p2] = 1.0 - probability
-
-        print "time of convert task graph to transition matrices: ", time.time() - start_time
-
-        for s in range(self.value_iteration_iters):
-            print "value iteration iteration: ", s
-
-            start_time = time.time()
-
-            V_prev = self.value_function_vector.copy()
-
-            # the reward of goal state is 10.0
-            self.value_function_vector[self.goal_index] = 10.0
-
-            self.value_function_vector = (self.transition_matrices * self.value_function_vector - self.failure_trandition_matrices).max(axis=1)
-
-            print "time of update value function vector: ", time.time() - start_time
-
-            # print("type of value function vector: ", type(self.value_function_vector))
-            # print("Shape of value_function_vector:", self.value_function_vector.shape)
-            # print("Shape of V_prev:", V_prev.shape)
-
-            # if abs(self.value_function_vector - V_prev.transpose()).max() < self.epsilon:
-            if np.max(np.abs(self.value_function_vector - V_prev)) < self.epsilon:
-                break
-
-        # convert value_function_vector to value_function
-        for state in self.task_graph.nodes:
-            self.value_function[state] = self.value_function_vector[0, self.state_indices[state]]
