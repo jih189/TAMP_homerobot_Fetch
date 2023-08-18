@@ -51,7 +51,7 @@ if __name__ == "__main__":
     #################### experiment setup ####################
     max_attempt_times = 200
 
-    # experiment_name = "pick_and_place_with_constraint"
+    experiment_name = "pick_and_place_with_constraint"
     # experiment_name = "move_mouse_with_constraint"
     # experiment_name = "open_door"
     # experiment_name = "move_mouse"
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     package_path = rospack.get_path('task_planner')
 
     # load the gmm
-    gmm_dir_path = package_path + '/dpgmm/'
+    gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm_collision/'
     gmm = GMM()
     gmm.load_distributions(gmm_dir_path)
 
