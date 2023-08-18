@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from experiment_helper import Experiment, Manifold, Intersection
-from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, GMM, ManifoldDetail, IntersectionDetail
-from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint, construct_moveit_constraint
+from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, MDPTaskPlannerWithGMM, GMM, ManifoldDetail, IntersectionDetail
+from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint, construct_moveit_constraint, make_mesh
 
 import sys
 import rospy
@@ -10,7 +10,7 @@ import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
 from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest, GetJointWithConstraints, GetJointWithConstraintsRequest
-from moveit_msgs.msg import RobotState, Constraints, OrientationConstraint, MoveItErrorCodes
+from moveit_msgs.msg import RobotState, Constraints, OrientationConstraint, MoveItErrorCodes, AttachedCollisionObject
 from sensor_msgs.msg import JointState
 from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     package_path = rospack.get_path('task_planner')
 
     # load the gmm
-    gmm_dir_path = package_path + '/gmm/'
+    gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm_collision/'
     gmm = GMM()
     gmm.load_distributions(gmm_dir_path)
 
@@ -42,8 +42,8 @@ if __name__ == "__main__":
     evaulated_task_planners = [] # you can add more task planners here
     evaulated_task_planners.append(MTGTaskPlanner())
     evaulated_task_planners.append(MDPTaskPlanner())
-    # evaulated_task_planners.append(MTGTaskPlannerWithGMM(gmm))
-    # evaulated_task_planners.append(MDPTaskPlannerWithGMM(gmm))
+    evaulated_task_planners.append(MTGTaskPlannerWithGMM(gmm))
+    evaulated_task_planners.append(MDPTaskPlannerWithGMM(gmm))
     
     #####################################################################
 
@@ -86,6 +86,22 @@ if __name__ == "__main__":
     obstacle_pose_stamped.header.frame_id = "base_link"
     obstacle_pose_stamped.pose = msgify(geometry_msgs.msg.Pose, experiment.obstacle_mesh_pose)
     scene.add_mesh("obstacle", obstacle_pose_stamped, experiment.obstacle_mesh, size=(1,1,1))
+
+    ##############################################################################
+    # create attachedCollisionObject
+    current_object_pose_stamped = PoseStamped()
+    current_object_pose_stamped.header.frame_id = "wrist_roll_link"
+    current_object_pose_stamped.pose = Pose()
+    manipulated_object = make_mesh(
+        "object", 
+        current_object_pose_stamped, 
+        experiment.manipulated_object_mesh
+    )
+
+    attached_object = AttachedCollisionObject()
+    attached_object.link_name = "wrist_roll_link"
+    attached_object.object = manipulated_object
+    attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
 
     ##############################################################################################
 
@@ -161,34 +177,30 @@ if __name__ == "__main__":
                 # motion planner tries to solve each task in the task sequence
                 for task in task_sequence:
 
-                    if task.manifold_detail.has_object_in_hand: # has object in hand
-                        
-                        # attach the object to the hand in the planning scene
-                        target_object_pose = PoseStamped()
-                        target_object_pose.header.frame_id = "base_link"
-                        target_object_pose.pose = msgify(geometry_msgs.msg.Pose, numpify(move_group.get_current_pose().pose).dot(np.linalg.inv(task.manifold_detail.object_pose)))
-                        scene.attach_mesh(
-                            "wrist_roll_link", # link
-                            task.manifold_detail.object_name, # name
-                            target_object_pose, # pose
-                            task.manifold_detail.object_mesh, # filename
-                            size=(1,1,1), #size
-                            touch_links=["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"] #touch_links
-                        )
+                    if task.has_solution:
+                        solution_path.append(task.solution_trajectory)
+                        if(len(task.next_motion) > 1):
+                            intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
+                            solution_path.append(intersection_motion)
+                        continue
 
-                        # check whether the attached object is in the planning scene
-                        # if it is not, wait for short time.
-                        while task.manifold_detail.object_name not in scene.get_attached_objects():
-                            rospy.sleep(0.0001)
+                    if task.manifold_detail.has_object_in_hand: # has object in hand
                         
                         # do the motion planning
                         move_group.clear_path_constraints()
+                        move_group.clear_in_hand_pose()
                         
                         # set start and goal congfiguration to motion planner.
                         start_moveit_robot_state = convert_joint_values_to_robot_state(task.start_configuration, move_group.get_active_joints(), robot)
+
+                        # add the attached object to the start state
+                        attached_object.object.pose = msgify(geometry_msgs.msg.Pose, np.linalg.inv(task.manifold_detail.object_pose))
+                        start_moveit_robot_state.attached_collision_objects.append(attached_object)
+
                         move_group.set_start_state(start_moveit_robot_state)
                         move_group.set_joint_value_target(task.goal_configuration)
                         move_group.set_path_constraints(task.manifold_detail.constraint)
+                        move_group.set_in_hand_pose(msgify(geometry_msgs.msg.Pose, np.linalg.inv(task.manifold_detail.object_pose)))
 
                         motion_plan_result = move_group.plan()
 
@@ -200,24 +212,17 @@ if __name__ == "__main__":
 
                         task_planner.update(task.task_graph_info, motion_plan_result)
 
-                        if not motion_plan_result[0]: #if the motion planner can't find a solution, then replan
+                        if motion_plan_result[0]: # if the motion planner find motion solution, then add it to the solution path
+                            solution_path.append(motion_plan_result[1])
+                            # add the intersection motion to the solution path
+                            if(len(task.next_motion) > 1):
+                                intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
+                                solution_path.append(intersection_motion)
+                        else: # if the motion planner can't find a solution, then replan
                             found_solution = False
+
+                        if not found_solution:
                             break
-
-                        solution_path.append(motion_plan_result[1])
-
-                        # add the intersection motion to the solution path
-                        if(len(task.next_motion) > 1):
-                            intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
-                            solution_path.append(intersection_motion)
-
-                        # remove the attached object from the planning scene
-                        scene.remove_attached_object("wrist_roll_link", task.manifold_detail.object_name)
-
-                        # check whether the attached object is in the planning scene
-                        # if it is, wait for short time.
-                        while task.manifold_detail.object_name in scene.get_attached_objects():
-                            rospy.sleep(0.0001)
 
                     else:
                         # add the object to the planning scene
@@ -233,6 +238,7 @@ if __name__ == "__main__":
 
                         # do the motion planning
                         move_group.clear_path_constraints()
+                        move_group.clear_in_hand_pose()
                         
                         # set start and goal congfiguration to motion planner.
                         start_moveit_robot_state = convert_joint_values_to_robot_state(task.start_configuration, move_group.get_active_joints(), robot)
@@ -250,16 +256,14 @@ if __name__ == "__main__":
 
                         task_planner.update(task.task_graph_info, motion_plan_result)
 
-                        if not motion_plan_result[0]: #if the motion planner can't find a solution, then replan
+                        if motion_plan_result[0]: # if the motion planner find motion solution, then add it to the solution path
+                            solution_path.append(motion_plan_result[1])
+                            # add the intersection motion to the solution path
+                            if(len(task.next_motion) > 1):
+                                intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
+                                solution_path.append(intersection_motion)
+                        else: # if the motion planner can't find a solution, then replan
                             found_solution = False
-                            break
-
-                        solution_path.append(motion_plan_result[1])
-
-                        # add the intersection motion to the solution path
-                        if(len(task.next_motion) > 1):
-                            intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
-                            solution_path.append(intersection_motion)
 
                         # remove the object from the planning scene
                         scene.remove_world_object(task.manifold_detail.object_name)
@@ -268,6 +272,9 @@ if __name__ == "__main__":
                         # if it is, wait for short time.
                         while task.manifold_detail.object_name in scene.get_known_object_names():
                             rospy.sleep(0.0001)
+
+                        if not found_solution:
+                            break
 
                 if found_solution: # found solution, then break the
 
