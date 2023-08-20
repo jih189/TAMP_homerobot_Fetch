@@ -8,9 +8,18 @@ The objective of this project is to leverage Gaussian Mixture Models (GMM) as an
 
 ## Table of Contents
 
-- [Goal](#goal)
-- [Usage](#usage)
-- [Experiments](#experiments)
+- [Task planner](#task-planner)
+  - [Idea](#idea)
+  - [Table of Contents](#table-of-contents)
+  - [Goal](#goal)
+  - [Experiments](#experiments)
+  - [Nautilus](#nautilus)
+  - [Usage](#usage)
+    - [Base tutorial](#base-tutorial)
+    - [Evaluation tutorial](#evaluation-tutorial)
+    - [Dataset generation tutorial](#dataset-generation-tutorial)
+    - [To download the dataset(internal use only)](#to-download-the-datasetinternal-use-only)
+    - [Motion planning tutorial](#motion-planning-tutorial)
 
 ## Goal
 - compare MTG and MDP
@@ -30,6 +39,37 @@ Here is the list of experiment we will have for this project:
 6. Sliding in simple maze
 
 Each experiment here will be saved as a file in directory [experiment_dir](experiment_dir) so later we can load them for testing. Thus, you may need to read the comment in the file to understand how to save and load them.
+
+## Nautilus
+To get access to PRP Nautilus cluster. You need to install [kubectl tool](https://docs.nationalresearchplatform.org/userdocs/start/quickstart/). Then, for this project, jiaming has applied a account for using that, so you can ask him for the config for this project. Once you got it, create a .kube directory and place the config find into it.
+```
+mkdir ~/.kube
+cd .kube
+# place the 'config' file here.
+```
+
+Run the following code to check whether you can access
+```
+kubectl get pods | grep jiaming
+```
+You should see a pod named 'jiaming-http-....'. If you can't find it, then you can ask jiaming to launch the container.
+
+To enter it, you can use the following code to enter the container. You should replace the ... with what you see in the above command.
+```
+kubectl exec -it jiaming-http-... -- /bin/bash
+```
+
+Once you enter the container, you should build the jiaming-manipulation workspace by the following code
+```
+mkdir -p catkin_ws/src
+cd catkin_ws/src
+git clone https://github.com/jih189/jiaming_manipulation.git
+cd jiaming_manipulation
+rm -r manipulation_test
+cd ../..
+catkin build 
+```
+There are some packages you should delete because we need simplify the docker container.
 
 ## Usage
 
@@ -53,7 +93,10 @@ We also provide the code to evaluate different task planner.
 rosrun task_planner evaluation.py
 ```
 
-This code will first load the experiment file in experiment_dir, then evaluate the performance of each task planner. The evaluation result will be saved in the directory jiaming_manipulation/taskplanner/evaluated_data_dir. You should modify the parameter in the file to change the experiment you want to evaluate and the task planner you want to use.
+This code will first load the experiment file in experiment_dir, then evaluate the performance of each task planner. The evaluation result will be saved in the directory jiaming_manipulation/taskplanner/evaluated_data_dir. You should modify the parameter in the file to change the experiment you want to evaluate and the task planner you want to use. After evaluation, you can visualize them with the following code
+```
+rosrun task_planner visualize_result.py
+```
 
 ### Dataset generation tutorial
 
