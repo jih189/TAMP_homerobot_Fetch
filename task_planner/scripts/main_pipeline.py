@@ -17,6 +17,7 @@ from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 import trimesh
 from trimesh import transformations
+from trimesh_util import sample_points_on_mesh
 import numpy as np
 from sensor_msgs.msg import PointCloud2, PointField, PointCloud
 # import struct
@@ -26,6 +27,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
 import threading
 import os
+
 
 running_flag = True
 
@@ -51,11 +53,11 @@ if __name__ == "__main__":
     #################### experiment setup ####################
     max_attempt_times = 200
 
-    experiment_name = "pick_and_place_with_constraint"
+    experiment_name = "pick_and_place"
     # experiment_name = "move_mouse_with_constraint"
     # experiment_name = "open_door"
     # experiment_name = "move_mouse"
-    experiment_name = "maze"
+    # experiment_name = "maze"
 
     use_mtg = False # use mtg or mdp
     use_gmm = False # use gmm or not
@@ -223,7 +225,7 @@ if __name__ == "__main__":
     marker_publisher = rospy.Publisher('/visualization_marker', MarkerArray, queue_size=10)
 
     # publish a marker with threading.
-    def publish_marker_thread(object_marker_array_, marker_publisher_):
+    def publish_marker_thread(object_marker_array_, obstacle_pointcloud_, marker_publisher_):
         # we use this as the helper to publish the marker for debugging.
         global running_flag
 
@@ -231,6 +233,19 @@ if __name__ == "__main__":
             for m in object_marker_array_.markers:
                 m.header.stamp = rospy.Time.now()
             marker_publisher_.publish(object_marker_array_)
+
+            # convert it to marker
+            obstacle_pointcloud_marker = Marker()
+            obstacle_pointcloud_marker.header.frame_id = "base_link"
+            obstacle_pointcloud_marker.id = 3
+            obstacle_pointcloud_marker.type = Marker.POINTS
+            obstacle_pointcloud_marker.action = Marker.ADD
+            obstacle_pointcloud_marker.pose = Pose()
+            obstacle_pointcloud_marker.scale = Point(0.01,0.01,0.01)
+            obstacle_pointcloud_marker.color = ColorRGBA(0,1,0,1)
+            obstacle_pointcloud_marker.points = [Point32(p[0], p[1], p[2]) for p in obstacle_pointcloud_] # convert the numpy array to the point32 list
+            marker_publisher_.publish([obstacle_pointcloud_marker])
+
             rospy.sleep(0.1)
         
         # clear the marker
@@ -274,6 +289,14 @@ if __name__ == "__main__":
 
     object_marker_array.markers.append(obstacle_marker)
 
+    # generate pointcloud based on the obstacle mesh
+    obstacle_mesh = trimesh.load_mesh(experiment.obstacle_mesh)
+    sampling_num_point_on_mesh = int(obstacle_mesh.area / 0.003) # you can reduce the value here to make more points on the mesh.
+    obstacle_pointcloud = sample_points_on_mesh(obstacle_mesh, sampling_num_point_on_mesh)
+    # apply the obstacle pose to the pointcloud
+    obstacle_pointcloud = np.dot(experiment.obstacle_mesh_pose, np.vstack((obstacle_pointcloud.T, np.ones((1, obstacle_pointcloud.shape[0]))))).T[:,0:3]
+
+
     if not task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].has_object_in_hand:
         # the object is not in hand initially, so we can publish the object marker here.
 
@@ -303,15 +326,16 @@ if __name__ == "__main__":
 
         object_marker_array.markers.append(goal_object_marker)
 
-    # marker_thread = threading.Thread(
-    #         target=publish_marker_thread, 
-    #         args=(
-    #             object_marker_array,
-    #             marker_publisher
-    #         )
-    #     )
+    marker_thread = threading.Thread(
+            target=publish_marker_thread, 
+            args=(
+                object_marker_array,
+                obstacle_pointcloud,
+                marker_publisher
+            )
+        )
 
-    # marker_thread.start()
+    marker_thread.start()
 
     ##############################################################################
     # create attachedCollisionObject
@@ -482,7 +506,7 @@ if __name__ == "__main__":
     
     # make the marker thread stop
     running_flag = False
-    # marker_thread.join()
+    marker_thread.join()
 
     # shutdown the moveit
     moveit_commander.roscpp_shutdown()
