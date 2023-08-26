@@ -59,8 +59,8 @@ if __name__ == "__main__":
     # experiment_name = "move_mouse"
     # experiment_name = "maze"
 
-    use_mtg = False # use mtg or mdp
-    use_gmm = False # use gmm or not
+    use_mtg = True # use mtg or mdp
+    use_gmm = True # use gmm or not
 
     ##########################################################
 
@@ -299,6 +299,8 @@ if __name__ == "__main__":
     # if the task planner does not use gmm, then this function is the empty function of the base class.
     task_planner.read_pointcloud(obstacle_pointcloud)
 
+    ####################################################################################################################
+    # going to publish the object marker here.
     if not task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].has_object_in_hand:
         # the object is not in hand initially, so we can publish the object marker here.
 

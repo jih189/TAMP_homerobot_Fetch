@@ -170,7 +170,7 @@ class GMM:
         self.edge_of_distribution = np.load(dir_name + 'edges.npy')
         self.edge_probabilities = np.load(dir_name + 'edge_probabilities.npy')
 
-    def update_collision_free_rate(self, pointcloud_):
+    def update_collision_free_rates(self, pointcloud_):
         '''
         update the collision-free rate of each distribution.
         '''
@@ -850,7 +850,25 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
     # MTGTaskPlannerWithGMM
     def read_pointcloud(self, pointcloud_):
-        self.gmm_.update_collision_free_rate(pointcloud_)
+        self.gmm_.update_collision_free_rates(pointcloud_)
+
+        # update the weight of each edge in the task graph based on the collision free rate of the GMM
+        # update the weight of each distribution in the task graph.
+        for e in self.task_graph.edges:
+            # if this is the edge accross different manifolds, then skip it for now.
+            if self.task_graph.edges[e]['has_intersection']:
+                continue
+
+            if e[0] == 'start' or e[1] == 'goal':
+                # for the edge at the beginning or the end of the task graph, we do not update the probability
+                continue
+
+            # get the distribution id of the edge
+            distribution_id_1 = e[0][2]
+            distribution_id_2 = e[1][2]
+
+            # update the weight of the edge by summing up the collision free rate of the two distributions
+            self.task_graph.edges[e]['weight'] = self.gmm_.collision_free_rates[distribution_id_1] + self.gmm_.collision_free_rates[distribution_id_2]
 
     # MTGTaskPlannerWithGMM
     def add_manifold(self, manifold_info_, manifold_id_):
@@ -1128,7 +1146,28 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
     # MDPTaskPlannerWithGMM
     def read_pointcloud(self, pointcloud_):
-        self.gmm_.update_collision_free_rate(pointcloud_)
+        self.gmm_.update_collision_free_rates(pointcloud_)
+
+        # update collision_count of distributions based on the collision free rate of the GMM
+        for distribution_id in range(0, len(self.gmm_.distributions)):
+            self.gmm_arm_env_collision_count[distribution_id] += (1.0 - self.gmm_.collision_free_rates[distribution_id]) * 2.0 # by increase this value to improve the impact of collision free rate on the possibility of each edge.
+        
+        # update the possibility of each distribution in the task graph.
+        for e in self.task_graph.edges:
+            # if this is the edge accross different manifolds, then skip it for now.
+            if self.task_graph.edges[e]['has_intersection']:
+                continue
+
+            if e[0] == 'start' or e[1] == 'goal':
+                # for the edge at the beginning or the end of the task graph, we do not update the probability
+                continue
+
+            # get the distribution id of the edge
+            distribution_id_1 = e[0][2]
+            distribution_id_2 = e[1][2]
+
+            # update the possibility of the edge by averaging the collision free rate of the two distributions
+            self.task_graph.edges[e]['probability'] = (self.gmm_.collision_free_rates[distribution_id_1] + self.gmm_.collision_free_rates[distribution_id_2]) / 2.0
 
     # MDPTaskPlannerWithGMM
     def add_manifold(self, manifold_info_, manifold_id_):
