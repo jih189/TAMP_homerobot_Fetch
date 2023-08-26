@@ -284,7 +284,7 @@ COPY ./download/handle_weight.tar.xz $HOME
 RUN tar -xf $HOME/handle_weight.tar.xz -C $HOME && rm $HOME/handle_weight.tar.xz
 
 # install packages needed in task planner
-RUN apt-get install python-tk
+RUN apt-get install python-tk -y
 RUN python -m pip install networkx scikit-learn tqdm trimesh==3.21.0
 RUN python -m pip install python-fcl --upgrade
 
