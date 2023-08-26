@@ -296,6 +296,8 @@ if __name__ == "__main__":
     # apply the obstacle pose to the pointcloud
     obstacle_pointcloud = np.dot(experiment.obstacle_mesh_pose, np.vstack((obstacle_pointcloud.T, np.ones((1, obstacle_pointcloud.shape[0]))))).T[:,0:3]
 
+    # if the task planner does not use gmm, then this function is the empty function of the base class.
+    task_planner.read_pointcloud(obstacle_pointcloud)
 
     if not task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].has_object_in_hand:
         # the object is not in hand initially, so we can publish the object marker here.

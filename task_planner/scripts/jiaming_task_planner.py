@@ -126,6 +126,8 @@ class GMM:
         self.edge_of_distribution = []
         self.edge_probabilities = []
         self._sklearn_gmm = None
+        
+        self.collision_free_rates = []
 
     def get_distribution_index(self, configuration_):
         # find which distribution the configuration belongs to
@@ -163,9 +165,16 @@ class GMM:
 
         for mean, covariance in zip(means, covariances):
             self.distributions.append(GaussianDistribution(mean, covariance))
+            self.collision_free_rates.append(0.5)
         print("Loaded %d distributions " % len(means), dir_name)
         self.edge_of_distribution = np.load(dir_name + 'edges.npy')
         self.edge_probabilities = np.load(dir_name + 'edge_probabilities.npy')
+
+    def update_collision_free_rate(self, pointcloud_):
+        '''
+        update the collision-free rate of each distribution.
+        '''
+        pass
 
 class BaseTaskPlanner(object):
     def __init__(self):
@@ -176,6 +185,10 @@ class BaseTaskPlanner(object):
     def reset_task_planner(self):
         raise NotImplementedError("Please Implement this method")
         
+    def read_pointcloud(self, pointcloud_):
+        print '-- the task planner does not support read point point because it does not use GMM --'
+        # raise NotImplementedError("Please Implement this method")
+
     def add_manifold(self, manifold_info_, manifold_id_):
         raise NotImplementedError("Please Implement this method")
 
@@ -836,6 +849,10 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         self.reset_manifold_similarity_table()
 
     # MTGTaskPlannerWithGMM
+    def read_pointcloud(self, pointcloud_):
+        self.gmm_.update_collision_free_rate(pointcloud_)
+
+    # MTGTaskPlannerWithGMM
     def add_manifold(self, manifold_info_, manifold_id_):
 
         self.add_manifold_for_task_solution_graph(manifold_id_)
@@ -1108,6 +1125,10 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
         # this table contains the arm_env_collision count for each distribution in GMM
         self.gmm_arm_env_collision_count = {distribution_id: 0 for distribution_id in range(len(self.gmm_.distributions))}
         self.reset_manifold_similarity_table()
+
+    # MDPTaskPlannerWithGMM
+    def read_pointcloud(self, pointcloud_):
+        self.gmm_.update_collision_free_rate(pointcloud_)
 
     # MDPTaskPlannerWithGMM
     def add_manifold(self, manifold_info_, manifold_id_):
