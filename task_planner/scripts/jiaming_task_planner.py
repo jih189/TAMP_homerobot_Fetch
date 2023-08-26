@@ -1097,7 +1097,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             distribution_id_1 = e[0][2]
             distribution_id_2 = e[1][2]
 
-            collision_free_score = (sampled_data_distribution_tag_table[distribution_id_1][0] + sampled_data_distribution_tag_table[distribution_id_2][0]) * 0.01
+            collision_free_score = (sampled_data_distribution_tag_table[distribution_id_1][0] + sampled_data_distribution_tag_table[distribution_id_2][0]) * 0.01 * current_similarity_score
             arm_env_collision_score = (sampled_data_distribution_tag_table[distribution_id_1][1] + sampled_data_distribution_tag_table[distribution_id_2][1]) * 1.0
             path_constraint_violation_score = (sampled_data_distribution_tag_table[distribution_id_1][2] + sampled_data_distribution_tag_table[distribution_id_2][2]) * 1.0 * current_similarity_score
             obj_env_collision_score = (sampled_data_distribution_tag_table[distribution_id_1][3] + sampled_data_distribution_tag_table[distribution_id_2][3]) * 1.0 * current_similarity_score
