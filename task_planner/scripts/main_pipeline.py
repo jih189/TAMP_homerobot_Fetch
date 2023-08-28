@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from experiment_helper import Experiment, Manifold, Intersection
+from experiment_scripts.experiment_helper import Experiment, Manifold, Intersection
 from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, MDPTaskPlannerWithGMM, GMM, ManifoldDetail, IntersectionDetail
 from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint, construct_moveit_constraint, make_mesh
 
