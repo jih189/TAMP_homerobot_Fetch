@@ -1,16 +1,15 @@
 # Task planner
 
-Here is the task planner for manipulation. The paper is goint to be submitted to IRCA 2024 hopefully.
+Here is the task planner for manipulation in foliated structure problem. The paper is goint to be submitted to IRCA 2024 hopefully.
 
 ## Idea
 
-The objective of this project is to leverage Gaussian Mixture Models (GMM) as an experimental approach to enhance the performance of task and motion planning. In traditional task and motion planning, a two-level planner is commonly employed. Initially, the task planner devises a sequence of tasks, while the subsequent motion planner determines the motion plan for each task in the sequence. Prominent methods such as MTG (Informing Multi-Modal Planning with Synergistic Discrete Leads) and MDP (Multi-Modal Planning on Regrasping for Stable Manipulation) are widely used. However, these methods do not effectively reuse prior planning experiences in the motion planner. Therefore, our project aims to apply GMM to refine the task graph into a more detailed level. This way, we can convey previous information as a sequence of distributions to assist the motion planner. Additionally, we also plan to incorporate deep learning techniques to analyze the point cloud data and predict the feasibility of each pre-defined distribution.
+The objective of this project is to leverage Gaussian Mixture Models (GMM) to model the self-collision-free space to enhance the performance of task and motion planning in foliated structure problem. In traditional task and motion planning, a two-level planner is commonly employed. Initially, the task planner devises a sequence of tasks, while the subsequent motion planner determines the motion plan for each task in the sequence. Prominent methods such as MTG (Informing Multi-Modal Planning with Synergistic Discrete Leads) and MDP (Multi-Modal Planning on Regrasping for Stable Manipulation) are widely used. However, these methods do not effectively reuse prior planning experiences in the motion planner. Therefore, our project aims to apply GMM to refine the task graph into a more detailed level. This way, we can convey previous information as a sequence of distributions to assist the motion planner. Additionally, we also plan to incorporate deep learning techniques to analyze the point cloud data and predict the feasibility of each pre-defined distribution.
 
 ## Table of Contents
 
 - [Task planner](#task-planner)
   - [Idea](#idea)
-  - [Table of Contents](#table-of-contents)
   - [Goal](#goal)
   - [Experiments](#experiments)
   - [Nautilus](#nautilus)
@@ -24,8 +23,8 @@ The objective of this project is to leverage Gaussian Mixture Models (GMM) as an
 ## Goal
 - compare MTG and MDP
 - compare MTG and MDP with GMM
-- compare MTG and MDP with deep learning based GMM
-- compared MTG and MDP with GMM and constraint preprocess
+- compare MTG and MDP with deep learning based GMM (Optional)
+- compared MTG and MDP with GMM and constraint preprocess (Optional)
 
 ## Experiments
 
@@ -33,15 +32,19 @@ Here is the list of experiment we will have for this project:
 
 1. pick-and-place with constraint
 2. pick-and-place with constraint and regrasping
-3. opening drawer
-4. opening drawer and pick-place object
-5. Sliding and regrasping(IROS 2023)
-6. Sliding in simple maze
+3. Sliding and regrasping(IROS 2023)
+4. Sliding in simple maze
 
-Each experiment here will be saved as a file in directory [experiment_dir](experiment_dir) so later we can load them for testing. Thus, you may need to read the comment in the file to understand how to save and load them.
+Each experiment here will be saved as a file in directory [experiment_dir](experiment_dir) so later we can load them for testing. Thus, you may need to read the comment in the file to understand how to save and load them. To create the experiment file, you can use the following code:
+```
+rosrun task_planner create_experiment_[experiment-name].py
+```
+
+### Future work
+In the future, we will implement a code to read a yaml file describing the experiment and generate the experiment file. This way, we can easily create a new experiment.
 
 ## Nautilus
-To get access to PRP Nautilus cluster. You need to install [kubectl tool](https://docs.nationalresearchplatform.org/userdocs/start/quickstart/). Then, for this project, jiaming has applied a account for using that, so you can ask him for the config for this project. Once you got it, create a .kube directory and place the config find into it.
+To get access to PRP Nautilus cluster. You need to install [kubectl tool](https://docs.nationalresearchplatform.org/userdocs/start/quickstart/). Then, for this project, jiaming has created an account for using that, so you can ask him for the config for this project. Once you got it, create a .kube directory and place the config find into it.
 ```
 mkdir ~/.kube
 cd .kube
@@ -125,7 +128,6 @@ This command will first load the gmm, then find the gmm_data in the data_generat
 We use s3cmd to save all data, so you need to download the s3cmd first.
 ```
 apt-get install s3cmd
-
 ```
 Then you can put the configuration file into ~/.s3cfg. Then, you can list all files in the s3 bucket with the following command:
 ```
