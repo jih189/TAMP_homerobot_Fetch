@@ -23,8 +23,8 @@ def read_ply(filename, colors  = False):
         xyz.append([float(t) for t in tokens[:3]])
         c.append([float(t) for t in tokens[3:]])
     
-    points_fps = farthest_point_sample(np.array(xyz), 1024)
-    points_fps = normalize_pc(points_fps)
+    # xyz = farthest_point_sample(np.array(xyz), 1024)
+    points_fps = normalize_pc(xyz)
     return points_fps, None
 
 

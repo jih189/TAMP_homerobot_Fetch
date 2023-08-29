@@ -1,0 +1,3 @@
+sensor_msgs/PointCloud2 point_cloud #point cloud in base frame
+---
+float32[] weights
