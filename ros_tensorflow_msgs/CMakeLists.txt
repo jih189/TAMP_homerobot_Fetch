@@ -13,6 +13,7 @@ add_service_files(
   FILES
   Predict.srv
   ComPredict.srv
+  GMMCollisionPredict.srv
 )
 
 generate_messages(

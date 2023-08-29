@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     # load the gmm
     gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm_collision/'
-    gmm = GMM()
+    gmm = GMM(use_dl_predict=False)
     gmm.load_distributions(gmm_dir_path)
 
     # load the expierment
