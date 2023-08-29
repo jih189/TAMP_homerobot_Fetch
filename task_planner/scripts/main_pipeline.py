@@ -53,11 +53,11 @@ if __name__ == "__main__":
     #################### experiment setup ####################
     max_attempt_times = 200
 
-    experiment_name = "pick_and_place"
+    # experiment_name = "pick_and_place"
     # experiment_name = "move_mouse_with_constraint"
     # experiment_name = "open_door"
     # experiment_name = "move_mouse"
-    # experiment_name = "maze"
+    experiment_name = "maze"
 
     use_mtg = True # use mtg or mdp
     use_gmm = True # use gmm or not
@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     # load the gmm
     gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm_collision/'
-    gmm = GMM()
+    gmm = GMM(use_dl_predict=False)
     gmm.load_distributions(gmm_dir_path)
 
     # load the expierment
