@@ -581,6 +581,7 @@ class MTGTaskPlanner(BaseTaskPlanner):
     def generate_task_sequence(self):
         # check the connectivity of the task graph from start to goal
         if not nx.has_path(self.task_graph, 'start', 'goal'):
+            print "no connection between start and goal!"
             return []
 
         # find the shortest path from start to goal
@@ -755,6 +756,7 @@ class MDPTaskPlanner(BaseTaskPlanner):
     def generate_task_sequence(self):
         # check the connectivity of the task graph from start to goal
         if not nx.has_path(self.task_graph, 'start', 'goal'):
+            print "no connection between start and goal!"
             return []
 
         self.value_iteration()
@@ -1001,6 +1003,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
     def generate_task_sequence(self):
         # check the connectivity of the task graph from start to goal
         if not nx.has_path(self.task_graph, 'start', 'goal'):
+            print "no connection between start and goal!"
             return []
 
         # find the shortest path from start to goal
@@ -1136,8 +1139,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
         self.task_graph = nx.DiGraph()
         self.manifold_info = {} # the constraints of each manifold
-        self.gamma = 0.99
-        self.epsilon = 0.001
+        self.gamma = 0.9
+        self.epsilon = 1e-5
         self.value_iteration_iters = 100
         self.reward_of_goal = 100.0
         # this table contains the arm_env_collision count for each distribution in GMM
@@ -1356,6 +1359,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
     def generate_task_sequence(self):
         # check the connectivity of the task graph from start to goal
         if not self.task_graph.has_node('goal'):
+            print "no connection between start and goal!"
             return []
 
         # self.new_value_iteration()
@@ -1495,9 +1499,9 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
             if (collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score) == 0:
                 self.task_graph.edges[e]['probability'] = 0.5
             else:
-                self.task_graph.edges[e]['probability'] = collision_free_score / (collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score)
+                self.task_graph.edges[e]['probability'] = (1 + collision_free_score) / (1 + collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score)
 
-        for _,_,p in self.task_graph.edges(data='probability'):
-            if p < 0.0 or p > 1.0:
-                # throw an exception here
-                raise Exception("probability error")
+        # for _,_,p in self.task_graph.edges(data='probability'):
+        #     if p < 0.0 or p > 1.0:
+        #         # throw an exception here
+        #         raise Exception("probability error")

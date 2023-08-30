@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from experiment_helper import Experiment, Manifold, Intersection
+from experiment_scripts.experiment_helper import Experiment, Manifold, Intersection
 from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, MDPTaskPlannerWithGMM, GMM, ManifoldDetail, IntersectionDetail
 from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint, construct_moveit_constraint, make_mesh
 
@@ -18,6 +18,7 @@ import numpy as np
 import time
 import json
 import os
+import tqdm
 
 if __name__ == "__main__":
     '''
@@ -25,24 +26,32 @@ if __name__ == "__main__":
     '''
     ##################################################################################
 
+    moveit_commander.roscpp_initialize(sys.argv)
+    rospy.init_node('main_pipeline_node', anonymous=True)
+
     rospack = rospkg.RosPack()
     # Get the path of the desired package
     package_path = rospack.get_path('task_planner')
 
     # load the gmm
-    gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm_collision/'
+    gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm/'
     gmm = GMM()
     gmm.load_distributions(gmm_dir_path)
 
     ################### parameters(you should modify here only) ###################
-    
-    experiment_name = "pick_and_place"
-    max_attempt_times = 100
-    experiment_times = 2
+
+    experiment_name = rospy.get_param('~experiment_name', "maze")
+    max_attempt_times = rospy.get_param('~max_attempt_times', 100)
+    experiment_times = rospy.get_param('~experiment_times', 50)
+
+    print "experiment_name: " + experiment_name
+    print "max_attempt_times: " + str(max_attempt_times)
+    print "experiment_times: " + str(experiment_times)
+
     evaulated_task_planners = [] # you can add more task planners here
-    evaulated_task_planners.append(MTGTaskPlanner())
-    evaulated_task_planners.append(MDPTaskPlanner())
-    evaulated_task_planners.append(MTGTaskPlannerWithGMM(gmm))
+    # evaulated_task_planners.append(MTGTaskPlanner())
+    # evaulated_task_planners.append(MDPTaskPlanner())
+    # evaulated_task_planners.append(MTGTaskPlannerWithGMM(gmm))
     evaulated_task_planners.append(MDPTaskPlannerWithGMM(gmm))
     
     #####################################################################
@@ -53,9 +62,9 @@ if __name__ == "__main__":
 
     #####################################################################################
 
-    # initialize the motion planner
-    moveit_commander.roscpp_initialize(sys.argv)
-    rospy.init_node('main_pipeline_node', anonymous=True)
+    # # initialize the motion planner
+    # moveit_commander.roscpp_initialize(sys.argv)
+    # rospy.init_node('main_pipeline_node', anonymous=True)
     robot = moveit_commander.RobotCommander()
     scene = moveit_commander.PlanningSceneInterface()
 
@@ -64,6 +73,8 @@ if __name__ == "__main__":
     move_group = moveit_commander.MoveGroupCommander("arm")
 
     move_group.set_planner_id("CDISTRIBUTIONRRTConfigDefault")
+
+    move_group.set_planning_time(2.0)
 
     # set initial joint state
     joint_state_publisher = rospy.Publisher('/move_group/fake_controller_joint_states', JointState, queue_size=1)
@@ -110,7 +121,7 @@ if __name__ == "__main__":
     # run the experiment on all task planners for evaluation
     for task_planner in evaulated_task_planners:
         print "evaluating task planner: " + task_planner.planner_name + " ..."
-        for _ in range(experiment_times):
+        for _ in tqdm.tqdm(range(experiment_times)):
             # reset the task planner
             task_planner.reset_task_planner()
 

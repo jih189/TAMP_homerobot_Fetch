@@ -51,15 +51,15 @@ if __name__ == "__main__":
 
     ##########################################################
     #################### experiment setup ####################
-    max_attempt_times = 200
+    max_attempt_times = 100
 
-    experiment_name = "pick_and_place"
+    # experiment_name = "pick_and_place"
     # experiment_name = "move_mouse_with_constraint"
     # experiment_name = "open_door"
     # experiment_name = "move_mouse"
-    # experiment_name = "maze"
+    experiment_name = "maze"
 
-    use_mtg = True # use mtg or mdp
+    use_mtg = False # use mtg or mdp
     use_gmm = True # use gmm or not
 
     ##########################################################
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     package_path = rospack.get_path('task_planner')
 
     # load the gmm
-    gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm_collision/'
+    gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm/'
     gmm = GMM()
     gmm.load_distributions(gmm_dir_path)
 
@@ -124,24 +124,6 @@ if __name__ == "__main__":
             (manifold.foliation_id, manifold.manifold_id)
         )
 
-    # # add intersections
-    # list_of_manifold_id1 = []
-    # list_of_manifold_id2 = []
-    # list_of_intersection_detail = []
-    # for intersection in experiment.intersections:
-    #     list_of_manifold_id1.append((intersection.foliation_id_1, intersection.manifold_id_1))
-    #     list_of_manifold_id2.append((intersection.foliation_id_2, intersection.manifold_id_2))
-    #     list_of_intersection_detail.append(
-    #         IntersectionDetail(
-    #             intersection.has_object_in_hand,
-    #             intersection.trajectory_motion,
-    #             intersection.in_hand_pose,
-    #             intersection.object_mesh,
-    #             intersection.object_name
-    #         )
-    #     )
-    # task_planner.add_intersections(list_of_manifold_id1, list_of_manifold_id2, list_of_intersection_detail)
-
     # add intersections
     for intersection in experiment.intersections:
         task_planner.add_intersection(
@@ -160,29 +142,6 @@ if __name__ == "__main__":
     # # uncomment this to draw the similarity distance plot
     
     # task_planner.draw_similarity_distance_plot()
-
-    # #############################################################################
-
-    # # debug task sequence generation.
-    # task_planner.set_start_and_goal(
-    #     (experiment.start_foliation_id, experiment.start_manifold_id), # start manifold id
-    #     [0,0,0,0,0,0,0], # start configuration
-    #     (experiment.goal_foliation_id, experiment.goal_manifold_id), # goal manifold id
-    #     [0,0,0,0,0,0,0] # goal configuration
-    # )
-
-    # # print "generate task sequence"
-
-    # start_time = time.time()
-    # task_sequence = task_planner.generate_task_sequence()
-    # end_time = time.time()
-    # print "task planning time: ", end_time - start_time
-
-    ##########################
-
-    # moveit_commander.roscpp_shutdown()
-    # moveit_commander.os._exit(0)
-    # exit()
 
     #############################################################################
     # initialize the motion planner and planning scene of moveit
@@ -203,7 +162,7 @@ if __name__ == "__main__":
     display_trajectory_publisher = rospy.Publisher(
             "/move_group/result_display_trajectory",
             moveit_msgs.msg.DisplayTrajectory,
-            queue_size=10,
+            queue_size=5,
         )
 
     # set initial joint state

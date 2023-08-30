@@ -9,6 +9,8 @@ if __name__ == "__main__":
     '''
 
     task_planner_names = ['MTGTaskPlanner', 'MDPTaskPlanner', 'MTGTaskPlannerWithGMM', 'MDPTaskPlannerWithGMM']
+    # task_planner_names = ['MDPTaskPlannerWithGMM']
+
 
     ##################################################################
 
@@ -43,6 +45,10 @@ if __name__ == "__main__":
         average_time[i] = total_time[i] / success_count[i]
         average_distance[i] = total_distance[i] / success_count[i]
         success_rate[i] = success_count[i] / experiment_count[i]
+        print "task planner: ", task_planner_names[i]
+        print "average time: ", average_time[i]
+        print "average distance: ", average_distance[i]
+        print "success rate: ", success_rate[i]
 
     # visulize the average time, average distance, and success rate for each planner in plt
     plt.figure(1)
