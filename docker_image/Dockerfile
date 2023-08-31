@@ -274,6 +274,10 @@ RUN apt-get update && apt-get install -y software-properties-common && add-apt-r
 RUN git clone --recurse-submodules https://github.com/nomic-ai/gpt4all && cd gpt4all/gpt4all-backend/ && mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=g++-9 -DCMAKE_C_COMPILER=gcc-9 .. && cmake --build . --parallel
 RUN cd gpt4all/gpt4all-bindings/python && python3.8 -m pip install -e .
 
+
+# install pointnet2_lib for Pytorch
+RUN git clone https://github.com/erikwijmans/Pointnet2_PyTorch.git && cd Pointnet2_PyTorch && sed -i 's/3.7+PTX;5.0;6.0;6.1;6.2;7.0;7.5/3.7+PTX;5.0;6.0;6.1;6.2;7.0;7.5;8.0;8.6/g' pointnet2_ops_lib/setup.py && python3.8 -m pip install -r requirements.txt && python3.8 -m pip install -e .
+
 # install dependencies for mpc_local_planner
 # install control_box_rst
 RUN apt-get install -y coinor-libipopt-dev

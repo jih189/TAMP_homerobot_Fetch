@@ -7,6 +7,7 @@ import os
 import torch
 import numpy as np
 from gmm_collision_prediction.gmm_collision_model import create_model
+from gmm_collision_prediction.point_cloud_utils import normalize_pc
 
 # Global variables
 BATCH_SIZE = 1
@@ -31,6 +32,7 @@ class ModelWrapper():
     def predict(self, x):
         assert x.shape[1] == 3, "Incorrect point cloud channels"
         assert len(x.shape) == 2, "Incorrect point cloud shape"
+        x = normalize_pc(x)
         pc_torch = torch.tensor(x).to(device = self.device)
         pc_torch = torch.reshape(pc_torch, (1, -1, 3)).float()
         output = torch.sigmoid(self.gmm_model(pc_torch)).data.cpu().reshape(-1).numpy()

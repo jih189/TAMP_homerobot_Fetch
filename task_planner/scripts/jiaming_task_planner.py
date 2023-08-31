@@ -122,7 +122,7 @@ class GaussianDistribution:
         self.covariance = covariance_
 
 class GMM:
-    def __init__(self, use_dl_predict = True):
+    def __init__(self, use_dl_predict = False):
         # Constructor
         self.distributions = []
         self.edge_of_distribution = []
@@ -185,6 +185,7 @@ class GMM:
             weights = self.client.call_client(pointcloud_)
             for i, w in enumerate(weights):
                 self.collision_free_rates[i] = w
+        print(self.collision_free_rates)
 
 
 class BaseTaskPlanner(object):
@@ -840,14 +841,15 @@ class MDPTaskPlanner(BaseTaskPlanner):
             self.task_graph.edges[task_graph_info_]['probability'] = 1.0
 
 class MTGTaskPlannerWithGMM(BaseTaskPlanner):
-    def __init__(self, gmm):
+    def __init__(self, gmm, name = None):
         # Constructor
         super(BaseTaskPlanner, self).__init__()
         # super().__init__() # python 3
 
         self.gmm_ = gmm
-
-        self.planner_name = "MTGTaskPlannerWithGMM"
+        if name is None:
+            name = "MTGTaskPlannerWithGMM"
+        self.planner_name = name
 
     # MTGTaskPlannerWithGMM
     def reset_task_planner(self):

@@ -8,7 +8,8 @@ if __name__ == "__main__":
     load the json file and visualize the result
     '''
 
-    task_planner_names = ['MTGTaskPlanner', 'MDPTaskPlanner', 'MTGTaskPlannerWithGMM', 'MDPTaskPlannerWithGMM']
+    # task_planner_names = ['MTGTaskPlanner', 'MDPTaskPlanner', 'MTGTaskPlannerWithGMM', 'MDPTaskPlannerWithGMM']
+    task_planner_names = ['MTGTaskPlannerWithGMM', 'MTGTaskPlannerWithGMMDL']
 
     ##################################################################
 
@@ -38,7 +39,7 @@ if __name__ == "__main__":
     average_time = [0.0 for i in range(len(task_planner_names))]
     average_distance = [0.0 for i in range(len(task_planner_names))]
     success_rate = [0.0 for i in range(len(task_planner_names))]
-
+    print(success_count)
     for i in range(len(task_planner_names)):
         average_time[i] = total_time[i] / success_count[i]
         average_distance[i] = total_distance[i] / success_count[i]
