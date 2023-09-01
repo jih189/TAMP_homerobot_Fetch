@@ -68,9 +68,10 @@ mkdir -p catkin_ws/src
 cd catkin_ws/src
 git clone https://github.com/jih189/jiaming_manipulation.git
 cd jiaming_manipulation
-rm -r manipulation_test
+rm -r manipulation_test rail_segmentation
 cd ../..
-catkin build 
+catkin build
+source devel/setup.bash
 ```
 There are some packages you should delete because we need simplify the docker container.
 
