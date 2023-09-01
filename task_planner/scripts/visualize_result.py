@@ -8,12 +8,6 @@ if __name__ == "__main__":
     load the json file and visualize the result
     '''
 
-    task_planner_names = ['MTGTaskPlanner', 'MDPTaskPlanner', 'MTGTaskPlannerWithGMM', 'MDPTaskPlannerWithGMM']
-    # task_planner_names = ['MDPTaskPlannerWithGMM']
-
-
-    ##################################################################
-
     rospack = rospkg.RosPack()
     # Get the path of the desired package
     package_path = rospack.get_path('task_planner')
@@ -22,6 +16,11 @@ if __name__ == "__main__":
 
     with open(result_json_path) as f:
         data = json.load(f)
+
+    # find all task planner names
+    task_planner_names = list(set([d['task_planner'] for d in data]))
+
+    print "task planner names: ", task_planner_names
 
     total_time = [0.0 for i in range(len(task_planner_names))]
     total_distance = [0.0 for i in range(len(task_planner_names))]
