@@ -479,11 +479,11 @@ class BaseTaskPlanner(object):
         return result
 
 class MTGTaskPlanner(BaseTaskPlanner):
-    def __init__(self):
+    def __init__(self, planner_name_="MTGTaskPlanner"):
         # Constructor
         super(BaseTaskPlanner, self).__init__() # python 2
         # super().__init__() # python 3
-        self.planner_name = "MTGTaskPlanner"
+        self.planner_name = planner_name_
 
     # MTGTaskPlanner
     def reset_task_planner(self):
@@ -644,12 +644,12 @@ class MTGTaskPlanner(BaseTaskPlanner):
                         self.task_graph.edges[e]['weight'] += 1.0 * total_similarity_score
             
 class MDPTaskPlanner(BaseTaskPlanner):
-    def __init__(self):
+    def __init__(self, planner_name_="MDPTaskPlanner"):
         # Constructor
         super(BaseTaskPlanner, self).__init__() # python 2
         # super().__init__() # python 3
 
-        self.planner_name = "MDPTaskPlanner"
+        self.planner_name = planner_name_
 
     # MDPTaskPlanner
     def reset_task_planner(self):
@@ -831,14 +831,14 @@ class MDPTaskPlanner(BaseTaskPlanner):
             self.task_graph.edges[task_graph_info_]['probability'] = 1.0
 
 class MTGTaskPlannerWithGMM(BaseTaskPlanner):
-    def __init__(self, gmm):
+    def __init__(self, gmm, planner_name_="MTGTaskPlannerWithGMM"):
         # Constructor
         super(BaseTaskPlanner, self).__init__()
         # super().__init__() # python 3
 
         self.gmm_ = gmm
 
-        self.planner_name = "MTGTaskPlannerWithGMM"
+        self.planner_name = planner_name_
 
     # MTGTaskPlannerWithGMM
     def reset_task_planner(self):
@@ -1126,12 +1126,13 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             self.task_graph.edges[e]['weight'] += collision_free_score + arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
 
 class MDPTaskPlannerWithGMM(BaseTaskPlanner):
-    def __init__(self, gmm):
+    def __init__(self, gmm, planner_name_="MDPTaskPlannerWithGMM"):
         # Init the constructor
         super(BaseTaskPlanner, self).__init__()
 
         self.gmm_ = gmm
-        self.planner_name = "MDPTaskPlannerWithGMM"
+        
+        self.planner_name = planner_name_
 
     # MDPTaskPlannerWithGMM
     def reset_task_planner(self):

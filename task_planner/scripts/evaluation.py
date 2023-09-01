@@ -49,9 +49,9 @@ if __name__ == "__main__":
     print "experiment_times: " + str(experiment_times)
 
     evaulated_task_planners = [] # you can add more task planners here
-    # evaulated_task_planners.append(MTGTaskPlanner())
-    # evaulated_task_planners.append(MDPTaskPlanner())
-    # evaulated_task_planners.append(MTGTaskPlannerWithGMM(gmm))
+    evaulated_task_planners.append(MTGTaskPlanner())
+    evaulated_task_planners.append(MDPTaskPlanner())
+    evaulated_task_planners.append(MTGTaskPlannerWithGMM(gmm))
     evaulated_task_planners.append(MDPTaskPlannerWithGMM(gmm))
     
     #####################################################################

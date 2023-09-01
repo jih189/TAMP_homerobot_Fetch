@@ -53,12 +53,12 @@ if __name__ == "__main__":
     #################### experiment setup ####################
     max_attempt_times = 100
 
-    # experiment_name = "pick_and_place"
+    experiment_name = "pick_and_place"
     # experiment_name = "move_mouse_with_constraint"
     # experiment_name = "open_door"
     # experiment_name = "move_mouse"
     # experiment_name = "maze"
-    experiment_name = "pick_and_place_in_shelf"
+    # experiment_name = "pick_and_place_in_shelf"
 
     use_mtg = True # use mtg or mdp
     use_gmm = False # use gmm or not
