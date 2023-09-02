@@ -101,7 +101,7 @@ if __name__ == "__main__":
                                [0, 0, 0, 1]])
 
     # randomly select 20 elements from the loaded_array.files
-    for ind in random.sample(list(range(len(loaded_array.files))), 5):
+    for ind in random.sample(list(range(len(loaded_array.files))), 50):
         array_name = loaded_array.files[ind]
         grasp_pose_list.append(np.dot(loaded_array[array_name], rotated_matrix))
 
