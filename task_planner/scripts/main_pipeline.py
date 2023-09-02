@@ -53,15 +53,16 @@ if __name__ == "__main__":
     #################### experiment setup ####################
     max_attempt_times = 100
 
-    experiment_name = "pick_and_place"
+    # experiment_name = "pick_and_place"
     # experiment_name = "move_mouse_with_constraint"
     # experiment_name = "open_door"
     # experiment_name = "move_mouse"
-    # experiment_name = "maze"
+    experiment_name = "maze"
     # experiment_name = "pick_and_place_in_shelf"
+    # experiment_name = "pick_and_place_with_constraint"
 
-    use_mtg = True # use mtg or mdp
-    use_gmm = False # use gmm or not
+    use_mtg = False # use mtg or mdp
+    use_gmm = True # use gmm or not
 
     ##########################################################
 
@@ -86,6 +87,7 @@ if __name__ == "__main__":
             task_planner = MTGTaskPlanner()
     else:
         if use_gmm:
+            # task_planner = MDPTaskPlannerWithGMM(gmm, 'MDPTaskPlannerWithGMMWithShortcut', {'use_shortcut': True}) # this is the example of customizing the mdp task planner
             task_planner = MDPTaskPlannerWithGMM(gmm)
         else:
             task_planner = MDPTaskPlanner()

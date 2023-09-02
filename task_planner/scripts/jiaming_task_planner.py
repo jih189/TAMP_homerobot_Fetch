@@ -479,11 +479,12 @@ class BaseTaskPlanner(object):
         return result
 
 class MTGTaskPlanner(BaseTaskPlanner):
-    def __init__(self, planner_name_="MTGTaskPlanner"):
+    def __init__(self, planner_name_="MTGTaskPlanner", parameter_dict_={}):
         # Constructor
         super(BaseTaskPlanner, self).__init__() # python 2
         # super().__init__() # python 3
         self.planner_name = planner_name_
+        self.parameter_dict = parameter_dict_
 
     # MTGTaskPlanner
     def reset_task_planner(self):
@@ -644,12 +645,14 @@ class MTGTaskPlanner(BaseTaskPlanner):
                         self.task_graph.edges[e]['weight'] += 1.0 * total_similarity_score
             
 class MDPTaskPlanner(BaseTaskPlanner):
-    def __init__(self, planner_name_="MDPTaskPlanner"):
+    def __init__(self, planner_name_="MDPTaskPlanner", parameter_dict_={}):
         # Constructor
         super(BaseTaskPlanner, self).__init__() # python 2
         # super().__init__() # python 3
 
         self.planner_name = planner_name_
+
+        self.parameter_dict = parameter_dict_
 
     # MDPTaskPlanner
     def reset_task_planner(self):
@@ -658,10 +661,11 @@ class MDPTaskPlanner(BaseTaskPlanner):
         self.incomming_manifold_intersections = {} # the incomming intersections of each manifold
         self.outgoing_manifold_intersections = {} # the outgoing intersections of each manifold
         self.new_intersection_id = 0
-        self.gamma = 0.9
-        self.value_iteration_iters = 100
-        self.epsilon = 0.01
-        self.reward_of_goal = 100.0
+
+        self.gamma = self.parameter_dict['gamma'] if 'gamma' in self.parameter_dict else 0.9
+        self.value_iteration_iters = self.parameter_dict['value_iteration_iters'] if 'value_iteration_iters' in self.parameter_dict else 100
+        self.epsilon = self.parameter_dict['epsilon'] if 'epsilon' in self.parameter_dict else 0.001
+        self.reward_of_goal = self.parameter_dict['reward_of_goal'] if 'reward_of_goal' in self.parameter_dict else 100.0
 
 
         self.reset_manifold_similarity_table()
@@ -831,7 +835,7 @@ class MDPTaskPlanner(BaseTaskPlanner):
             self.task_graph.edges[task_graph_info_]['probability'] = 1.0
 
 class MTGTaskPlannerWithGMM(BaseTaskPlanner):
-    def __init__(self, gmm, planner_name_="MTGTaskPlannerWithGMM"):
+    def __init__(self, gmm, planner_name_="MTGTaskPlannerWithGMM", parameter_dict_={}):
         # Constructor
         super(BaseTaskPlanner, self).__init__()
         # super().__init__() # python 3
@@ -839,6 +843,8 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         self.gmm_ = gmm
 
         self.planner_name = planner_name_
+
+        self.parameter_dict = parameter_dict_
 
     # MTGTaskPlannerWithGMM
     def reset_task_planner(self):
@@ -1126,7 +1132,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             self.task_graph.edges[e]['weight'] += collision_free_score + arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
 
 class MDPTaskPlannerWithGMM(BaseTaskPlanner):
-    def __init__(self, gmm, planner_name_="MDPTaskPlannerWithGMM"):
+    def __init__(self, gmm, planner_name_="MDPTaskPlannerWithGMM", parameter_dict_={}):
         # Init the constructor
         super(BaseTaskPlanner, self).__init__()
 
@@ -1134,16 +1140,21 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
         
         self.planner_name = planner_name_
 
+        self.parameter_dict = parameter_dict_
+
     # MDPTaskPlannerWithGMM
     def reset_task_planner(self):
         self.reset_task_solution_graph()
 
         self.task_graph = nx.DiGraph()
         self.manifold_info = {} # the constraints of each manifold
-        self.gamma = 0.9
-        self.epsilon = 1e-5
-        self.value_iteration_iters = 100
-        self.reward_of_goal = 100.0
+        self.gamma = self.parameter_dict['gamma'] if 'gamma' in self.parameter_dict else 0.99
+        self.epsilon = self.parameter_dict['epsilon'] if 'epsilon' in self.parameter_dict else 1e-5
+        self.value_iteration_iters = self.parameter_dict['value_iteration_iters'] if 'value_iteration_iters' in self.parameter_dict else 100
+        self.reward_of_goal = self.parameter_dict['reward_of_goal'] if 'reward_of_goal' in self.parameter_dict else 100.0
+        self.use_shortcut = self.parameter_dict['use_shortcut'] if 'use_shortcut' in self.parameter_dict else False
+        self.shortcut_probability = self.parameter_dict['shortcut_probability'] if 'shortcut_probability' in self.parameter_dict else 0.5
+
         # this table contains the arm_env_collision count for each distribution in GMM
         self.gmm_arm_env_collision_count = {distribution_id: 0 for distribution_id in range(len(self.gmm_.distributions))}
         self.reset_manifold_similarity_table()
@@ -1502,7 +1513,25 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
             else:
                 self.task_graph.edges[e]['probability'] = (1 + collision_free_score) / (1 + collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score)
 
-        # for _,_,p in self.task_graph.edges(data='probability'):
-        #     if p < 0.0 or p > 1.0:
-        #         # throw an exception here
-        #         raise Exception("probability error")
+        if self.use_shortcut and plan_[0]:
+            # find the start node and goal node of the solution
+            solution_start_node = 'start'
+            solution_goal_node = 'goal'
+
+            for e in self.task_graph.edges:
+                if self.task_graph.edges[e]['has_intersection']:
+                    if self.task_graph.edges[e]['intersection_id'] == task_graph_info_[0]:
+                        solution_start_node = e[1]
+
+                    if self.task_graph.edges[e]['intersection_id'] == task_graph_info_[1]:
+                        solution_goal_node = e[0]
+
+            # add edge from solution_start_node to solution_goal_node with 1.0 probability
+            self.task_graph.add_edge(
+                solution_start_node,
+                solution_goal_node,
+                has_intersection=False,
+                intersection=None,
+                intersection_id=None,
+                probability = self.shortcut_probability
+            )
