@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     ################### parameters(you should modify here only) ###################
 
-    experiment_name = rospy.get_param('~experiment_name', "maze")
+    experiment_name = rospy.get_param('~experiment_name', "pick_and_place_in_shelf")
     max_attempt_times = rospy.get_param('~max_attempt_times', 100)
     experiment_times = rospy.get_param('~experiment_times', 50)
 
@@ -57,8 +57,9 @@ if __name__ == "__main__":
     evaulated_task_planners = [] # you can add more task planners here
     # evaulated_task_planners.append(MTGTaskPlanner())
     # evaulated_task_planners.append(MDPTaskPlanner())
-    evaulated_task_planners.append(MTGTaskPlannerWithGMM(gmm_dl, name = "MTGTaskPlannerWithGMMDL"))
-    evaulated_task_planners.append(MTGTaskPlannerWithGMM(gmm, name = "MTGTaskPlannerWithGMM"))
+    evaulated_task_planners.append(MTGTaskPlannerWithGMM(gmm_dl, planner_name_ = "MTGTaskPlannerWithGMMDL"))
+    evaulated_task_planners.append(MTGTaskPlannerWithGMM(gmm, planner_name_ = "MTGTaskPlannerWithGMM"))
+    evaulated_task_planners.append(MDPTaskPlannerWithGMM(gmm_dl, planner_name_ = "MDPTaskPlannerWithGMMDL"))
     # evaulated_task_planners.append(MDPTaskPlannerWithGMM(gmm))
     
     #####################################################################
@@ -124,10 +125,13 @@ if __name__ == "__main__":
     ##############################################################################################
 
     evaluated_data = []
+    # create a evalued_data_dir
+    if not os.path.exists(package_path + "/evaluated_data_dir"):
+        os.makedirs(package_path + "/evaluated_data_dir")
 
     # run the experiment on all task planners for evaluation
-    for _ in tqdm.tqdm(range(experiment_times)):
-        for task_planner in evaulated_task_planners:
+    for task_planner in evaulated_task_planners:
+        for _ in tqdm.tqdm(range(experiment_times)):
             print "evaluating task planner: " + task_planner.planner_name + " ..."
             # reset the task planner
             task_planner.reset_task_planner()
@@ -333,12 +337,9 @@ if __name__ == "__main__":
             evaluated_data.append(json_data)
     
 
-    # create a evalued_data_dir
-    if not os.path.exists(package_path + "/evaluated_data_dir"):
-        os.makedirs(package_path + "/evaluated_data_dir")
 
-    with open(package_path + "/evaluated_data_dir/evaluated_data.json", 'w') as outfile:
-        json.dump(evaluated_data, outfile, indent=4)
+        with open(package_path + "/evaluated_data_dir/evaluated_data_corrected_dl_shelf.json", 'w') as outfile:
+            json.dump(evaluated_data, outfile, indent=4)
 
     # shutdown the moveit
     moveit_commander.roscpp_shutdown()

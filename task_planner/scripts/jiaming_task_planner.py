@@ -183,8 +183,11 @@ class GMM:
         '''
         if self.use_dl_predict:
             weights = self.client.call_client(pointcloud_)
+            # weights = np.load("/tmp/gmm_weights.npy")
             for i, w in enumerate(weights):
                 self.collision_free_rates[i] = w
+            # print(self.collision_free_rates)
+
 
 
 class BaseTaskPlanner(object):
@@ -848,9 +851,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         # super().__init__() # python 3
 
         self.gmm_ = gmm
-        if name is None:
-            name = "MTGTaskPlannerWithGMM"
-        self.planner_name = name
+        self.planner_name = planner_name_
 
 
     # MTGTaskPlannerWithGMM
@@ -883,7 +884,8 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             distribution_id_2 = e[1][2]
 
             # update the weight of the edge by summing up the collision free rate of the two distributions
-            self.task_graph.edges[e]['weight'] = self.gmm_.collision_free_rates[distribution_id_1] + self.gmm_.collision_free_rates[distribution_id_2]
+            self.task_graph.edges[e]['weight'] = (1.0 - self.gmm_.collision_free_rates[distribution_id_1]) + (1.0 - self.gmm_.collision_free_rates[distribution_id_2])
+            # print(self.task_graph.edges[e]['weight'])
 
     # MTGTaskPlannerWithGMM
     def add_manifold(self, manifold_info_, manifold_id_):

@@ -18,6 +18,7 @@ import os
 
 import trimesh
 
+
 class MeshCollisionChecker:
     def __init__(self, mc):
         self.robot = mc.RobotCommander()
@@ -114,29 +115,20 @@ if __name__ == "__main__":
     # Get the path of the desired package
     package_path = rospack.get_path('data_generation')
 
-    # check whether the dir exists
-    if not os.path.exists(package_path + '/gmm_data'):
-        print "The directory does not exist. Please run the random_joint_state_generation.py first."
-        sys.exit()
-
-    # check whether the file exists
-    if (not os.path.exists(package_path + '/gmm_data/joint_names.npy')) or \
-        (not os.path.exists(package_path + '/gmm_data/valid_robot_states.npy')):
-        print "The file does not exist. Please run the random_joint_state_generation.py first."
-        sys.exit()
-
     moveit_commander.roscpp_initialize(sys.argv)
     rospy.init_node('mesh_collision_checker_node', anonymous=True)
 
-    mesh_path = rospy.get_param('~mesh_path', '') # the mesh should be in the base_link frame
+    mesh_path = "/root/catkin_ws/src/jiaming_manipulation/task_planner/mesh_dir/maze.stl"
 
     mesh_collision_checker = MeshCollisionChecker(moveit_commander)
+    active_joint_names = mesh_collision_checker.move_group.get_active_joints()
 
     # load the joint names
     joint_names = np.load(package_path + '/gmm_data/joint_names.npy')
 
     # load the valid robot states
-    valid_robot_states = np.load(package_path + '/gmm_data/valid_robot_states.npy')
+    valid_robot_states = np.load(package_path + '/gmm_data/valid_robot_states.npy')[:, 6:13]
+    print(valid_robot_states.shape)
 
     # initialize the mesh pose
     mesh_pose = geometry_msgs.msg.Pose()
@@ -148,12 +140,15 @@ if __name__ == "__main__":
     mesh_pose.orientation.z = 0.0
     mesh_pose.orientation.w = 1.0
 
-    if mesh_path == '':
-        # print "Please specify the mesh path."
-        # sys.exit()
-        task_package_path = rospack.get_path('task_planner')
-        mesh_path = task_package_path + '/mesh_dir/table.stl'
-        mesh_pose = msgify(geometry_msgs.msg.Pose, np.array([[0.0, 1.0, 0.0, 0.28], [-1.0, 0.0, 0.0, 0.92], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]))
+    # mesh_pose = PoseStamped()
+    # mesh_pose.header.frame_id = "base_link"
+    mesh_pose.position.x = 0.51
+    mesh_pose.position.y = 0.05
+    mesh_pose.position.z = -0.02
+    mesh_pose.orientation.x = 0
+    mesh_pose.orientation.y = 0
+    mesh_pose.orientation.z = 0.707
+    mesh_pose.orientation.w = 0.707
 
     # load the mesh
     mesh = trimesh.load_mesh(mesh_path)
@@ -161,11 +156,17 @@ if __name__ == "__main__":
     # set the obstacle in the scene
     mesh_collision_checker.setObstaclesInScene([mesh], [mesh_pose])
 
+    valid_tag = np.zeros(valid_robot_states.shape[0])
     for j in range(valid_robot_states.shape[0]):
-        if mesh_collision_checker.checkValid(valid_robot_states[j], joint_names):
-            print "valid robot state: ", valid_robot_states[j]
+        # print(valid_robot_states[j], active_joint_names)
+        if mesh_collision_checker.checkValid(valid_robot_states[j], active_joint_names):
+            valid_tag[j] = 1
         else:
-            print "invalid robot state: ", valid_robot_states[j]
+            print("invalid")
+            valid_tag[j] = 0
+
+    np.save("/tmp/valid_tag.npy", valid_tag)
+    print("saved")
 
     # clean the planning scene
     mesh_collision_checker.cleanPlanningScene()

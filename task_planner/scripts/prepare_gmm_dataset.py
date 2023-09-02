@@ -8,6 +8,7 @@ import rospkg
 import rospy
 import moveit_commander
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 
 if __name__ == "__main__":
@@ -20,11 +21,12 @@ if __name__ == "__main__":
 
     # Get the path of the desired package
     task_planner_package_path = rospack.get_path('task_planner')
-    gmm_dir_path = task_planner_package_path + '/gmm/'
+    gmm_dir_path = task_planner_package_path + '/computed_gmms_dir/dpgmm/'
     gmm = GMM()
     gmm.load_distributions(gmm_dir_path)
+    print(gmm._sklearn_gmm.weights_.shape)
 
-    gmm_dataset_dir_path = rospack.get_path('data_generation') + '/gmm_data/'
+    gmm_dataset_dir_path = '/tmp/'
 
     # load valid robot states
     valid_robot_states = np.load(gmm_dataset_dir_path + 'valid_robot_states.npy')
@@ -45,28 +47,39 @@ if __name__ == "__main__":
     # print gmm_id_of_valid_robot_states
 
     # find all files start with env_
-    env_files = [f for f in os.listdir(gmm_dataset_dir_path) if f.startswith('env_')]
-
-    # use tqdm to show the progress bar
-    
-    for file_path in tqdm(env_files):
-        valid_count_dic = {}
-        total_count_dic = {}
-        # load the valid_tag.npy in it
-        valid_tag = np.load(gmm_dataset_dir_path + file_path + '/valid_tag.npy').tolist()
-        for gmm_id, tag in zip(gmm_id_of_valid_robot_states, valid_tag):
-            if gmm_id not in total_count_dic:
-                total_count_dic[gmm_id] = 1
-                if tag == 1:
-                    valid_count_dic[gmm_id] = 1
-                else:
-                    valid_count_dic[gmm_id] = 0
+    valid_count_dic = {}
+    total_count_dic = {}
+    # load the valid_tag.npy in it
+    valid_tag = np.load('/tmp/valid_tag.npy').tolist()
+    plt.hist(valid_tag)
+    plt.show()
+    for gmm_id, tag in zip(gmm_id_of_valid_robot_states, valid_tag):
+        if gmm_id not in total_count_dic:
+            total_count_dic[gmm_id] = 1
+            if tag == 1:
+                valid_count_dic[gmm_id] = 1
             else:
-                total_count_dic[gmm_id] += 1
+                valid_count_dic[gmm_id] = 0
+        else:
+            total_count_dic[gmm_id] += 1
 
-                if tag == 1:
-                    valid_count_dic[gmm_id] += 1
+            if tag == 1:
+                valid_count_dic[gmm_id] += 1
 
+    num_dist = len(gmm._sklearn_gmm.weights_)
+    out_npy = np.zeros((num_dist))
+    for i in range(num_dist):
+        if i in valid_count_dic:
+            # print(float(valid_count_dic[i])/ float(total_count_dic[i]), float(valid_count_dic[i]), float(total_count_dic[i]))
+            out_npy[i] = float(valid_count_dic[i])/ float(total_count_dic[i])
+        else:
+            print(i)
+            out_npy[i] = 0.0
+
+    np.save("/tmp/gmm_weights.npy", out_npy)
+    print(out_npy)
+    plt.plot(out_npy)
+    plt.show()
         # save the valid_count_dic and total_count_dic
-        np.save(gmm_dataset_dir_path + file_path + '/valid_count_dic.npy', valid_count_dic)
-        np.save(gmm_dataset_dir_path + file_path + '/total_count_dic.npy', total_count_dic)
+        # np.save(gmm_dataset_dir_path + file_path + '/valid_count_dic.npy', valid_count_dic)
+        # np.save(gmm_dataset_dir_path + file_path + '/total_count_dic.npy', total_count_dic)

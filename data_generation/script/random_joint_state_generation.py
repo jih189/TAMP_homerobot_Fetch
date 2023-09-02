@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     valid_robot_states = []
 
-    for _ in range(100):
+    for _ in range(20000):
         random_joint_value = move_group.get_random_joint_values()
 
         request = GetStateValidityRequest()
@@ -81,6 +81,7 @@ if __name__ == "__main__":
         if result.valid:
             random_robot_state = convert_joint_values_to_robot_state(random_joint_value, active_joint_names, robot)        
             valid_robot_states.append(random_robot_state.joint_state.position)
-
+            print("True")
     # save the valid robot states
+    print(np.array(valid_robot_states).shape)
     np.save(package_path + '/gmm_data/valid_robot_states.npy', valid_robot_states)
