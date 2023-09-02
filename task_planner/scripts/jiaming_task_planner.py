@@ -185,7 +185,6 @@ class GMM:
             weights = self.client.call_client(pointcloud_)
             for i, w in enumerate(weights):
                 self.collision_free_rates[i] = w
-        print(self.collision_free_rates)
 
 
 class BaseTaskPlanner(object):

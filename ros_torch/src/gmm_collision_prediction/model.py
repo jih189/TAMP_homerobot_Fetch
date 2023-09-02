@@ -23,7 +23,7 @@ class ModelWrapper():
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         self.gmm_model = create_model()
-        checkpoint = torch.load(os.path.join(BASE_DIR, "checkpoints/epoch=107-val_loss=0.54-val_acc=0.535.ckpt"))
+        checkpoint = torch.load(os.path.join(BASE_DIR, "checkpoints/epoch=135-val_loss=0.42-val_acc=5.035.ckpt"))
         self.gmm_model.load_state_dict(checkpoint['state_dict'])
         self.gmm_model.eval()
         self.gmm_model.to(device = self.device)
@@ -33,6 +33,7 @@ class ModelWrapper():
         assert x.shape[1] == 3, "Incorrect point cloud channels"
         assert len(x.shape) == 2, "Incorrect point cloud shape"
         x = normalize_pc(x)
+        print(np.mean(x, axis = 0), np.max(np.sqrt(np.sum(x**2, axis=1))))
         pc_torch = torch.tensor(x).to(device = self.device)
         pc_torch = torch.reshape(pc_torch, (1, -1, 3)).float()
         output = torch.sigmoid(self.gmm_model(pc_torch)).data.cpu().reshape(-1).numpy()

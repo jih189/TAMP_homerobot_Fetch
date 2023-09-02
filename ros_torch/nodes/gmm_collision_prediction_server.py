@@ -20,7 +20,7 @@ class RosInterface():
         rospack = rospkg.RosPack()
         # Get the path of the desired package
         task_planner_package_path = rospack.get_path('task_planner')
-        gmm1 = self.load_distribution(os.path.join(task_planner_package_path, "computed_gmms_dir/dl/dpgmm/"))
+        gmm1 = self.load_distribution(os.path.join(task_planner_package_path, "computed_gmms_dir/dl/gmm_31_aug/"))
         gmm2 = self.load_distribution(os.path.join(task_planner_package_path, "computed_gmms_dir/dpgmm/"))
         self.gmm1_to_gmm2_map = self.map_large_gmm_to_small_gmm(gmm1, gmm2)
 

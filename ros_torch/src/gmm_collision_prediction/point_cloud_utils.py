@@ -36,6 +36,7 @@ def normalize_pc(pc):
     return pc
 
 
+
 def farthest_point_sample(point, npoint):
     """
     Input:

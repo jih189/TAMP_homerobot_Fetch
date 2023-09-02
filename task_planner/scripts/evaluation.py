@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     ################### parameters(you should modify here only) ###################
 
-    experiment_name = rospy.get_param('~experiment_name', "move_mouse")
+    experiment_name = rospy.get_param('~experiment_name', "maze")
     max_attempt_times = rospy.get_param('~max_attempt_times', 100)
     experiment_times = rospy.get_param('~experiment_times', 50)
 
@@ -126,9 +126,9 @@ if __name__ == "__main__":
     evaluated_data = []
 
     # run the experiment on all task planners for evaluation
-    for task_planner in evaulated_task_planners:
-        print "evaluating task planner: " + task_planner.planner_name + " ..."
-        for _ in tqdm.tqdm(range(experiment_times)):
+    for _ in tqdm.tqdm(range(experiment_times)):
+        for task_planner in evaulated_task_planners:
+            print "evaluating task planner: " + task_planner.planner_name + " ..."
             # reset the task planner
             task_planner.reset_task_planner()
 
