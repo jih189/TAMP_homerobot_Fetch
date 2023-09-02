@@ -27,7 +27,7 @@ if __name__ == "__main__":
     ##################################################################################
 
     moveit_commander.roscpp_initialize(sys.argv)
-    rospy.init_node('main_pipeline_node', anonymous=True)
+    rospy.init_node('evaluation_node', anonymous=True)
 
     rospack = rospkg.RosPack()
     # Get the path of the desired package

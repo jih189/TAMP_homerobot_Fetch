@@ -876,7 +876,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             distribution_id_2 = e[1][2]
 
             # update the weight of the edge by summing up the collision free rate of the two distributions
-            self.task_graph.edges[e]['weight'] = self.gmm_.collision_free_rates[distribution_id_1] + self.gmm_.collision_free_rates[distribution_id_2]
+            self.task_graph.edges[e]['weight'] = (1.0 - self.gmm_.collision_free_rates[distribution_id_1]) + (1.0 - self.gmm_.collision_free_rates[distribution_id_2])
 
     # MTGTaskPlannerWithGMM
     def add_manifold(self, manifold_info_, manifold_id_):
