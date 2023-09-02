@@ -8,11 +8,6 @@ if __name__ == "__main__":
     load the json file and visualize the result
     '''
 
-    # task_planner_names = ['MTGTaskPlanner', 'MDPTaskPlanner', 'MTGTaskPlannerWithGMM', 'MDPTaskPlannerWithGMM']
-    task_planner_names = ['MTGTaskPlannerWithGMM', 'MTGTaskPlannerWithGMMDL']
-
-    ##################################################################
-
     rospack = rospkg.RosPack()
     # Get the path of the desired package
     package_path = rospack.get_path('task_planner')
@@ -21,6 +16,11 @@ if __name__ == "__main__":
 
     with open(result_json_path) as f:
         data = json.load(f)
+
+    # find all task planner names
+    task_planner_names = list(set([d['task_planner'] for d in data]))
+
+    print "task planner names: ", task_planner_names
 
     total_time = [0.0 for i in range(len(task_planner_names))]
     total_distance = [0.0 for i in range(len(task_planner_names))]
@@ -44,6 +44,10 @@ if __name__ == "__main__":
         average_time[i] = total_time[i] / success_count[i]
         average_distance[i] = total_distance[i] / success_count[i]
         success_rate[i] = success_count[i] / experiment_count[i]
+        print "task planner: ", task_planner_names[i]
+        print "average time: ", average_time[i]
+        print "average distance: ", average_distance[i]
+        print "success rate: ", success_rate[i]
 
     # visulize the average time, average distance, and success rate for each planner in plt
     plt.figure(1)

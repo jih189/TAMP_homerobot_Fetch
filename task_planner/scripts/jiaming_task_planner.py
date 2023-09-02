@@ -490,11 +490,11 @@ class BaseTaskPlanner(object):
         return result
 
 class MTGTaskPlanner(BaseTaskPlanner):
-    def __init__(self):
+    def __init__(self, planner_name_="MTGTaskPlanner"):
         # Constructor
         super(BaseTaskPlanner, self).__init__() # python 2
         # super().__init__() # python 3
-        self.planner_name = "MTGTaskPlanner"
+        self.planner_name = planner_name_
 
     # MTGTaskPlanner
     def reset_task_planner(self):
@@ -592,6 +592,7 @@ class MTGTaskPlanner(BaseTaskPlanner):
     def generate_task_sequence(self):
         # check the connectivity of the task graph from start to goal
         if not nx.has_path(self.task_graph, 'start', 'goal'):
+            print "no connection between start and goal!"
             return []
 
         # find the shortest path from start to goal
@@ -654,12 +655,12 @@ class MTGTaskPlanner(BaseTaskPlanner):
                         self.task_graph.edges[e]['weight'] += 1.0 * total_similarity_score
             
 class MDPTaskPlanner(BaseTaskPlanner):
-    def __init__(self):
+    def __init__(self, planner_name_="MDPTaskPlanner"):
         # Constructor
         super(BaseTaskPlanner, self).__init__() # python 2
         # super().__init__() # python 3
 
-        self.planner_name = "MDPTaskPlanner"
+        self.planner_name = planner_name_
 
     # MDPTaskPlanner
     def reset_task_planner(self):
@@ -766,6 +767,7 @@ class MDPTaskPlanner(BaseTaskPlanner):
     def generate_task_sequence(self):
         # check the connectivity of the task graph from start to goal
         if not nx.has_path(self.task_graph, 'start', 'goal'):
+            print "no connection between start and goal!"
             return []
 
         self.value_iteration()
@@ -840,7 +842,7 @@ class MDPTaskPlanner(BaseTaskPlanner):
             self.task_graph.edges[task_graph_info_]['probability'] = 1.0
 
 class MTGTaskPlannerWithGMM(BaseTaskPlanner):
-    def __init__(self, gmm, name = None):
+    def __init__(self, gmm, planner_name_="MTGTaskPlannerWithGMM"):
         # Constructor
         super(BaseTaskPlanner, self).__init__()
         # super().__init__() # python 3
@@ -849,6 +851,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         if name is None:
             name = "MTGTaskPlannerWithGMM"
         self.planner_name = name
+
 
     # MTGTaskPlannerWithGMM
     def reset_task_planner(self):
@@ -1013,6 +1016,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
     def generate_task_sequence(self):
         # check the connectivity of the task graph from start to goal
         if not nx.has_path(self.task_graph, 'start', 'goal'):
+            print "no connection between start and goal!"
             return []
 
         # find the shortest path from start to goal
@@ -1135,12 +1139,13 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             self.task_graph.edges[e]['weight'] += collision_free_score + arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
 
 class MDPTaskPlannerWithGMM(BaseTaskPlanner):
-    def __init__(self, gmm):
+    def __init__(self, gmm, planner_name_="MDPTaskPlannerWithGMM"):
         # Init the constructor
         super(BaseTaskPlanner, self).__init__()
 
         self.gmm_ = gmm
-        self.planner_name = "MDPTaskPlannerWithGMM"
+        
+        self.planner_name = planner_name_
 
     # MDPTaskPlannerWithGMM
     def reset_task_planner(self):
@@ -1148,8 +1153,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
         self.task_graph = nx.DiGraph()
         self.manifold_info = {} # the constraints of each manifold
-        self.gamma = 0.99
-        self.epsilon = 0.001
+        self.gamma = 0.9
+        self.epsilon = 1e-5
         self.value_iteration_iters = 100
         self.reward_of_goal = 100.0
         # this table contains the arm_env_collision count for each distribution in GMM
@@ -1368,6 +1373,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
     def generate_task_sequence(self):
         # check the connectivity of the task graph from start to goal
         if not self.task_graph.has_node('goal'):
+            print "no connection between start and goal!"
             return []
 
         # self.new_value_iteration()
@@ -1507,9 +1513,9 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
             if (collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score) == 0:
                 self.task_graph.edges[e]['probability'] = 0.5
             else:
-                self.task_graph.edges[e]['probability'] = collision_free_score / (collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score)
+                self.task_graph.edges[e]['probability'] = (1 + collision_free_score) / (1 + collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score)
 
-        for _,_,p in self.task_graph.edges(data='probability'):
-            if p < 0.0 or p > 1.0:
-                # throw an exception here
-                raise Exception("probability error")
+        # for _,_,p in self.task_graph.edges(data='probability'):
+        #     if p < 0.0 or p > 1.0:
+        #         # throw an exception here
+        #         raise Exception("probability error")

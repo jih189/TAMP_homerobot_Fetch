@@ -22,7 +22,7 @@ from trimesh import transformations
 import numpy as np
 from sensor_msgs.msg import PointCloud2, PointField, PointCloud
 import struct
-from manipulation_test.srv import *
+# from manipulation_test.srv import *
 import random
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 
