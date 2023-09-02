@@ -287,11 +287,16 @@ if __name__ == "__main__":
                                 package_path + '/mesh_dir/cup.stl', # object mesh file name
                                 True) # is the object in hand
 
+        table_top_pose = np.array([[1, 0, 0, 0.44],
+                                    [0, 1, 0, 0],
+                                    [0, 0, 1, 0.83],
+                                    [0, 0, 0, 1]])
+
         grasp_manifold.add_constraint(
             g, # grasp pose in the object frame
-            np.eye(4), # constraint pose
+            table_top_pose, # constraint pose
             np.array([0.1,0.1,3.14*2]), # orientation constraint
-            np.array([2000,2000,2000]) # position constraint
+            np.array([2000,2000,0.05]) # position constraint
         )
 
         experiment.add_manifold(grasp_manifold)
