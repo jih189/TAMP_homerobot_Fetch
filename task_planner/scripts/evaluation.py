@@ -37,12 +37,15 @@ if __name__ == "__main__":
 
     # load the gmm
     gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm/'
-    gmm = GMM()
+    gmm = GMM(use_dl_predict=False)
     gmm.load_distributions(gmm_dir_path)
+
+    gmm_dl = GMM(use_dl_predict=True)
+    gmm_dl.load_distributions(gmm_dir_path)
 
     ################### parameters(you should modify here only) ###################
 
-    experiment_name = rospy.get_param('~experiment_name', "maze")
+    experiment_name = rospy.get_param('~experiment_name', "pick_and_place_with_constraint")
     max_attempt_times = rospy.get_param('~max_attempt_times', 100)
     experiment_times = rospy.get_param('~experiment_times', 50)
 

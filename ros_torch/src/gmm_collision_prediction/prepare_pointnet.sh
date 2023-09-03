@@ -1,0 +1,1 @@
+cd /root && git clone https://github.com/erikwijmans/Pointnet2_PyTorch.git && cd Pointnet2_PyTorch && sed -i 's/3.7+PTX;5.0;6.0;6.1;6.2;7.0;7.5/3.7+PTX;5.0;6.0;6.1;6.2;7.0;7.5;8.0;8.6/g' pointnet2_ops_lib/setup.py && python3.8 -m pip install -r requirements.txt && python3.8 -m pip install -e . && cd /root/catkin_ws

@@ -1,5 +1,5 @@
 import numpy as np
-import open3d as o3d
+# import open3d as o3d
 
 def read_ply(filename, colors  = False):
     """Reads a PLY file representing EuRoc's point cloud.
