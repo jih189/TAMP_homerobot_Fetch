@@ -1151,9 +1151,10 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
         self.gamma = self.parameter_dict['gamma'] if 'gamma' in self.parameter_dict else 0.99
         self.epsilon = self.parameter_dict['epsilon'] if 'epsilon' in self.parameter_dict else 1e-5
         self.value_iteration_iters = self.parameter_dict['value_iteration_iters'] if 'value_iteration_iters' in self.parameter_dict else 100
-        self.reward_of_goal = self.parameter_dict['reward_of_goal'] if 'reward_of_goal' in self.parameter_dict else 100.0
+        self.reward_of_goal = self.parameter_dict['reward_of_goal'] if 'reward_of_goal' in self.parameter_dict else 10.0
         self.use_shortcut = self.parameter_dict['use_shortcut'] if 'use_shortcut' in self.parameter_dict else False
         self.shortcut_probability = self.parameter_dict['shortcut_probability'] if 'shortcut_probability' in self.parameter_dict else 0.5
+        self.lowest_probability = self.parameter_dict['lowest_probability'] if 'lowest_probability' in self.parameter_dict else 0.5
 
         # this table contains the arm_env_collision count for each distribution in GMM
         self.gmm_arm_env_collision_count = {distribution_id: 0 for distribution_id in range(len(self.gmm_.distributions))}
@@ -1206,7 +1207,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 has_intersection=False,
                 intersection=None,
                 intersection_id=None,
-                probability = 0.5,
+                probability = 0.5 * self.lowest_probability + 0.5,
+                # probability = 0.5,
             )
 
             # need to add the inverse edge
@@ -1216,7 +1218,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 has_intersection=False,
                 intersection=None,
                 intersection_id=None,
-                probability = 0.5,
+                probability = 0.5 * self.lowest_probability + 0.5,
+                # probability = 0.5,
             )
         
         self.update_manifold_similarity_table(manifold_info_, manifold_id_)
@@ -1249,7 +1252,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 has_intersection=True, 
                 intersection=intersection_detail_,
                 intersection_id=intersection_from_1_to_2_id,
-                probability = 0.5,
+                probability = 0.5 * self.lowest_probability + 0.5,
+                # probability = 0.5,
             )
 
             self.task_graph.add_edge(
@@ -1258,7 +1262,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 has_intersection=True,
                 intersection=intersection_detail_.get_inverse_motion(),
                 intersection_id=intersection_from_2_to_1_id,
-                probability = 0.5,
+                probability = 0.5 * self.lowest_probability + 0.5,
+                # probability = 0.5,
             )
     
     # MDPTaskPlannerWithGMM
@@ -1291,7 +1296,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                     has_intersection=True, 
                     intersection=intersection_detail,
                     intersection_id=intersection_from_1_to_2_id,
-                    probability = 0.5,
+                    probability = 0.5 * self.lowest_probability + 0.5,
+                    # probability = 0.5,
                 )
 
                 self.task_graph.add_edge(
@@ -1300,7 +1306,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                     has_intersection=True,
                     intersection=intersection_detail.get_inverse_motion(),
                     intersection_id=intersection_from_2_to_1_id,
-                    probability = 0.5,
+                    probability = 0.5 * self.lowest_probability + 0.5,
+                    # probability = 0.5,
                 )
 
     # MDPTaskPlannerWithGMM
@@ -1509,9 +1516,12 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
             # for the case that all scores are 0, we set the probability to 0.5
             if (collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score) == 0:
-                self.task_graph.edges[e]['probability'] = 0.5
+                self.task_graph.edges[e]['probability'] = 0.5 * self.lowest_probability + 0.5
             else:
-                self.task_graph.edges[e]['probability'] = (1 + collision_free_score) / (1 + collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score)
+                # self.task_graph.edges[e]['probability'] = (1 + collision_free_score) / (1 + collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score)
+                # self.task_graph.edges[e]['probability'] = collision_free_score / (collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score)
+                new_probability = (1 + collision_free_score) / (1 + collision_free_score + path_constraint_violation_score + obj_env_collision_score + arm_env_collision_score)
+                self.task_graph.edges[e]['probability'] = self.lowest_probability + (1.0 - self.lowest_probability) * new_probability
 
         if self.use_shortcut and plan_[0]:
             # find the start node and goal node of the solution
