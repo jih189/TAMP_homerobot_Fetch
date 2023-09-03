@@ -155,7 +155,7 @@ RUN python3.8 -m pip install --upgrade pip && python3.8 -m pip install --upgrade
     python3.8 -m pip install opencv-python --ignore-installed PyYAML
 
 # install packages needed in task planner
-RUN apt-get update && apt-get install python-pip python-tk -y && python2.7 -m pip install networkx tqdm trimesh==3.21.0 scikit-learn && python -m pip install python-fcl --upgrade
+RUN apt-get update && apt-get install python-pip python-tk s3cmd -y && python2.7 -m pip install networkx tqdm trimesh==3.21.0 scikit-learn && python -m pip install python-fcl --upgrade
 
 RUN rm -rf /var/lib/apt/lists/*
 
