@@ -19,6 +19,8 @@ import time
 import json
 import os
 import tqdm
+import trimesh
+from trimesh_util import sample_points_on_mesh
 
 if __name__ == "__main__":
     '''
@@ -169,6 +171,15 @@ if __name__ == "__main__":
                 (experiment.goal_foliation_id, experiment.goal_manifold_id), # goal manifold id
                 move_group.get_current_joint_values() # goal configuration
             )
+            # generate pointcloud based on the obstacle mesh
+            obstacle_mesh = trimesh.load_mesh(experiment.obstacle_mesh)
+            sampling_num_point_on_mesh = 5000 # you can reduce the value here to make more points on the mesh.
+            obstacle_pointcloud = sample_points_on_mesh(obstacle_mesh, sampling_num_point_on_mesh)
+            # apply the obstacle pose to the pointcloud
+            obstacle_pointcloud = np.dot(experiment.obstacle_mesh_pose, np.vstack((obstacle_pointcloud.T, np.ones((1, obstacle_pointcloud.shape[0]))))).T[:,0:3]
+
+            # if the task planner does not use gmm, then this function is the empty function of the base class.
+            task_planner.read_pointcloud(obstacle_pointcloud)
 
             start_time = time.time()
             found_solution = False
