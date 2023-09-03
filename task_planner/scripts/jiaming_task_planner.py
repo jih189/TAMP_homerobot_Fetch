@@ -120,7 +120,7 @@ class GaussianDistribution:
         self.covariance = covariance_
 
 class GMM:
-    def __init__(self):
+    def __init__(self, use_dl_predict = False):
         # Constructor
         self.distributions = []
         self.edge_of_distribution = []
@@ -128,6 +128,11 @@ class GMM:
         self._sklearn_gmm = None
         
         self.collision_free_rates = []
+        self.use_dl_predict = use_dl_predict
+        if use_dl_predict:
+            from gmm_collision_predictor_client import RosInterface
+            self.client = RosInterface()
+
 
     def get_distribution_index(self, configuration_):
         # find which distribution the configuration belongs to
@@ -174,7 +179,11 @@ class GMM:
         '''
         update the collision-free rate of each distribution.
         '''
-        pass
+        if self.use_dl_predict:
+            weights = self.client.call_client(pointcloud_)
+            for i, w in enumerate(weights):
+                self.collision_free_rates[i] = w
+
 
 class BaseTaskPlanner(object):
     def __init__(self):
