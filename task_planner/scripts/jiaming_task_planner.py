@@ -1154,7 +1154,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
         self.reward_of_goal = self.parameter_dict['reward_of_goal'] if 'reward_of_goal' in self.parameter_dict else 10.0
         self.use_shortcut = self.parameter_dict['use_shortcut'] if 'use_shortcut' in self.parameter_dict else False
         self.shortcut_probability = self.parameter_dict['shortcut_probability'] if 'shortcut_probability' in self.parameter_dict else 0.5
-        self.lowest_probability = self.parameter_dict['lowest_probability'] if 'lowest_probability' in self.parameter_dict else 0.5
+        self.lowest_probability = self.parameter_dict['lowest_probability'] if 'lowest_probability' in self.parameter_dict else 0.7
 
         # this table contains the arm_env_collision count for each distribution in GMM
         self.gmm_arm_env_collision_count = {distribution_id: 0 for distribution_id in range(len(self.gmm_.distributions))}
