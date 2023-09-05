@@ -41,13 +41,17 @@ if __name__ == "__main__":
     success_rate = [0.0 for i in range(len(task_planner_names))]
 
     for i in range(len(task_planner_names)):
-        average_time[i] = total_time[i] / success_count[i]
-        average_distance[i] = total_distance[i] / success_count[i]
-        success_rate[i] = success_count[i] / experiment_count[i]
-        print "task planner: ", task_planner_names[i]
-        print "average time: ", average_time[i]
-        print "average distance: ", average_distance[i]
-        print "success rate: ", success_rate[i]
+        if success_count[i] == 0:
+            print "task planner: ", task_planner_names[i]
+            print "always fail"
+        else:
+            average_time[i] = total_time[i] / success_count[i]
+            average_distance[i] = total_distance[i] / success_count[i]
+            success_rate[i] = success_count[i] / experiment_count[i]
+            print "task planner: ", task_planner_names[i]
+            print "average time: ", average_time[i]
+            print "average distance: ", average_distance[i]
+            print "success rate: ", success_rate[i]
 
     # visulize the average time, average distance, and success rate for each planner in plt
     plt.figure(1)
