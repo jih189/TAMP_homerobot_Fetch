@@ -12,7 +12,7 @@ if __name__ == "__main__":
     # Get the path of the desired package
     package_path = rospack.get_path('task_planner')
 
-    result_json_path = package_path + '/evaluated_data_dir/evaluated_data.json'
+    result_json_path = package_path + '/evaluated_data_dir/evaluated_data_pick_and_place_constraint_4sep_mtg.json'
 
     with open(result_json_path) as f:
         data = json.load(f)

@@ -175,6 +175,9 @@ class GMM:
         self.edge_of_distribution = np.load(dir_name + 'edges.npy')
         self.edge_probabilities = np.load(dir_name + 'edge_probabilities.npy')
 
+        self.gmm_weights = self._sklearn_gmm.weights_
+        self.gmm_weights /= self.gmm_weights.max()
+
     def update_collision_free_rates(self, pointcloud_):
         '''
         update the collision-free rate of each distribution.
@@ -182,7 +185,9 @@ class GMM:
         if self.use_dl_predict:
             weights = self.client.call_client(pointcloud_)
             for i, w in enumerate(weights):
-                self.collision_free_rates[i] = w
+                self.collision_free_rates[i] = w * self.gmm_weights[i]
+            
+        print(np.array(self.collision_free_rates))
 
 
 class BaseTaskPlanner(object):
