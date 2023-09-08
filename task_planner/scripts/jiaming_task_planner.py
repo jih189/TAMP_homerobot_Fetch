@@ -169,6 +169,8 @@ class GMM:
         print("Loaded %d distributions " % len(means), dir_name)
         self.edge_of_distribution = np.load(dir_name + 'edges.npy')
         self.edge_probabilities = np.load(dir_name + 'edge_probabilities.npy')
+        self.edge_probabilities /= self.edge_probabilities.max()
+        print(self.edge_probabilities)
 
     def update_collision_free_rates(self, pointcloud_):
         '''
@@ -1155,6 +1157,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
         self.use_shortcut = self.parameter_dict['use_shortcut'] if 'use_shortcut' in self.parameter_dict else False
         self.shortcut_probability = self.parameter_dict['shortcut_probability'] if 'shortcut_probability' in self.parameter_dict else 0.5
         self.lowest_probability = self.parameter_dict['lowest_probability'] if 'lowest_probability' in self.parameter_dict else 0.7
+        self.use_default_prob = not self.parameter_dict['use_default_prob']
 
         # this table contains the arm_env_collision count for each distribution in GMM
         self.gmm_arm_env_collision_count = {distribution_id: 0 for distribution_id in range(len(self.gmm_.distributions))}
@@ -1200,14 +1203,18 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 obj_env_collision_count = 0
                 )
 
-        for edge in self.gmm_.edge_of_distribution:
+        for edge, edge_probability in zip(self.gmm_.edge_of_distribution, self.gmm_.edge_probabilities):
+            if self.use_default_prob:
+                e_p = 0.5 + self.lowest_probability * 0.5
+            else:
+                e_p = 0.33 * edge_probability + 0.66
             self.task_graph.add_edge(
                 (manifold_id_[0], manifold_id_[1], edge[0]), 
                 (manifold_id_[0], manifold_id_[1], edge[1]), 
                 has_intersection=False,
                 intersection=None,
                 intersection_id=None,
-                probability = 0.5 * self.lowest_probability + 0.5,
+                probability = e_p,
                 # probability = 0.5,
             )
 
@@ -1218,7 +1225,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 has_intersection=False,
                 intersection=None,
                 intersection_id=None,
-                probability = 0.5 * self.lowest_probability + 0.5,
+                probability = e_p,
                 # probability = 0.5,
             )
         
@@ -1237,6 +1244,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
         distribution_id_in_manifold1, distribution_id_in_manifold2 = self.gmm_.get_distribution_indexs([configuration1, configuration2])
 
+
         if(not self.task_graph.has_edge(
                 (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
                 (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2)) and 
@@ -1244,6 +1252,13 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2), 
                 (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1))
         ):
+
+            index_of_edge = np.where(np.all(self.gmm_.edge_of_distribution == [distribution_id_in_manifold1, distribution_id_in_manifold2], axis = 1))[0]
+            if len(index_of_edge) and self.use_default_prob:
+                probability = 0.33 * self.gmm_.edge_probabilities[index_of_edge][0] + 0.66
+            else:
+                probability = 0.5 * self.lowest_probability + 0.5
+
             intersection_from_1_to_2_id, intersection_from_2_to_1_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
 
             self.task_graph.add_edge(
@@ -1252,9 +1267,16 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 has_intersection=True, 
                 intersection=intersection_detail_,
                 intersection_id=intersection_from_1_to_2_id,
-                probability = 0.5 * self.lowest_probability + 0.5,
+                probability = probability,
                 # probability = 0.5,
             )
+
+            index_of_edge = np.where(np.all(self.gmm_.edge_of_distribution == [distribution_id_in_manifold2, distribution_id_in_manifold1], axis = 1))[0]
+            if len(index_of_edge):
+                probability = 0.33 * self.gmm_.edge_probabilities[index_of_edge][0] + 0.66
+            else:
+                probability = 0.5 * self.lowest_probability + 0.5
+
 
             self.task_graph.add_edge(
                 (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2),
@@ -1262,7 +1284,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 has_intersection=True,
                 intersection=intersection_detail_.get_inverse_motion(),
                 intersection_id=intersection_from_2_to_1_id,
-                probability = 0.5 * self.lowest_probability + 0.5,
+                probability = probability,
                 # probability = 0.5,
             )
     
@@ -1288,6 +1310,13 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                     (manifold_id2[0], manifold_id2[1], distribution_id_in_manifold2), 
                     (manifold_id1[0], manifold_id1[1], distribution_id_in_manifold1))
             ):
+                
+                index_of_edge = np.where(np.all(self.gmm_.edge_of_distribution == [distribution_id_in_manifold1, distribution_id_in_manifold2], axis = 1))[0]
+                if len(index_of_edge) and self.use_default_prob:
+                    probability = 0.33 * self.gmm_.edge_probabilities[index_of_edge][0] + 0.66
+                else:
+                    probability = 0.5 * self.lowest_probability + 0.5
+
                 intersection_from_1_to_2_id, intersection_from_2_to_1_id = self.add_intersection_for_task_solution_graph(manifold_id1, manifold_id2)
 
                 self.task_graph.add_edge(
@@ -1296,9 +1325,16 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                     has_intersection=True, 
                     intersection=intersection_detail,
                     intersection_id=intersection_from_1_to_2_id,
-                    probability = 0.5 * self.lowest_probability + 0.5,
+                    probability = probability,
                     # probability = 0.5,
                 )
+
+                index_of_edge = np.where(np.all(self.gmm_.edge_of_distribution == [distribution_id_in_manifold2, distribution_id_in_manifold1], axis = 1))[0]
+                if len(index_of_edge) and self.use_default_prob:
+                    probability = 0.33 * self.gmm_.edge_probabilities[index_of_edge][0] + 0.66
+                else:
+                    probability = 0.5 * self.lowest_probability + 0.5
+
 
                 self.task_graph.add_edge(
                     (manifold_id2[0], manifold_id2[1], distribution_id_in_manifold2),
@@ -1306,7 +1342,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                     has_intersection=True,
                     intersection=intersection_detail.get_inverse_motion(),
                     intersection_id=intersection_from_2_to_1_id,
-                    probability = 0.5 * self.lowest_probability + 0.5,
+                    probability = probability,
                     # probability = 0.5,
                 )
 

@@ -49,10 +49,8 @@ if __name__ == "__main__":
     print "experiment_times: " + str(experiment_times)
 
     evaulated_task_planners = [] # you can add more task planners here
-    evaulated_task_planners.append(MTGTaskPlanner())
-    evaulated_task_planners.append(MDPTaskPlanner())
-    evaulated_task_planners.append(MTGTaskPlannerWithGMM(gmm))
-    evaulated_task_planners.append(MDPTaskPlannerWithGMM(gmm))
+    evaulated_task_planners.append(MDPTaskPlannerWithGMM(gmm, planner_name_="MDPTaskPlannerWithGMMDefault", parameter_dict_= {"use_default_prob" : True}))
+    evaulated_task_planners.append(MDPTaskPlannerWithGMM(gmm, planner_name_="MDPTaskPlannerWithGMMProb", parameter_dict_= {"use_default_prob" : False}))
     
     #####################################################################
 
@@ -321,7 +319,7 @@ if __name__ == "__main__":
     if not os.path.exists(package_path + "/evaluated_data_dir"):
         os.makedirs(package_path + "/evaluated_data_dir")
 
-    with open(package_path + "/evaluated_data_dir/evaluated_data.json", 'w') as outfile:
+    with open(package_path + "/evaluated_data_dir/evaluated_data_7sep.json", 'w') as outfile:
         json.dump(evaluated_data, outfile, indent=4)
 
     # shutdown the moveit
