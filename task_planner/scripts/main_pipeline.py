@@ -57,11 +57,11 @@ if __name__ == "__main__":
     # experiment_name = "move_mouse_with_constraint"
     # experiment_name = "open_door"
     # experiment_name = "move_mouse"
-    experiment_name = "maze"
+    # experiment_name = "maze"
     # experiment_name = "pick_and_place_in_shelf"
-    # experiment_name = "pick_and_place_with_constraint"
+    experiment_name = "pick_and_place_with_constraint"
 
-    use_mtg = False # use mtg or mdp
+    use_mtg = True # use mtg or mdp
     use_gmm = True # use gmm or not
 
     ##########################################################
@@ -168,6 +168,12 @@ if __name__ == "__main__":
             queue_size=5,
         )
 
+    display_robot_state_publisher = rospy.Publisher(
+            "/move_group/result_display_robot_state",
+            moveit_msgs.msg.DisplayRobotState,
+            queue_size=5,
+        )
+
     # set initial joint state
     joint_state_publisher = rospy.Publisher('/move_group/fake_controller_joint_states', JointState, queue_size=1)
 
@@ -185,6 +191,8 @@ if __name__ == "__main__":
     ############################ marker publisher ################################
 
     marker_publisher = rospy.Publisher('/visualization_marker', MarkerArray, queue_size=10)
+
+    intermediate_object_publisher = rospy.Publisher('/intermediate_object', Marker, queue_size=10)
 
     # publish a marker with threading.
     def publish_marker_thread(object_marker_array_, obstacle_pointcloud_, marker_publisher_):
@@ -206,7 +214,7 @@ if __name__ == "__main__":
             obstacle_pointcloud_marker.scale = Point(0.01,0.01,0.01)
             obstacle_pointcloud_marker.color = ColorRGBA(0,1,0,1)
             obstacle_pointcloud_marker.points = [Point32(p[0], p[1], p[2]) for p in obstacle_pointcloud_] # convert the numpy array to the point32 list
-            marker_publisher_.publish([obstacle_pointcloud_marker])
+            # marker_publisher_.publish([obstacle_pointcloud_marker])
 
             rospy.sleep(0.1)
         
@@ -336,6 +344,7 @@ if __name__ == "__main__":
 
         found_solution = True
         solution_path = []
+        object_pose_in_solution_path = [] # this is a array of object pose in the solution path: [(is_in_hand, object_pose), ...]
 
         # motion planner tries to solve each task in the task sequence
         print "--- tasks ---"
@@ -350,10 +359,16 @@ if __name__ == "__main__":
             # if solution exists for the task, then we can skip the task.
             if task.has_solution:
                 solution_path.append(task.solution_trajectory)
+                if task.manifold_detail.has_object_in_hand:
+                    object_pose_in_solution_path.append((True, np.linalg.inv(task.manifold_detail.object_pose)))
+                else:
+                    object_pose_in_solution_path.append((False, task.manifold_detail.object_pose))
+
                 # add the intersection motion to the solution path
                 if(len(task.next_motion) > 1):
                     intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
                     solution_path.append(intersection_motion)
+                    object_pose_in_solution_path.append((False, task.manifold_detail.object_pose))
                 continue
             
             if task.manifold_detail.has_object_in_hand: # has object in hand
@@ -386,10 +401,12 @@ if __name__ == "__main__":
 
                 if motion_plan_result[0]: # if the motion planner find motion solution, then add it to the solution path
                     solution_path.append(motion_plan_result[1])
+                    object_pose_in_solution_path.append((True, np.linalg.inv(task.manifold_detail.object_pose)))
                     # add the intersection motion to the solution path
                     if(len(task.next_motion) > 1):
                         intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
                         solution_path.append(intersection_motion)
+                        object_pose_in_solution_path.append((False, task.manifold_detail.object_pose))
                 else: # if the motion planner can't find a solution, then replan
                     found_solution = False
 
@@ -431,10 +448,12 @@ if __name__ == "__main__":
 
                 if motion_plan_result[0]: # if the motion planner find motion solution, then add it to the solution path
                     solution_path.append(motion_plan_result[1])
+                    object_pose_in_solution_path.append((False, task.manifold_detail.object_pose))
                     # add the intersection motion to the solution path
                     if(len(task.next_motion) > 1):
                         intersection_motion = convert_joint_values_to_robot_trajectory(task.next_motion, move_group.get_active_joints())
                         solution_path.append(intersection_motion)
+                        object_pose_in_solution_path.append((False, task.manifold_detail.object_pose))
                 else: # if the motion planner can't find a solution, then replan
                     found_solution = False
 
@@ -456,13 +475,52 @@ if __name__ == "__main__":
             print("found solution")
             # try to execute the solution path
 
-            display_trajectory = moveit_msgs.msg.DisplayTrajectory()
-            display_trajectory.trajectory_start = move_group.get_current_state()
-            # display_trajectory.trajectory = [solution_path]
-            display_trajectory.trajectory = [combine_robot_trajectory_list(solution_path)]
+            # display_trajectory = moveit_msgs.msg.DisplayTrajectory()
+            # display_trajectory.trajectory_start = move_group.get_current_state()
+
+            # attached a object into the robot state
+            # display_trajectory.trajectory_start.attached_collision_objects.append(attached_object)
+
+            # display_trajectory.trajectory = solution_path
+            # display_trajectory.trajectory = [combine_robot_trajectory_list(solution_path)]
+
+            need_to_break = False
+
+            intermediate_object_marker = Marker()
+            intermediate_object_marker.header.frame_id = "base_link"
+            intermediate_object_marker.id = 0
+            intermediate_object_marker.type = Marker.MESH_RESOURCE
+            intermediate_object_marker.scale = Point(1,1,1)
+            intermediate_object_marker.color = ColorRGBA(0,1,0,1)
+            intermediate_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].object_mesh)
             print "press ctrl+c to display the trajectory"
             while not rospy.is_shutdown():
-                display_trajectory_publisher.publish(display_trajectory)
+
+                for trajectory_in_solution_path, each_object_pose_in_solution_path in zip(solution_path, object_pose_in_solution_path):
+                    for p in trajectory_in_solution_path.joint_trajectory.points:
+                        current_robot_state_msg = moveit_msgs.msg.DisplayRobotState()
+                        current_robot_state_msg.state = convert_joint_values_to_robot_state(p.positions, move_group.get_active_joints(), robot)
+                        if each_object_pose_in_solution_path[0]: # if the object is in hand
+                            attached_object.object.pose = msgify(geometry_msgs.msg.Pose, each_object_pose_in_solution_path[1])
+                            current_robot_state_msg.state.attached_collision_objects.append(attached_object)
+                            intermediate_object_marker.action = Marker.DELETE
+                        else:
+                            intermediate_object_marker.action = Marker.ADD
+                            intermediate_object_marker.pose = msgify(geometry_msgs.msg.Pose, each_object_pose_in_solution_path[1])
+                        intermediate_object_publisher.publish(intermediate_object_marker)
+
+                        display_robot_state_publisher.publish(current_robot_state_msg)
+
+                        # rospy sleep
+                        rospy.sleep(0.01)
+
+                        if rospy.is_shutdown():
+                            need_to_break = True
+                            break
+                    if need_to_break:
+                        break
+
+                # display_trajectory_publisher.publish(display_trajectory)
             
             break
 
