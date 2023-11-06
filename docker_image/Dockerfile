@@ -145,26 +145,26 @@ RUN git clone https://github.com/flexible-collision-library/fcl.git && cd fcl &&
 # install trimesh
 RUN apt-get install -y python-scipy python-rtree
 
-# install blender
-RUN apt-get update && apt-get install -y libc6 libc6-dev
+# # install blender
+# RUN apt-get update && apt-get install -y libc6 libc6-dev
 
-COPY ./download/blender-3.4.0-linux-x64.tar.xz /root/
+# COPY ./download/blender-3.4.0-linux-x64.tar.xz /root/
 
-RUN tar -xf /root/blender-3.4.0-linux-x64.tar.xz -C /root && \
-    rm /root/blender-3.4.0-linux-x64.tar.xz && cd /root && mv blender-3.4.0-linux-x64 Blender
+# RUN tar -xf /root/blender-3.4.0-linux-x64.tar.xz -C /root && \
+#     rm /root/blender-3.4.0-linux-x64.tar.xz && cd /root && mv blender-3.4.0-linux-x64 Blender
 
-# Download the Python Source since it is not bundled with Blender
-RUN wget https://www.python.org/ftp/python/3.10.8/Python-3.10.8.tgz \
-	&& tar -xzf Python-3.10.8.tgz \
-	&& cp -r Python-3.10.8/Include/* /root/Blender/3.4/python/include/python3.10/ \
-	&& rm -rf Python-3.10.8.tgz \
-	&& rm -rf Python-3.10.8
+# # Download the Python Source since it is not bundled with Blender
+# RUN wget https://www.python.org/ftp/python/3.10.8/Python-3.10.8.tgz \
+# 	&& tar -xzf Python-3.10.8.tgz \
+# 	&& cp -r Python-3.10.8/Include/* /root/Blender/3.4/python/include/python3.10/ \
+# 	&& rm -rf Python-3.10.8.tgz \
+# 	&& rm -rf Python-3.10.8
 	
-# install ros related packages in blender
-RUN /root/Blender/3.4/python/bin/python3.10 -m ensurepip && /root/Blender/3.4/python/bin/python3.10 -m pip install pyyaml rospkg opencv-python netifaces
+# # install ros related packages in blender
+# RUN /root/Blender/3.4/python/bin/python3.10 -m ensurepip && /root/Blender/3.4/python/bin/python3.10 -m pip install pyyaml rospkg opencv-python netifaces
 
-# set alias for blender
-RUN echo "alias blender='$HOME/Blender/blender'" >> $HOME/.bashrc
+# # set alias for blender
+# RUN echo "alias blender='$HOME/Blender/blender'" >> $HOME/.bashrc
 
 # install conda
 # Install miniconda
@@ -251,11 +251,12 @@ RUN python3.8 -m pip install --no-cache-dir torch-geometric -f https://pytorch-g
 RUN python3.8 -m pip install einops
 RUN python3.8 -m pip install tensorboard
 
-# install mpnet_fetch
-RUN git clone https://github.com/jih189/mpnet_fetch.git
-# set the model files to the proper position
-COPY ./download/models.tar.xz $HOME
-RUN tar -xf $HOME/models.tar.xz -C $HOME && rm $HOME/models.tar.xz && mv $HOME/models $HOME/mpnet_fetch/pt_dir
+# # install mpnet_fetch
+# RUN git clone https://github.com/jih189/mpnet_fetch.git
+
+# # set the model files to the proper position
+# COPY ./download/models.tar.xz $HOME
+# RUN tar -xf $HOME/models.tar.xz -C $HOME && rm $HOME/models.tar.xz && mv $HOME/models $HOME/mpnet_fetch/pt_dir
 
 # need to install opencv
 RUN python3 -m pip install opencv-python open3d --ignore-installed PyYAML
@@ -279,9 +280,9 @@ RUN cd gpt4all/gpt4all-bindings/python && python3.8 -m pip install -e .
 RUN apt-get install -y coinor-libipopt-dev
 RUN git clone https://github.com/rst-tu-dortmund/control_box_rst.git && cd control_box_rst && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
 
-# need to save the yolo door detector weight to the proper position
-COPY ./download/handle_weight.tar.xz $HOME
-RUN tar -xf $HOME/handle_weight.tar.xz -C $HOME && rm $HOME/handle_weight.tar.xz
+# # need to save the yolo door detector weight to the proper position
+# COPY ./download/handle_weight.tar.xz $HOME
+# RUN tar -xf $HOME/handle_weight.tar.xz -C $HOME && rm $HOME/handle_weight.tar.xz
 
 # install packages needed in task planner
 RUN apt-get install python-tk -y
