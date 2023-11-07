@@ -272,6 +272,9 @@ RUN cd Detic && mkdir models && wget https://dl.fbaipublicfiles.com/detic/Detic_
 # # install gpt4all(Need to install Vulkan first)
 # # need to use g++-9
 # RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:jonathonf/gcc && apt-get install -y gcc-9 g++-9
+# RUN sudo add-apt-repository ppa:graphics-drivers/ppa && sudo apt upgrade -y && sudo apt install vulkan-utils -y
+# RUN wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add - && sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.204-bionic.list https://packages.lunarg.com/vulkan/1.3.204/lunarg-vulkan-1.3.204-bionic.list && \
+#     sudo apt update && sudo apt install -y vulkan-sdk
 # RUN git clone --recurse-submodules https://github.com/nomic-ai/gpt4all && cd gpt4all/gpt4all-backend/ && mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=g++-9 -DCMAKE_C_COMPILER=gcc-9 .. && cmake --build . --parallel
 # RUN cd gpt4all/gpt4all-bindings/python && python3.8 -m pip install -e .
 
