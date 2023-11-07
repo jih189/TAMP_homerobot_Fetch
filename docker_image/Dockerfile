@@ -96,8 +96,8 @@ ENV PATH=/root/castxml/bin:${PATH}
 RUN sudo -H pip3 install -vU pygccxml pyplusplus numpy
 
 # then install ompl
-RUN git clone https://github.com/ompl/ompl.git && cd ompl && mkdir -p build/Release && cd build/Release && \
-    cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../.. -DPYTHON_EXEC=/usr/bin/python3  -DCASTXML=/root/castxml/bin/castxml && make update_bindings && make && make install
+RUN git clone https://github.com/ompl/ompl.git && cd ompl && git reset --hard fca10b4bd4840856c7a9f50d1ee2688ba77e25aa && mkdir -p build/Release && cd build/Release && \
+    cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../.. -DPYTHON_EXEC=/usr/bin/python3 -DCASTXML=/root/castxml/bin/castxml && make -j$(nproc) update_bindings && make -j$(nproc) && make install
 
 # install libtorch
 RUN apt-get install unzip && wget https://download.pytorch.org/libtorch/cu117/libtorch-cxx11-abi-shared-with-deps-2.0.0%2Bcu117.zip && unzip libtorch-cxx11-abi-shared-with-deps-2.0.0+cu117.zip
@@ -269,11 +269,11 @@ RUN git clone https://github.com/facebookresearch/Detic.git --recurse-submodules
 # install models for Detic
 RUN cd Detic && mkdir models && wget https://dl.fbaipublicfiles.com/detic/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth -O models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth
 
-# install gpt4all
-# need to use g++-9
-RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:jonathonf/gcc && apt-get install -y gcc-9 g++-9
-RUN git clone --recurse-submodules https://github.com/nomic-ai/gpt4all && cd gpt4all/gpt4all-backend/ && mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=g++-9 -DCMAKE_C_COMPILER=gcc-9 .. && cmake --build . --parallel
-RUN cd gpt4all/gpt4all-bindings/python && python3.8 -m pip install -e .
+# # install gpt4all(Need to install Vulkan first)
+# # need to use g++-9
+# RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:jonathonf/gcc && apt-get install -y gcc-9 g++-9
+# RUN git clone --recurse-submodules https://github.com/nomic-ai/gpt4all && cd gpt4all/gpt4all-backend/ && mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=g++-9 -DCMAKE_C_COMPILER=gcc-9 .. && cmake --build . --parallel
+# RUN cd gpt4all/gpt4all-bindings/python && python3.8 -m pip install -e .
 
 # install dependencies for mpc_local_planner
 # install control_box_rst

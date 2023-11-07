@@ -63,8 +63,8 @@ ENV PATH=/root/castxml/bin:${PATH}
 RUN sudo -H pip3 install -vU pygccxml pyplusplus numpy
 
 # then install ompl
-RUN git clone https://github.com/ompl/ompl.git && cd ompl && mkdir -p build/Release && cd build/Release && \
-    cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../.. -DPYTHON_EXEC=/usr/bin/python3  -DCASTXML=/root/castxml/bin/castxml && make update_bindings && make && make install
+RUN git clone https://github.com/ompl/ompl.git && cd ompl && git reset --hard fca10b4bd4840856c7a9f50d1ee2688ba77e25aa && mkdir -p build/Release && cd build/Release && \
+    cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../.. -DPYTHON_EXEC=/usr/bin/python3  -DCASTXML=/root/castxml/bin/castxml && make -j$(nproc) && make install
 
 # install libtorch
 RUN apt-get install unzip && wget https://download.pytorch.org/libtorch/cu117/libtorch-cxx11-abi-shared-with-deps-2.0.0%2Bcu117.zip && unzip libtorch-cxx11-abi-shared-with-deps-2.0.0+cu117.zip && rm libtorch-cxx11-abi-shared-with-deps-2.0.0+cu117.zip
