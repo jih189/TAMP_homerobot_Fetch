@@ -62,7 +62,7 @@ class Intersection:
 
 class Experiment:
     """
-    Experiment contains information of all manifolds and itersections.
+    Experiment contains information of all manifolds and intersections.
     """
     def __init__(self):
         self.has_setup = False

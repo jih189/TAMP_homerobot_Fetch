@@ -1,0 +1,262 @@
+#!/usr/bin/env python
+# from experiment_scripts.experiment_helper import Experiment, Manifold, Intersection
+from foliated_problem import FoliatedProblem, BaseFoliation, FoliatedIntersection, BaseIntersection
+
+import sys
+import copy
+import rospy
+import rospkg
+import moveit_commander
+import moveit_msgs.msg
+import geometry_msgs.msg
+from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest
+from moveit_msgs.srv import GetJointWithConstraints, GetJointWithConstraintsRequest
+from moveit_msgs.msg import RobotState
+from moveit_msgs.msg import Constraints, OrientationConstraint
+from moveit_msgs.msg import MoveItErrorCodes
+from sensor_msgs.msg import JointState
+import tf.transformations as tf_trans
+from ros_numpy import numpify, msgify
+from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
+import trimesh
+from trimesh import transformations
+import numpy as np
+from sensor_msgs.msg import PointCloud2, PointField, PointCloud
+import struct
+# from manipulation_test.srv import *
+import random
+from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
+
+def convert_pose_stamped_to_matrix(pose_stamped):
+    pose_matrix = transformations.quaternion_matrix([pose_stamped.pose.orientation.w, 
+                                                    pose_stamped.pose.orientation.x, 
+                                                    pose_stamped.pose.orientation.y, 
+                                                    pose_stamped.pose.orientation.z])
+    pose_matrix[0, 3] = pose_stamped.pose.position.x
+    pose_matrix[1, 3] = pose_stamped.pose.position.y
+    pose_matrix[2, 3] = pose_stamped.pose.position.z
+    return pose_matrix
+
+if __name__ == "__main__":
+
+    rospack = rospkg.RosPack()
+    
+    # Get the path of the desired package
+    package_path = rospack.get_path('task_planner')
+
+    moveit_commander.roscpp_initialize(sys.argv)
+    rospy.init_node('create_experiment_node', anonymous=True)
+
+    robot = moveit_commander.RobotCommander()
+    scene = moveit_commander.PlanningSceneInterface()
+    # remove all objects from the scene, you need to give some time to the scene to update.
+    rospy.sleep(0.5)
+    scene.clear()
+    
+    
+    move_group = moveit_commander.MoveGroupCommander("arm")
+    rospy.wait_for_service("/compute_ik")
+    compute_ik_srv = rospy.ServiceProxy("/compute_ik", GetPositionIK)
+
+    # set initial joint state
+    joint_state_publisher = rospy.Publisher('/move_group/fake_controller_joint_states', JointState, queue_size=1)
+
+    # Create a JointState message
+    joint_state = JointState()
+    joint_state.header.stamp = rospy.Time.now()
+    joint_state.name = ['torso_lift_joint', 'shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'wrist_flex_joint', 'l_gripper_finger_joint', 'r_gripper_finger_joint']
+    joint_state.position = [0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
+
+    rate = rospy.Rate(10)
+    while(joint_state_publisher.get_num_connections() < 1): # need to wait until the publisher is ready.
+        rate.sleep()
+    joint_state_publisher.publish(joint_state)
+
+    ########################################## create a foliated problem ##########################################
+
+    # For the maze problem, we have two foliations:
+    # 1. The foliation for sliding.
+    # 2. The foliation for re-grasping.
+    # find all co-parameter for both foliations
+
+    table_top_pose = np.array([[1, 0, 0, 0.5],
+                            [0, 1, 0, 0],
+                            [0, 0, 1, 0.8],
+                            [0, 0, 0, 1]])
+
+    env_pose = PoseStamped()
+    env_pose.header.frame_id = "base_link"
+    env_pose.pose.position.x = 0.51
+    env_pose.pose.position.y = 0.05
+    env_pose.pose.position.z = -0.02
+    env_pose.pose.orientation.x = 0
+    env_pose.pose.orientation.y = 0
+    env_pose.pose.orientation.z = 0.707
+    env_pose.pose.orientation.w = 0.707
+
+    env_mesh_path = package_path + "/mesh_dir/maze.stl"
+    manipulated_object_mesh_path = package_path + '/mesh_dir/cup.stl'
+
+    env_mesh = trimesh.load_mesh(env_mesh_path)
+    env_mesh.apply_transform(convert_pose_stamped_to_matrix(env_pose))
+
+    collision_manager = trimesh.collision.CollisionManager()
+    collision_manager.add_object('env', env_mesh)
+
+    # find all feasible placements as the co-parameter for re-grasping foliation
+    num_of_row = 6
+    num_of_col = 8
+    x_shift = 0.56
+    y_shift = 0.1
+    z_shift = 0.8
+    feasible_placements = []
+    for i in range(num_of_row):
+        for j in range(num_of_col):
+            obj_mesh = trimesh.load_mesh(manipulated_object_mesh_path)
+
+            obj_pose = PoseStamped()
+            obj_pose.header.frame_id = "base_link"
+            obj_pose.pose.position.x = i * 0.1 - num_of_row * 0.1 / 2 + x_shift
+            obj_pose.pose.position.y = j * 0.1 - num_of_col * 0.1 / 2 + y_shift
+            obj_pose.pose.position.z = z_shift
+            obj_pose.pose.orientation.x = 0
+            obj_pose.pose.orientation.y = 0
+            obj_pose.pose.orientation.z = 0
+            obj_pose.pose.orientation.w = 1
+
+            obj_mesh.apply_transform(convert_pose_stamped_to_matrix(obj_pose))
+
+            collision_manager.add_object('obj', obj_mesh)
+
+            if not collision_manager.in_collision_internal():
+                feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+                
+            collision_manager.remove_object('obj')
+
+    # find all feasible grasps as the co-parameter for sliding foliation
+    feasible_grasps = []
+
+    loaded_array = np.load(package_path + "/mesh_dir/cup.npz")
+    rotated_matrix = np.array([[1, 0, 0, -0.17],
+                               [0, 1, 0, 0],
+                               [0, 0, 1, 0],
+                               [0, 0, 0, 1]])
+
+    for ind in random.sample(list(range(len(loaded_array.files))), 40):
+        feasible_grasps.append(np.dot(loaded_array[loaded_array.files[ind]], rotated_matrix)) # add the grasp poses in object frame
+
+    ####################################################################################################################
+
+    # define the intersection class
+    class ManipulationIntersection(BaseIntersection):
+        def get(self):
+            return self.intersection_motion
+        def inverse(self):
+            return self.intersection_motion
+
+    # build the foliations for both re-grasping and sliding
+
+    foliation_regrasp = BaseFoliation('regrasp', 
+                                    {
+                                        "frame_id": "base_link",
+                                        "object_mesh_path": manipulated_object_mesh_path,
+                                        "obstacle_mesh": env_mesh_path,
+                                        "obstacle_pose": env_pose
+                                    }, 
+                                    feasible_placements)
+
+    print "number of feasible placements: ", feasible_placements.__len__()
+
+    foliation_slide = BaseFoliation('slide', 
+                                    {
+                                        'frame_id': "base_link", 
+                                        'object_mesh_path': manipulated_object_mesh_path,
+                                        "obstacle_mesh": env_mesh_path,
+                                        "obstacle_pose": env_pose,
+                                        "reference_pose": table_top_pose,
+                                        "orientation_tolerance": np.array([0.1, 0.1, 2*3.14]),
+                                        "position_tolerance": np.array([2000, 2000, 0.05])
+                                    }, 
+                                    feasible_grasps)
+    
+    print "number of feasible grasps: ", feasible_grasps.__len__()
+
+    # define the sampling function
+    def sampling_function(co_parameters1, co_parameters2):
+        # co_parameters1 is the co-parameters for re-grasping foliation
+        # co_parameters2 is the co-parameters for sliding foliation
+        # return a ManipulationIntersection class
+
+        # randomly sample a placement
+        placement = random.choice(co_parameters1)
+
+        # randomly sample a grasp
+        grasp = random.choice(co_parameters2)
+
+        print "placement: ------------------"
+        print placement
+        print "grasp: ------------------"
+        print grasp
+
+        # need to calculate the grasp pose in the base_link frame
+        grasp_pose_mat = np.dot(placement, grasp)
+        pre_grasp_pose_mat = np.dot(grasp_pose_mat, np.array([[1, 0 ,0, -0.09],
+                                                              [0, 1, 0, 0],
+                                                              [0, 0, 1, 0],
+                                                              [0, 0, 0, 1]]))
+
+        # set the ik target pose
+        ik_target_pose = PoseStamped()
+        ik_target_pose.header.stamp = rospy.Time.now()
+        ik_target_pose.header.frame_id = "base_link"
+        ik_target_pose.pose = msgify(geometry_msgs.msg.Pose, grasp_pose_mat)
+
+        ik_req = GetPositionIKRequest()
+        ik_req.ik_request.group_name = "arm"
+        ik_req.ik_request.avoid_collisions = True
+        ik_req.ik_request.pose_stamped = ik_target_pose
+
+        # set the robot state randomly
+        random_moveit_robot_state = robot.get_current_state()
+        random_position_list = list(random_moveit_robot_state.joint_state.position)
+        for joint_name, joint_value in zip(move_group.get_joints(), move_group.get_random_joint_values()):
+            random_position_list[random_moveit_robot_state.joint_state.name.index(joint_name)] = joint_value
+        random_moveit_robot_state.joint_state.position = tuple(random_position_list)
+        ik_req.ik_request.robot_state = random_moveit_robot_state
+        
+        ik_res = compute_ik_srv(ik_req)
+
+        if not ik_res.error_code.val == MoveItErrorCodes.SUCCESS:
+            print "ik failed"
+            return False, None
+
+        # need to check the motion from grasp to pre-grasp
+        moveit_robot_state = robot.get_current_state()
+        moveit_robot_state.joint_state.position = ik_res.solution.joint_state.position
+
+        move_group.set_start_state(moveit_robot_state)
+        (planned_motion, fraction) = move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, pre_grasp_pose_mat)], 0.01, 0.0)
+
+        if fraction < 0.97:
+            print "cartesian path failed with fraction: ", fraction
+            return False, None
+
+        intersection_motion = np.array([p.positions for p in planned_motion.joint_trajectory.points])
+
+        return True, ManipulationIntersection(intersection_motion)
+        
+    ###############################################################################################################
+    # Test cases:
+    foliated_intersection = FoliatedIntersection(foliation_regrasp, foliation_slide, sampling_function)
+
+    success_flag, sample_result = foliated_intersection.sample()
+
+    if success_flag:
+        print "sampled intersection: "
+        print sample_result.get()
+    else:
+        print "sampled intersection failed!!!"
+
+    # shutdown the moveit
+    moveit_commander.roscpp_shutdown()
+    moveit_commander.os._exit(0)
