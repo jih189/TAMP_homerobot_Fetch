@@ -33,7 +33,7 @@ class BaseFoliation:
 
 class FoliatedIntersection:
     """This class represents a foliated intersection"""
-    def __init__(self, foliation1, foliation2, sampling_function):
+    def __init__(self, foliation1, foliation2, sampling_function, prepare_sample_function=None, sample_done_function=None):
         # check if the input is BaseFoliation class
         if not isinstance(foliation1, BaseFoliation):
             raise Exception("foliation1 is not a BaseFoliation class")
@@ -45,7 +45,19 @@ class FoliatedIntersection:
         self.foliation1 = foliation1
         self.foliation2 = foliation2
         # the sampling function will receive two list of co_parameters from each foliation, then return a BaseIntersection class.
+        self.prepare_sample_function = prepare_sample_function
         self.sampling_function = sampling_function
+        self.sample_done_function = sample_done_function
+
+    def prepare_sample(self):
+        if self.prepare_sample_function is None:
+            return
+        self.prepare_sample_function()
+
+    def sample_done(self):
+        if self.sample_done_function is None:
+            return
+        self.sample_done_function()
 
     def sample(self):
         """

@@ -53,7 +53,6 @@ if __name__ == "__main__":
     rospy.sleep(0.5)
     scene.clear()
     
-    
     move_group = moveit_commander.MoveGroupCommander("arm")
     rospy.wait_for_service("/compute_ik")
     compute_ik_srv = rospy.ServiceProxy("/compute_ik", GetPositionIK)
@@ -186,6 +185,13 @@ if __name__ == "__main__":
     
     print "number of feasible grasps: ", feasible_grasps.__len__()
 
+    def prepare_sampling_function():
+        print "prepare sampling function"
+        scene.add_mesh('env_obstacle', env_pose, env_mesh_path)
+
+    def sampling_done_function():
+        scene.clear()
+
     # define the sampling function
     def sampling_function(co_parameters1, co_parameters2):
         # co_parameters1 is the co-parameters for re-grasping foliation
@@ -249,7 +255,10 @@ if __name__ == "__main__":
         
     ###############################################################################################################
     # Test cases:
-    foliated_intersection = FoliatedIntersection(foliation_regrasp, foliation_slide, sampling_function)
+    foliated_intersection = FoliatedIntersection(foliation_regrasp, foliation_slide, sampling_function, prepare_sampling_function, sampling_done_function)
+
+    # ready to sample
+    foliated_intersection.prepare_sample()
 
     for _ in range(10):
         success_flag, co_parameter1_index, co_parameter2_index, sample_result = foliated_intersection.sample()
@@ -268,14 +277,12 @@ if __name__ == "__main__":
             print inverse_sample_result.action
             print 'motion'
             print inverse_sample_result.motion
-            
-            # print "between two co-parameters: "
-            # print foliation_regrasp.co_parameters[co_parameter1_index]
-            # print foliation_slide.co_parameters[co_parameter2_index]
 
             break
         else:
             print "sampled intersection failed!!!"
+
+    foliated_intersection.sample_done()
 
     # shutdown the moveit
     moveit_commander.roscpp_shutdown()
