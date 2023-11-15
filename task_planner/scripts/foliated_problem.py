@@ -58,21 +58,27 @@ class FoliatedIntersection:
     def sample(self):
         """
             Sample a configuration from the foliated intersection.
-            The sampling function will receive two list of co_parameters from each foliation, then return a BaseIntersection class.
+            The sampling function will receive two list of co_parameters from each foliation, then return a success flag, co_parameter_index from first foliation, co_paramter_index from second foliation, and BaseIntersection class.
         """
 
-        success_flag, sampled_intersection = self.sampling_function(self.foliation1.co_parameters, self.foliation2.co_parameters)
+        success_flag, co_parameter1_index, co_parameter2_index, sampled_intersection = self.sampling_function(self.foliation1.co_parameters, self.foliation2.co_parameters)
 
         if not isinstance(success_flag, bool):
             raise Exception("The first return value of sampling function is not a boolean value!!!")
+        
+        if not isinstance(co_parameter1_index, int):
+            raise Exception("The second return value(the index of sampled co-parameter1) of sampling function is not an integer value!!!")
+
+        if not isinstance(co_parameter2_index, int):
+            raise Exception("The third return value(the index of sampled co-parameter2) of sampling function is not an integer value!!!")
 
         if not success_flag: # if the success flag is false, then return false and whatever.
-            return success_flag, sampled_intersection
+            return success_flag, co_parameter1_index, co_parameter2_index, sampled_intersection
 
         if not isinstance(sampled_intersection, BaseIntersection):
             raise Exception("Sampled intersection is not a BaseIntersection class")
 
-        return success_flag, sampled_intersection
+        return success_flag, co_parameter1_index, co_parameter2_index, sampled_intersection
 
 class FoliatedProblem:
     def __init__(self, problem_name):

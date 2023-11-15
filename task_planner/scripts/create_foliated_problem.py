@@ -187,16 +187,15 @@ if __name__ == "__main__":
         # co_parameters2 is the co-parameters for sliding foliation
         # return a ManipulationIntersection class
 
+        # randomly select a index for both co_parameters1 and co_parameters2
+        selected_co_parameters1_index = random.randint(0, len(co_parameters1) - 1)
+        selected_co_parameters2_index = random.randint(0, len(co_parameters2) - 1)
+
         # randomly sample a placement
-        placement = random.choice(co_parameters1)
+        placement = co_parameters1[selected_co_parameters1_index]
 
         # randomly sample a grasp
-        grasp = random.choice(co_parameters2)
-
-        print "placement: ------------------"
-        print placement
-        print "grasp: ------------------"
-        print grasp
+        grasp = co_parameters2[selected_co_parameters2_index]
 
         # need to calculate the grasp pose in the base_link frame
         grasp_pose_mat = np.dot(placement, grasp)
@@ -227,8 +226,7 @@ if __name__ == "__main__":
         ik_res = compute_ik_srv(ik_req)
 
         if not ik_res.error_code.val == MoveItErrorCodes.SUCCESS:
-            print "ik failed"
-            return False, None
+            return False, selected_co_parameters1_index, selected_co_parameters2_index, None
 
         # need to check the motion from grasp to pre-grasp
         moveit_robot_state = robot.get_current_state()
@@ -238,24 +236,27 @@ if __name__ == "__main__":
         (planned_motion, fraction) = move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, pre_grasp_pose_mat)], 0.01, 0.0)
 
         if fraction < 0.97:
-            print "cartesian path failed with fraction: ", fraction
-            return False, None
+            return False, selected_co_parameters1_index, selected_co_parameters2_index, None
 
         intersection_motion = np.array([p.positions for p in planned_motion.joint_trajectory.points])
 
-        return True, ManipulationIntersection(intersection_motion)
+        return True, selected_co_parameters1_index, selected_co_parameters2_index, ManipulationIntersection(intersection_motion)
         
     ###############################################################################################################
     # Test cases:
     foliated_intersection = FoliatedIntersection(foliation_regrasp, foliation_slide, sampling_function)
 
-    success_flag, sample_result = foliated_intersection.sample()
+    for _ in range(10):
+        success_flag, co_parameter1_index, co_parameter2_index, sample_result = foliated_intersection.sample()
+        print "co parameter index: ", co_parameter1_index, co_parameter2_index
 
-    if success_flag:
-        print "sampled intersection: "
-        print sample_result.get()
-    else:
-        print "sampled intersection failed!!!"
+        if success_flag:
+            print "sampled intersection success!!!"
+            # print "between two co-parameters: "
+            # print foliation_regrasp.co_parameters[co_parameter1_index]
+            # print foliation_slide.co_parameters[co_parameter2_index]
+        else:
+            print "sampled intersection failed!!!"
 
     # shutdown the moveit
     moveit_commander.roscpp_shutdown()
