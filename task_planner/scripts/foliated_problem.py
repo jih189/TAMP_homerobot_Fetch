@@ -95,6 +95,7 @@ class FoliatedProblem:
         self.foliated_intersections = foliated_intersections
         #TODO: Construct the problem into graph structure.
 
+
     def set_start_and_goal(self, start_configuration, start_foliation, start_co_parameter, goal_configuration, goal_foliation, goal_co_parameter):
         """Set the start and goal configurations"""
         self.start_configuration = start_configuration

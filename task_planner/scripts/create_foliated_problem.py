@@ -253,36 +253,39 @@ if __name__ == "__main__":
 
         return True, selected_co_parameters1_index, selected_co_parameters2_index, ManipulationIntersection(action='release', motion=intersection_motion)
         
-    ###############################################################################################################
-    # Test cases:
     foliated_intersection = FoliatedIntersection(foliation_regrasp, foliation_slide, sampling_function, prepare_sampling_function, sampling_done_function)
 
-    # ready to sample
-    foliated_intersection.prepare_sample()
+    foliated_problem = FoliatedProblem("maze_task")
+    foliated_problem.set_foliation_n_foliated_intersection([foliation_regrasp, foliation_slide], [foliated_intersection])
+    ###############################################################################################################
+    # Test cases:
 
-    for _ in range(10):
-        success_flag, co_parameter1_index, co_parameter2_index, sample_result = foliated_intersection.sample()
-        print "co parameter index: ", co_parameter1_index, co_parameter2_index
+    # # ready to sample
+    # foliated_intersection.prepare_sample()
 
-        if success_flag:
-            print "sampled intersection success!!!"
-            print 'action'
-            print sample_result.action
-            print 'motion'
-            print sample_result.motion
+    # for _ in range(10):
+    #     success_flag, co_parameter1_index, co_parameter2_index, sample_result = foliated_intersection.sample()
+    #     print "co parameter index: ", co_parameter1_index, co_parameter2_index
 
-            inverse_sample_result = sample_result.inverse()
-            # print 'inverse action'
-            print 'action'
-            print inverse_sample_result.action
-            print 'motion'
-            print inverse_sample_result.motion
+    #     if success_flag:
+    #         print "sampled intersection success!!!"
+    #         print 'action'
+    #         print sample_result.action
+    #         print 'motion'
+    #         print sample_result.motion
 
-            break
-        else:
-            print "sampled intersection failed!!!"
+    #         inverse_sample_result = sample_result.inverse()
+    #         # print 'inverse action'
+    #         print 'action'
+    #         print inverse_sample_result.action
+    #         print 'motion'
+    #         print inverse_sample_result.motion
 
-    foliated_intersection.sample_done()
+    #         break
+    #     else:
+    #         print "sampled intersection failed!!!"
+
+    # foliated_intersection.sample_done()
 
     # shutdown the moveit
     moveit_commander.roscpp_shutdown()
