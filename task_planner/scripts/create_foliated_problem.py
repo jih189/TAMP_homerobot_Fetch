@@ -149,10 +149,15 @@ if __name__ == "__main__":
 
     # define the intersection class
     class ManipulationIntersection(BaseIntersection):
-        def get(self):
-            return self.intersection_motion
+        def __init__(self, action, motion):
+            self.action = action
+            self.motion = motion
+
         def inverse(self):
-            return self.intersection_motion
+            if self.action == 'grasp':
+                return ManipulationIntersection(action='release', motion=self.motion[::-1])
+            else:
+                return ManipulationIntersection(action='grasp', motion=self.motion[::-1])
 
     # build the foliations for both re-grasping and sliding
 
@@ -240,7 +245,7 @@ if __name__ == "__main__":
 
         intersection_motion = np.array([p.positions for p in planned_motion.joint_trajectory.points])
 
-        return True, selected_co_parameters1_index, selected_co_parameters2_index, ManipulationIntersection(intersection_motion)
+        return True, selected_co_parameters1_index, selected_co_parameters2_index, ManipulationIntersection(action='release', motion=intersection_motion)
         
     ###############################################################################################################
     # Test cases:
@@ -252,9 +257,23 @@ if __name__ == "__main__":
 
         if success_flag:
             print "sampled intersection success!!!"
+            print 'action'
+            print sample_result.action
+            print 'motion'
+            print sample_result.motion
+
+            inverse_sample_result = sample_result.inverse()
+            # print 'inverse action'
+            print 'action'
+            print inverse_sample_result.action
+            print 'motion'
+            print inverse_sample_result.motion
+            
             # print "between two co-parameters: "
             # print foliation_regrasp.co_parameters[co_parameter1_index]
             # print foliation_slide.co_parameters[co_parameter2_index]
+
+            break
         else:
             print "sampled intersection failed!!!"
 

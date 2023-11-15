@@ -8,14 +8,6 @@ class BaseIntersection(object):
         It is an abstract class. It is used to represent the intersection of two manifolds.
         User needs to implement both get and inverse functions.
     """
-    def __init__(self, intersection_motion):
-        """Constructor for BaseIntersection class, user does not need to implement this function"""
-        self.intersection_motion = intersection_motion
-
-    def get(self):
-        """Return the intersection, user needs to implement this function"""
-        # Return the intersection
-        raise NotImplementedError("Please Implement this method")
 
     def inverse(self):
         """Return the inverse of the intersection, user needs to implement this function"""
