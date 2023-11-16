@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # from experiment_scripts.experiment_helper import Experiment, Manifold, Intersection
-from foliated_problem import FoliatedProblem, BaseFoliation, FoliatedIntersection, BaseIntersection
+from foliated_problem import FoliatedProblem, FoliatedIntersection
+from manipulation_foliations_and_intersections import ManipulationFoliation, ManipulationIntersection
 
 import sys
-import copy
 import rospy
 import rospkg
 import moveit_commander
@@ -146,98 +146,6 @@ if __name__ == "__main__":
         feasible_grasps.append(np.dot(loaded_array[loaded_array.files[ind]], rotated_matrix)) # add the grasp poses in object frame
 
     ####################################################################################################################
-
-    # define the intersection class
-    class ManipulationIntersection(BaseIntersection):
-        def __init__(self, action, motion):
-            self.action = action
-            self.motion = motion
-        def inverse(self):
-            if self.action == 'grasp':
-                return ManipulationIntersection(action='release', motion=self.motion[::-1])
-            else:
-                return ManipulationIntersection(action='grasp', motion=self.motion[::-1])
-
-        def save(self, file_path):
-            # need to save the foliation name, co_parameter_index, action, motion
-            foliation1_name, co_parameter1_index, foliation2_name, co_parameter2_index = self.get_foliation_names_and_co_parameter_indexes()
-            
-            intersection_data = {
-                "foliation1_name": foliation1_name,
-                "co_parameter1_index": co_parameter1_index,
-                "foliation2_name": foliation2_name,
-                "co_parameter2_index": co_parameter2_index,
-                "action": self.action,
-                "motion": [m.tolist() for m in self.motion]
-            }
-
-            # create a json file
-            with open(file_path, "w") as json_file:
-                json.dump(intersection_data, json_file)
-
-        @staticmethod
-        def load(file_path):
-
-            with open(file_path, "r") as json_file:
-                intersection_data = json.load(json_file)
-
-            loaded_intersection = ManipulationIntersection(action=intersection_data.get("action"),
-                                                motion=[np.array(m) for m in intersection_data.get("motion")])
-
-            foliation1_name = intersection_data.get("foliation1_name")
-            co_parameter1_index = intersection_data.get("co_parameter1_index")
-            foliation2_name = intersection_data.get("foliation2_name")
-            co_parameter2_index = intersection_data.get("co_parameter2_index")
-
-            loaded_intersection.set_foliation_names_and_co_parameter_indexes(foliation1_name, co_parameter1_index, foliation2_name, co_parameter2_index)
-            
-            return loaded_intersection
-
-    # define the foliation class
-    class ManipulationFoliation(BaseFoliation):
-        def save(self, dir_path):
-            # save foliation name, constraint_parameters, co_parameters
-
-            # if a value in constraint_parameters is a numpy array, convert it to list
-            copy_constraint_parameters = copy.deepcopy(self.constraint_parameters)
-            for key, value in copy_constraint_parameters.items():
-                if isinstance(value, np.ndarray):
-                    copy_constraint_parameters[key] = value.tolist()
-
-            foliation_data = {
-                "foliation_name": self.foliation_name,
-                "constraint_parameters": copy_constraint_parameters,
-                "co_parameters": [c.tolist() for c in self.co_parameters] # convert numpy array to list
-            }
-
-            # create a json file
-            with open(dir_path + "/" + self.foliation_name + ".json", "w") as json_file:
-                json.dump(foliation_data, json_file)
-
-        @staticmethod
-        def load(file_path):
-
-            with open(file_path, "r") as json_file:
-                foliation_data = json.load(json_file)
-
-            # if a value in constraint_parameters is a list with 4x4 size, convert it to numpy array
-            copy_constraint_parameters = copy.deepcopy(foliation_data.get("constraint_parameters"))
-            for key, value in copy_constraint_parameters.items():
-                if isinstance(value, list):
-                    # check if the list can be converted to numpy array
-                    try:
-                        m = np.array(value)
-                        # check if the matrix m is 4x4
-                        if m.shape == (4, 4):
-                            copy_constraint_parameters[key] = m
-                    except:
-                        pass
-
-            return ManipulationFoliation(
-                foliation_name=foliation_data.get("foliation_name"),
-                constraint_parameters=copy_constraint_parameters,
-                co_parameters=[np.array(c) for c in foliation_data.get("co_parameters")] # convert list to numpy array
-            )
 
     # build the foliations for both re-grasping and sliding
     foliation_regrasp = ManipulationFoliation(foliation_name='regrasp', 
