@@ -205,15 +205,17 @@ class BaseTaskPlanner(object):
         load the foliated problem into the task planner
         '''
 
-        # check the foliation in the problem
-        # print "number of foliations"
-        # print len(folaited_problem.foliations)
+        # add manifolds
         for foliation_index, foliation in enumerate(folaited_problem.foliations):
             for co_parameter_index, co_parameter in enumerate(foliation.co_parameters):
                 self.add_manifold(NewManifoldDetail(foliation, co_parameter_index), (foliation_index, co_parameter_index))
 
             # set similarity matrix for each foliation
             self.set_similarity_matrix(foliation_index, foliation.similarity_matrix)
+
+        # add intersections
+        print "number of intersections: ", len(folaited_problem.intersections)
+        # for intersection in folaited_problem.intersections:
 
     # reset task planner
     def reset_task_planner(self):

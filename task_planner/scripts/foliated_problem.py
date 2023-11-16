@@ -136,7 +136,6 @@ class FoliatedProblem:
         """Set foliations and foliated intersections to the experiment"""
         self.foliations = foliations
         self.foliated_intersections = foliated_intersections
-        #TODO: Construct the problem into graph structure.
 
         self.has_setup = True
 
@@ -224,6 +223,9 @@ class FoliatedProblem:
     @staticmethod
     def load(foliation_class, intersection_class, dir_name):
         '''Load the foliated problem'''
+        '''
+            The loaded foliated problem can't save again.
+        '''
 
         # check if foliation_class is a subclass of BaseFoliation
         if not issubclass(foliation_class, BaseFoliation):
@@ -251,10 +253,8 @@ class FoliatedProblem:
 
         loaded_problem = FoliatedProblem(problem_data["problem_name"])
 
-        loaded_problem.set_foliation_n_foliated_intersection(
-            [foliation_class.load(dir_name + "/foliations/" + foliation_name + ".json") for foliation_name in problem_data["foliations"]], 
-            [intersection_class.load(dir_name + "/intersections/" + intersection_name + ".json") for intersection_name in problem_data["intersections"]]
-        )
+        loaded_problem.foliations = [foliation_class.load(dir_name + "/foliations/" + foliation_name + ".json") for foliation_name in problem_data["foliations"]]
+        loaded_problem.intersections = [intersection_class.load(dir_name + "/intersections/" + intersection_name + ".json") for intersection_name in problem_data["intersections"]]
 
         return loaded_problem
 
