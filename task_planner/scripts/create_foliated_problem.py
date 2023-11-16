@@ -155,7 +155,8 @@ if __name__ == "__main__":
                                                     "obstacle_mesh": env_mesh_path,
                                                     "obstacle_pose": convert_pose_stamped_to_matrix(env_pose)
                                                 }, 
-                                                co_parameters=feasible_placements)
+                                                co_parameters=feasible_placements,
+                                                similarity_matrix=np.identity(feasible_placements.__len__()))
 
     print "number of feasible placements: ", feasible_placements.__len__()
 
@@ -169,13 +170,16 @@ if __name__ == "__main__":
                                                 "orientation_tolerance": np.array([0.1, 0.1, 2*3.14]),
                                                 "position_tolerance": np.array([2000, 2000, 0.05])
                                             }, 
-                                            co_parameters=feasible_grasps)
+                                            co_parameters=feasible_grasps,
+                                            similarity_matrix=np.identity(feasible_grasps.__len__()))
     
     print "number of feasible grasps: ", feasible_grasps.__len__()
 
+    # the function to prepare the sampler
     def prepare_sampling_function():
         scene.add_mesh('env_obstacle', env_pose, env_mesh_path)
 
+    # the function to clear the sampler
     def sampling_done_function():
         scene.clear()
 

@@ -63,7 +63,8 @@ class ManipulationFoliation(BaseFoliation):
         foliation_data = {
             "foliation_name": self.foliation_name,
             "constraint_parameters": copy_constraint_parameters,
-            "co_parameters": [c.tolist() for c in self.co_parameters] # convert numpy array to list
+            "co_parameters": [c.tolist() for c in self.co_parameters], # convert numpy array to list
+            "similarity_matrix": self.similarity_matrix.tolist() # convert numpy array to list
         }
 
         # create a json file
@@ -92,5 +93,6 @@ class ManipulationFoliation(BaseFoliation):
         return ManipulationFoliation(
             foliation_name=foliation_data.get("foliation_name"),
             constraint_parameters=copy_constraint_parameters,
-            co_parameters=[np.array(c) for c in foliation_data.get("co_parameters")] # convert list to numpy array
+            co_parameters=[np.array(c) for c in foliation_data.get("co_parameters")], # convert list to numpy array
+            similarity_matrix=np.array(foliation_data.get("similarity_matrix")) # convert list to numpy array
         )

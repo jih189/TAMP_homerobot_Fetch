@@ -10,6 +10,25 @@ import time
 
 import matplotlib.pyplot as plt
 
+class NewManifoldDetail:
+    '''
+    ManifoldDetail contains the detail of a manifold. A manifold is defined by a foliation and a co-parameter.
+    '''
+    def __init__(self, foliation, co_parameter_index):
+        # Constructor
+        self.foliation = foliation
+        self.co_parameter_index = co_parameter_index
+
+class NewIntersectionDetail:
+    '''
+    IntersectionDetail contains the detail of an intersection. ALl information is stored in a dictionary.
+    '''
+    def __init__(self, intersection_data):
+        # Constructor
+        self.intersection_data = intersection_data
+    def print_intersection_detail(self):
+        print self.intersection_data
+
 class ManifoldDetail:
     '''
     ManifoldDetail contains the detail of a manifold.
@@ -180,6 +199,18 @@ class BaseTaskPlanner(object):
     def __init__(self):
         # Constructor
         raise NotImplementedError("Please Implement this method")
+
+    def load_foliated_problem(self, folaited_problem):
+        '''
+        load the foliated problem into the task planner
+        '''
+
+        # check the foliation in the problem
+        # print "number of foliations"
+        # print len(folaited_problem.foliations)
+        # for foliation_index, foliation in enumerate(folaited_problem.foliations):
+        #     for co_parameter_index, co_parameter in enumerate(foliation.co_parameters):
+        #         self.add_manifold(NewManifoldDetail(foliation, co_parameter_index), (foliation_index, co_parameter_index))
 
     # reset task planner
     def reset_task_planner(self):

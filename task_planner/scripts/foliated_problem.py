@@ -2,6 +2,7 @@
 # from experiment_scripts.experiment_helper import Experiment, Manifold, Intersection
 import os
 import json
+import numpy as np
 
 # user needs to implement this function
 class BaseIntersection(object):
@@ -37,7 +38,7 @@ class BaseIntersection(object):
         raise NotImplementedError("Please Implement this method")
 
 class BaseFoliation:
-    def __init__(self, foliation_name, constraint_parameters, co_parameters = []):
+    def __init__(self, foliation_name, constraint_parameters, co_parameters = [], similarity_matrix = None):
         if not isinstance(co_parameters, list):
             raise Exception("co_parameters is not a list")
         if co_parameters.__len__() == 0:
@@ -48,10 +49,17 @@ class BaseFoliation:
         # check if constraint_parameters is empty
         if constraint_parameters.__len__() == 0:
             raise Exception("constraint_parameters is empty")
+        # check if similarity_matrix is a numpy array
+        if similarity_matrix is not None and not isinstance(similarity_matrix, np.ndarray):
+            raise Exception("similarity_matrix is not a numpy array")
+        # check if size of similarity_matrix is correct
+        if similarity_matrix is not None and  similarity_matrix.shape != (co_parameters.__len__(), co_parameters.__len__()):
+            raise Exception("similarity_matrix has incorrect size")
 
         self.foliation_name = foliation_name
         self.constraint_parameters = constraint_parameters # constraint_parameters is a set of constraint parameters in directory.
         self.co_parameters = co_parameters # list of co-parameters
+        self.similarity_matrix = similarity_matrix # similarity matrix between co-parameters
 
     def save(self, file_path):
         """Save the foliation"""
