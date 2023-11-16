@@ -208,9 +208,12 @@ class BaseTaskPlanner(object):
         # check the foliation in the problem
         # print "number of foliations"
         # print len(folaited_problem.foliations)
-        # for foliation_index, foliation in enumerate(folaited_problem.foliations):
-        #     for co_parameter_index, co_parameter in enumerate(foliation.co_parameters):
-        #         self.add_manifold(NewManifoldDetail(foliation, co_parameter_index), (foliation_index, co_parameter_index))
+        for foliation_index, foliation in enumerate(folaited_problem.foliations):
+            for co_parameter_index, co_parameter in enumerate(foliation.co_parameters):
+                self.add_manifold(NewManifoldDetail(foliation, co_parameter_index), (foliation_index, co_parameter_index))
+
+            # set similarity matrix for each foliation
+            self.set_similarity_matrix(foliation_index, foliation.similarity_matrix)
 
     # reset task planner
     def reset_task_planner(self):
@@ -252,84 +255,90 @@ class BaseTaskPlanner(object):
         """
         raise NotImplementedError("Please Implement this method")
 
-    def get_difference_between_coparameter(self, variable1_, variable2_):
-        '''
-        You can use different difference function here. This function will 
-        be used in all following task planners.
-
-        We expect the difference score should be between 0 and 1. If the value 
-        is higher, the difference is higher. If the value is lower, the difference
-        is lower.
-        '''
-        # return get_difference_between_poses(variable1_, variable2_)
-        return get_position_difference_between_poses(variable1_, variable2_)
-
-    def reset_manifold_similarity_table(self):
-        self.total_similiarity_table = {} # the total similiarity table contains the similarity table of each foliation
-        self.total_distance_table = {} # the total distance table contains the distance table of each foliation
-        self.max_distance_table = {} # the max distance table contains the max distance of each foliation
-
-    def update_manifold_similarity_table(self, manifold_info_, manifold_id_):
+    def set_similarity_matrix(self, foliation_id_, similarity_matrix_):
         """
-        This function updates the similarity table of each foliation. You should
-        call this function when each manifold is added.
+        set similarity matrix for a foliation
         """
-        if not manifold_id_[0] in self.total_similiarity_table:
-            self.total_similiarity_table[manifold_id_[0]] = {} # create foliation similarity table for a new foliation
-            self.total_distance_table[manifold_id_[0]] = {} # create foliation distance table for a new foliation
-            self.max_distance_table[manifold_id_[0]] = 0.0 # create foliation max distance table for a new foliation
+        self.total_similiarity_table[foliation_id_] = similarity_matrix_
 
-        new_keys_in_table = []
-        # find all manifolds that are in the same foliation
-        for id in self.manifold_info:
-            if manifold_id_[0] == id[0]:
-                # calculate the distance score for the distance table
-                # here we use the poses to determine the difference.
-                distance_score = self.get_difference_between_coparameter(manifold_info_.object_pose, self.manifold_info[id].object_pose)
-                # save the difference score to the distance table of this foliation
-                self.total_distance_table[manifold_id_[0]][(id[1],manifold_id_[1])] = distance_score
-                self.total_distance_table[manifold_id_[0]][(manifold_id_[1],id[1])] = distance_score
+    # def get_difference_between_coparameter(self, variable1_, variable2_):
+    #     '''
+    #     You can use different difference function here. This function will 
+    #     be used in all following task planners.
 
-                # we keep which manifolds should be updated in the similarity table later.
-                new_keys_in_table.append((id[1],manifold_id_[1]))
-                new_keys_in_table.append((manifold_id_[1],id[1]))
+    #     We expect the difference score should be between 0 and 1. If the value 
+    #     is higher, the difference is higher. If the value is lower, the difference
+    #     is lower.
+    #     '''
+    #     # return get_difference_between_poses(variable1_, variable2_)
+    #     return get_position_difference_between_poses(variable1_, variable2_)
 
-        # get the max distance score in current foliation
-        current_max_distance = max(self.total_distance_table[manifold_id_[0]].values())
+    # def reset_manifold_similarity_table(self):
+    #     self.total_similiarity_table = {} # the total similiarity table contains the similarity table of each foliation
+    #     self.total_distance_table = {} # the total distance table contains the distance table of each foliation
+    #     self.max_distance_table = {} # the max distance table contains the max distance of each foliation
 
-        if current_max_distance > self.max_distance_table[manifold_id_[0]]:
-            # the max distance score of current foliation is updated, so the whole similarity table of current foliation should be updated
-            self.max_distance_table[manifold_id_[0]] = current_max_distance
-            # update the similarity score of each manifold in the similarity table
-            for key in self.total_distance_table[manifold_id_[0]]:
-                self.total_similiarity_table[manifold_id_[0]][key] = gaussian_similarity(self.total_distance_table[manifold_id_[0]][key], current_max_distance)
-        else:
-            # the max distance score is not updated, so only the similarity score of new manifold should be updated.
-            for new_key in new_keys_in_table:
-                self.total_similiarity_table[manifold_id_[0]][new_key] = gaussian_similarity(self.total_distance_table[manifold_id_[0]][new_key], self.max_distance_table[manifold_id_[0]])
+    # def update_manifold_similarity_table(self, manifold_info_, manifold_id_):
+    #     """
+    #     This function updates the similarity table of each foliation. You should
+    #     call this function when each manifold is added.
+    #     """
+    #     if not manifold_id_[0] in self.total_similiarity_table:
+    #         self.total_similiarity_table[manifold_id_[0]] = {} # create foliation similarity table for a new foliation
+    #         self.total_distance_table[manifold_id_[0]] = {} # create foliation distance table for a new foliation
+    #         self.max_distance_table[manifold_id_[0]] = 0.0 # create foliation max distance table for a new foliation
 
-    def draw_similarity_distance_plot(self):
-        """
-        This function draws the similarity-distance plot for each foliation. You should
-        call this function after task graph construction.
-        """
-        # find the number of foliations
-        for foliation_id in self.total_similiarity_table.keys():
+    #     new_keys_in_table = []
+    #     # find all manifolds that are in the same foliation
+    #     for id in self.manifold_info:
+    #         if manifold_id_[0] == id[0]:
+    #             # calculate the distance score for the distance table
+    #             # here we use the poses to determine the difference.
+    #             distance_score = self.get_difference_between_coparameter(manifold_info_.object_pose, self.manifold_info[id].object_pose)
+    #             # save the difference score to the distance table of this foliation
+    #             self.total_distance_table[manifold_id_[0]][(id[1],manifold_id_[1])] = distance_score
+    #             self.total_distance_table[manifold_id_[0]][(manifold_id_[1],id[1])] = distance_score
 
-            distance_values_foliation = []
-            similarity_values_foliation = []
-            for k in self.total_similiarity_table[foliation_id].keys():
-                distance_values_foliation.append(self.total_distance_table[foliation_id][k])
-                similarity_values_foliation.append(self.total_similiarity_table[foliation_id][k])
+    #             # we keep which manifolds should be updated in the similarity table later.
+    #             new_keys_in_table.append((id[1],manifold_id_[1]))
+    #             new_keys_in_table.append((manifold_id_[1],id[1]))
 
-            # draw a scatter plot where distance is x axis and similarity is y axis for both foliations
-            plt.subplot(len(self.total_similiarity_table.keys()), 1, foliation_id+1)
-            plt.scatter(distance_values_foliation, similarity_values_foliation)
-            plt.xlabel("distance")
-            plt.ylabel("similarity")
-            plt.title("foliation " + str(foliation_id))
+    #     # get the max distance score in current foliation
+    #     current_max_distance = max(self.total_distance_table[manifold_id_[0]].values())
 
-        plt.show()
+    #     if current_max_distance > self.max_distance_table[manifold_id_[0]]:
+    #         # the max distance score of current foliation is updated, so the whole similarity table of current foliation should be updated
+    #         self.max_distance_table[manifold_id_[0]] = current_max_distance
+    #         # update the similarity score of each manifold in the similarity table
+    #         for key in self.total_distance_table[manifold_id_[0]]:
+    #             self.total_similiarity_table[manifold_id_[0]][key] = gaussian_similarity(self.total_distance_table[manifold_id_[0]][key], current_max_distance)
+    #     else:
+    #         # the max distance score is not updated, so only the similarity score of new manifold should be updated.
+    #         for new_key in new_keys_in_table:
+    #             self.total_similiarity_table[manifold_id_[0]][new_key] = gaussian_similarity(self.total_distance_table[manifold_id_[0]][new_key], self.max_distance_table[manifold_id_[0]])
+
+    # def draw_similarity_distance_plot(self):
+    #     """
+    #     This function draws the similarity-distance plot for each foliation. You should
+    #     call this function after task graph construction.
+    #     """
+    #     # find the number of foliations
+    #     for foliation_id in self.total_similiarity_table.keys():
+
+    #         distance_values_foliation = []
+    #         similarity_values_foliation = []
+    #         for k in self.total_similiarity_table[foliation_id].keys():
+    #             distance_values_foliation.append(self.total_distance_table[foliation_id][k])
+    #             similarity_values_foliation.append(self.total_similiarity_table[foliation_id][k])
+
+    #         # draw a scatter plot where distance is x axis and similarity is y axis for both foliations
+    #         plt.subplot(len(self.total_similiarity_table.keys()), 1, foliation_id+1)
+    #         plt.scatter(distance_values_foliation, similarity_values_foliation)
+    #         plt.xlabel("distance")
+    #         plt.ylabel("similarity")
+    #         plt.title("foliation " + str(foliation_id))
+
+    #     plt.show()
 
     def reset_task_solution_graph(self):
         self.task_solution_graph = nx.DiGraph()
@@ -525,7 +534,8 @@ class MTGTaskPlanner(BaseTaskPlanner):
         self.outgoing_manifold_intersections = {} # the outgoing intersections of each manifold
         self.new_intersection_id = 0
 
-        self.reset_manifold_similarity_table()
+        # self.reset_manifold_similarity_table()
+        self.total_similiarity_table = {}
         
     # MTGTaskPlanner
     def add_manifold(self, manifold_info_, manifold_id_):
@@ -534,7 +544,7 @@ class MTGTaskPlanner(BaseTaskPlanner):
         self.incomming_manifold_intersections[manifold_id_] = []
         self.outgoing_manifold_intersections[manifold_id_] = []
 
-        self.update_manifold_similarity_table(manifold_info_, manifold_id_)
+        # self.update_manifold_similarity_table(manifold_info_, manifold_id_)
 
     # MTGTaskPlanner
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
@@ -669,9 +679,12 @@ class MTGTaskPlanner(BaseTaskPlanner):
                         e_next_manifold_id[0] == next_manifold_id[0]: # we only update the edge in the same foliation.
                         
                         # update the similarity score
-                        current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_current_manifold_id[1], current_manifold_id[1])]
-                        previous_similarity_score = self.total_similiarity_table[previous_manifold_id[0]][(e_previous_manifold_id[1], previous_manifold_id[1])]
-                        next_similarity_score = self.total_similiarity_table[next_manifold_id[0]][(e_next_manifold_id[1], next_manifold_id[1])]
+                        # current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_current_manifold_id[1], current_manifold_id[1])]
+                        # previous_similarity_score = self.total_similiarity_table[previous_manifold_id[0]][(e_previous_manifold_id[1], previous_manifold_id[1])]
+                        # next_similarity_score = self.total_similiarity_table[next_manifold_id[0]][(e_next_manifold_id[1], next_manifold_id[1])]
+                        current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][e_current_manifold_id[1], current_manifold_id[1]]
+                        previous_similarity_score = self.total_similiarity_table[previous_manifold_id[0]][e_previous_manifold_id[1], previous_manifold_id[1]]
+                        next_similarity_score = self.total_similiarity_table[next_manifold_id[0]][e_next_manifold_id[1], next_manifold_id[1]]
                         total_similarity_score = current_similarity_score * previous_similarity_score * next_similarity_score
                         self.task_graph.edges[e]['weight'] += 1.0 * total_similarity_score
             
@@ -699,7 +712,8 @@ class MDPTaskPlanner(BaseTaskPlanner):
         self.reward_of_goal = self.parameter_dict['reward_of_goal'] if 'reward_of_goal' in self.parameter_dict else 100.0
 
 
-        self.reset_manifold_similarity_table()
+        # self.reset_manifold_similarity_table()
+        self.total_similiarity_table = {}
 
     # MDPTaskPlanner
     def add_manifold(self, manifold_info_, manifold_id_):
@@ -708,7 +722,7 @@ class MDPTaskPlanner(BaseTaskPlanner):
         self.incomming_manifold_intersections[manifold_id_] = []
         self.outgoing_manifold_intersections[manifold_id_] = []
 
-        self.update_manifold_similarity_table(manifold_info_, manifold_id_)
+        # self.update_manifold_similarity_table(manifold_info_, manifold_id_)
 
     # MDPTaskPlanner
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
@@ -846,9 +860,12 @@ class MDPTaskPlanner(BaseTaskPlanner):
                     e_next_manifold_id[0] == next_manifold_id[0]:
 
                     # update the similarity score
-                    current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_current_manifold_id[1], current_manifold_id[1])]
-                    previous_similarity_score = self.total_similiarity_table[previous_manifold_id[0]][(e_previous_manifold_id[1], previous_manifold_id[1])]
-                    next_similarity_score = self.total_similiarity_table[next_manifold_id[0]][(e_next_manifold_id[1], next_manifold_id[1])]
+                    # current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_current_manifold_id[1], current_manifold_id[1])]
+                    # previous_similarity_score = self.total_similiarity_table[previous_manifold_id[0]][(e_previous_manifold_id[1], previous_manifold_id[1])]
+                    # next_similarity_score = self.total_similiarity_table[next_manifold_id[0]][(e_next_manifold_id[1], next_manifold_id[1])]
+                    current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][e_current_manifold_id[1], current_manifold_id[1]]
+                    previous_similarity_score = self.total_similiarity_table[previous_manifold_id[0]][e_previous_manifold_id[1], previous_manifold_id[1]]
+                    next_similarity_score = self.total_similiarity_table[next_manifold_id[0]][e_next_manifold_id[1], next_manifold_id[1]]
                     
                     total_similarity_score = current_similarity_score * previous_similarity_score * next_similarity_score
 
@@ -885,7 +902,8 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         self.task_graph = nx.DiGraph()
         self.manifold_info = {} # the constraints of each manifold
 
-        self.reset_manifold_similarity_table()
+        # self.reset_manifold_similarity_table()
+        self.total_similiarity_table = {}
 
     # MTGTaskPlannerWithGMM
     def read_pointcloud(self, pointcloud_):
@@ -940,7 +958,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 intersection=None
             )        
 
-        self.update_manifold_similarity_table(manifold_info_, manifold_id_)
+        # self.update_manifold_similarity_table(manifold_info_, manifold_id_)
 
     # MTGTaskPlannerWithGMM
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
@@ -1149,7 +1167,8 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 continue
 
             # get the current similarity score between the current manifold and the manifold of this edge
-            current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_current_manifold_id[1], current_manifold_id[1])]
+            # current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(e_current_manifold_id[1], current_manifold_id[1])]
+            current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][e_current_manifold_id[1], current_manifold_id[1]]
 
             # get the distribution id of the edge
             distribution_id_1 = e[0][2]
@@ -1189,7 +1208,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
         # this table contains the arm_env_collision count for each distribution in GMM
         self.gmm_arm_env_collision_count = {distribution_id: 0 for distribution_id in range(len(self.gmm_.distributions))}
-        self.reset_manifold_similarity_table()
+        # self.reset_manifold_similarity_table()
+        self.total_similiarity_table = {}
 
     # MDPTaskPlannerWithGMM
     def read_pointcloud(self, pointcloud_):
@@ -1253,7 +1273,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 # probability = 0.5,
             )
         
-        self.update_manifold_similarity_table(manifold_info_, manifold_id_)
+        # self.update_manifold_similarity_table(manifold_info_, manifold_id_)
 
     # MDPTaskPlannerWithGMM
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
@@ -1514,7 +1534,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
             for manifold_id in self.manifold_info.keys():
                 # only update the manifold in the same foliation
                 if manifold_id[0] == current_manifold_id[0] and self.task_graph.has_node((manifold_id[0], manifold_id[1], distribution_id)):
-                    current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(manifold_id[1], current_manifold_id[1])]
+                    # current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][(manifold_id[1], current_manifold_id[1])]
+                    current_similarity_score = self.total_similiarity_table[current_manifold_id[0]][manifold_id[1], current_manifold_id[1]]
 
                     if current_similarity_score == 0.0:
                         continue
