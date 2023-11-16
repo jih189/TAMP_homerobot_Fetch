@@ -26,6 +26,7 @@ import struct
 # from manipulation_test.srv import *
 import random
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
+import json
 
 def convert_pose_stamped_to_matrix(pose_stamped):
     pose_matrix = transformations.quaternion_matrix([pose_stamped.pose.orientation.w, 
@@ -151,42 +152,120 @@ if __name__ == "__main__":
         def __init__(self, action, motion):
             self.action = action
             self.motion = motion
-
         def inverse(self):
             if self.action == 'grasp':
                 return ManipulationIntersection(action='release', motion=self.motion[::-1])
             else:
                 return ManipulationIntersection(action='grasp', motion=self.motion[::-1])
 
-    # build the foliations for both re-grasping and sliding
+        def save(self, file_path):
+            # need to save the foliation name, co_parameter_index, action, motion
+            foliation1_name, co_parameter1_index, foliation2_name, co_parameter2_index = self.get_foliation_names_and_co_parameter_indexes()
+            
+            intersection_data = {
+                "foliation1_name": foliation1_name,
+                "co_parameter1_index": co_parameter1_index,
+                "foliation2_name": foliation2_name,
+                "co_parameter2_index": co_parameter2_index,
+                "action": self.action,
+                "motion": [m.tolist() for m in self.motion]
+            }
 
-    foliation_regrasp = BaseFoliation('regrasp', 
-                                    {
-                                        "frame_id": "base_link",
-                                        "object_mesh_path": manipulated_object_mesh_path,
-                                        "obstacle_mesh": env_mesh_path,
-                                        "obstacle_pose": env_pose
-                                    }, 
-                                    feasible_placements)
+            # create a json file
+            with open(file_path, "w") as json_file:
+                json.dump(intersection_data, json_file)
+
+        @staticmethod
+        def load(file_path):
+
+            with open(file_path, "r") as json_file:
+                intersection_data = json.load(json_file)
+
+            loaded_intersection = ManipulationIntersection(action=intersection_data.get("action"),
+                                                motion=[np.array(m) for m in intersection_data.get("motion")])
+
+            foliation1_name = intersection_data.get("foliation1_name")
+            co_parameter1_index = intersection_data.get("co_parameter1_index")
+            foliation2_name = intersection_data.get("foliation2_name")
+            co_parameter2_index = intersection_data.get("co_parameter2_index")
+
+            loaded_intersection.set_foliation_names_and_co_parameter_indexes(foliation1_name, co_parameter1_index, foliation2_name, co_parameter2_index)
+            
+            return loaded_intersection
+
+    # define the foliation class
+    class ManipulationFoliation(BaseFoliation):
+        def save(self, dir_path):
+            # save foliation name, constraint_parameters, co_parameters
+
+            # if a value in constraint_parameters is a numpy array, convert it to list
+            copy_constraint_parameters = copy.deepcopy(self.constraint_parameters)
+            for key, value in copy_constraint_parameters.items():
+                if isinstance(value, np.ndarray):
+                    copy_constraint_parameters[key] = value.tolist()
+
+            foliation_data = {
+                "foliation_name": self.foliation_name,
+                "constraint_parameters": copy_constraint_parameters,
+                "co_parameters": [c.tolist() for c in self.co_parameters] # convert numpy array to list
+            }
+
+            # create a json file
+            with open(dir_path + "/" + self.foliation_name + ".json", "w") as json_file:
+                json.dump(foliation_data, json_file)
+
+        @staticmethod
+        def load(file_path):
+
+            with open(file_path, "r") as json_file:
+                foliation_data = json.load(json_file)
+
+            # if a value in constraint_parameters is a list with 4x4 size, convert it to numpy array
+            copy_constraint_parameters = copy.deepcopy(foliation_data.get("constraint_parameters"))
+            for key, value in copy_constraint_parameters.items():
+                if isinstance(value, list):
+                    # check if the list can be converted to numpy array
+                    try:
+                        m = np.array(value)
+                        # check if the matrix m is 4x4
+                        if m.shape == (4, 4):
+                            copy_constraint_parameters[key] = m
+                    except:
+                        pass
+
+            return ManipulationFoliation(
+                foliation_name=foliation_data.get("foliation_name"),
+                constraint_parameters=copy_constraint_parameters,
+                co_parameters=[np.array(c) for c in foliation_data.get("co_parameters")] # convert list to numpy array
+            )
+
+    # build the foliations for both re-grasping and sliding
+    foliation_regrasp = ManipulationFoliation(foliation_name='regrasp', 
+                                                constraint_parameters={
+                                                    "frame_id": "base_link",
+                                                    "object_mesh_path": manipulated_object_mesh_path,
+                                                    "obstacle_mesh": env_mesh_path,
+                                                    "obstacle_pose": convert_pose_stamped_to_matrix(env_pose)
+                                                }, 
+                                                co_parameters=feasible_placements)
 
     print "number of feasible placements: ", feasible_placements.__len__()
 
-    foliation_slide = BaseFoliation('slide', 
-                                    {
-                                        'frame_id': "base_link", 
-                                        'object_mesh_path': manipulated_object_mesh_path,
-                                        "obstacle_mesh": env_mesh_path,
-                                        "obstacle_pose": env_pose,
-                                        "reference_pose": table_top_pose,
-                                        "orientation_tolerance": np.array([0.1, 0.1, 2*3.14]),
-                                        "position_tolerance": np.array([2000, 2000, 0.05])
-                                    }, 
-                                    feasible_grasps)
+    foliation_slide = ManipulationFoliation(foliation_name='slide', 
+                                            constraint_parameters={
+                                                'frame_id': "base_link", 
+                                                'object_mesh_path': manipulated_object_mesh_path,
+                                                "obstacle_mesh": env_mesh_path,
+                                                "obstacle_pose": convert_pose_stamped_to_matrix(env_pose),
+                                                "reference_pose": table_top_pose,
+                                                "orientation_tolerance": np.array([0.1, 0.1, 2*3.14]),
+                                                "position_tolerance": np.array([2000, 2000, 0.05])
+                                            }, 
+                                            co_parameters=feasible_grasps)
     
     print "number of feasible grasps: ", feasible_grasps.__len__()
 
     def prepare_sampling_function():
-        print "prepare sampling function"
         scene.add_mesh('env_obstacle', env_pose, env_mesh_path)
 
     def sampling_done_function():
@@ -257,35 +336,14 @@ if __name__ == "__main__":
 
     foliated_problem = FoliatedProblem("maze_task")
     foliated_problem.set_foliation_n_foliated_intersection([foliation_regrasp, foliation_slide], [foliated_intersection])
+    foliated_problem.sample_intersections()
     ###############################################################################################################
-    # Test cases:
+    
+    # save the foliated problem
+    foliated_problem.save(package_path + "/check")
 
-    # # ready to sample
-    # foliated_intersection.prepare_sample()
-
-    # for _ in range(10):
-    #     success_flag, co_parameter1_index, co_parameter2_index, sample_result = foliated_intersection.sample()
-    #     print "co parameter index: ", co_parameter1_index, co_parameter2_index
-
-    #     if success_flag:
-    #         print "sampled intersection success!!!"
-    #         print 'action'
-    #         print sample_result.action
-    #         print 'motion'
-    #         print sample_result.motion
-
-    #         inverse_sample_result = sample_result.inverse()
-    #         # print 'inverse action'
-    #         print 'action'
-    #         print inverse_sample_result.action
-    #         print 'motion'
-    #         print inverse_sample_result.motion
-
-    #         break
-    #     else:
-    #         print "sampled intersection failed!!!"
-
-    # foliated_intersection.sample_done()
+    # load the foliated problem
+    loaded_foliated_problem = FoliatedProblem.load(ManipulationFoliation, ManipulationIntersection, package_path + "/check")
 
     # shutdown the moveit
     moveit_commander.roscpp_shutdown()
