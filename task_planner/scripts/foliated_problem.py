@@ -132,6 +132,13 @@ class FoliatedProblem:
         self.intersections = [] # list of intersections.
         self.foliated_intersections = []
 
+    def get_foliation_index(self, foliation_name):
+        """Return the index of the foliation"""
+        for i, foliation in enumerate(self.foliations):
+            if foliation.foliation_name == foliation_name:
+                return i
+        raise Exception("The foliation does not exist!!!")
+
     def set_foliation_n_foliated_intersection(self, foliations, foliated_intersections):
         """Set foliations and foliated intersections to the experiment"""
         self.foliations = foliations
