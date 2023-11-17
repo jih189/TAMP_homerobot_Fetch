@@ -25,10 +25,10 @@ if __name__ == "__main__":
     loaded_foliated_problem = FoliatedProblem.load(ManipulationFoliation, ManipulationIntersection, package_path + "/check")
 
     # load it into the task planner.
-    # task_planner = MTGTaskPlanner()
+    task_planner = MTGTaskPlanner()
     # task_planner = MDPTaskPlanner()
     # task_planner = MTGTaskPlannerWithGMM(gmm)
-    task_planner = MDPTaskPlannerWithGMM(gmm)
+    # task_planner = MDPTaskPlannerWithGMM(gmm)
 
 
     task_planner.reset_task_planner()

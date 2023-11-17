@@ -1,10 +1,10 @@
 import numpy as np
 import networkx as nx
 from sklearn import mixture
-from difference_helper import \
-    gaussian_similarity, \
-    get_difference_between_poses, \
-    get_position_difference_between_poses
+# from difference_helper import \
+#     gaussian_similarity, \
+#     get_difference_between_poses, \
+#     get_position_difference_between_poses
 
 import time
 
