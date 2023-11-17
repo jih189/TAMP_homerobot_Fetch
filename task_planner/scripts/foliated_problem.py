@@ -3,6 +3,7 @@
 import os
 import json
 import numpy as np
+from tqdm import tqdm
 
 # user needs to implement this function
 class BaseIntersection(object):
@@ -21,6 +22,10 @@ class BaseIntersection(object):
     def get_foliation_names_and_co_parameter_indexes(self):
         """Get the foliation and co-parameter index"""
         return self.foliation1_name, self.co_parameter1_index, self.foliation2_name, self.co_parameter2_index
+
+    def get_edge_configurations(self):
+        """Return two edge configurations of intersection motion"""
+        raise NotImplementedError("Please Implement this method")
 
     def inverse(self):
         """Return the inverse of the intersection, user needs to implement this function"""
@@ -155,7 +160,9 @@ class FoliatedProblem:
             # print "sample between " + foliated_intersection.foliation1.foliation_name + " and " + foliated_intersection.foliation2.foliation_name
             foliated_intersection.prepare_sample()
 
-            for i in range(0, 10):
+            # for i in range(0, 500):
+            # use tqdm to show the progress bar
+            for i in tqdm(range(0, 500)):
                 success_flag, co_parameter1_index, co_parameter2_index, sampled_intersection = foliated_intersection.sample()
 
                 if success_flag:
@@ -182,6 +189,7 @@ class FoliatedProblem:
                     self.intersections.append(inversed_sampled_intersection)
                 
             foliated_intersection.sample_done()
+            print "sampled " + str(self.intersections.__len__()) + " intersections bewteen foliations ", foliated_intersection.foliation1.foliation_name, " and ", foliated_intersection.foliation2.foliation_name
 
     # def set_start_and_goal(self, start_configuration, start_foliation, start_co_parameter, goal_configuration, goal_foliation, goal_co_parameter):
     #     """Set the start and goal configurations"""

@@ -14,6 +14,9 @@ class ManipulationIntersection(BaseIntersection):
         else:
             return ManipulationIntersection(action='grasp', motion=self.motion[::-1])
 
+    def get_edge_configurations(self):
+        return self.motion[0], self.motion[-1]
+
     def save(self, file_path):
         # need to save the foliation name, co_parameter_index, action, motion
         foliation1_name, co_parameter1_index, foliation2_name, co_parameter2_index = self.get_foliation_names_and_co_parameter_indexes()

@@ -23,71 +23,72 @@ class NewIntersectionDetail:
     '''
     IntersectionDetail contains the detail of an intersection. ALl information is stored in a dictionary.
     '''
-    def __init__(self, intersection_data):
+    def __init__(self, intersection_data, configuration_in_manifold1, configuration_in_manifold2, is_goal=False):
         # Constructor
         self.intersection_data = intersection_data
-    def print_intersection_detail(self):
-        print self.intersection_data
+        self.configuration_in_manifold1 = configuration_in_manifold1
+        self.configuration_in_manifold2 = configuration_in_manifold2
+        self.is_goal = is_goal
 
-class ManifoldDetail:
-    '''
-    ManifoldDetail contains the detail of a manifold.
-    '''
-    def __init__(self,
-                constraint_,
-                has_object_in_hand_,
-                object_pose_,
-                object_mesh_,
-                object_name_,
-                ):
-        # Constructor
-        self.constraint = constraint_
-        self.has_object_in_hand = has_object_in_hand_
-        self.object_pose = object_pose_
-        self.object_mesh = object_mesh_
-        self.object_name = object_name_
+# class ManifoldDetail:
+#     '''
+#     ManifoldDetail contains the detail of a manifold.
+#     '''
+#     def __init__(self,
+#                 constraint_,
+#                 has_object_in_hand_,
+#                 object_pose_,
+#                 object_mesh_,
+#                 object_name_,
+#                 ):
+#         # Constructor
+#         self.constraint = constraint_
+#         self.has_object_in_hand = has_object_in_hand_
+#         self.object_pose = object_pose_
+#         self.object_mesh = object_mesh_
+#         self.object_name = object_name_
 
-    def print_manifold_detail(self):
-        print("----------- manifold:")
-        print("constraint:")
-        print("moveit constraint:")
-        print(self.constraint)
-        print("has_object_in_hand:")
-        print(self.has_object_in_hand)
-        print("object_pose:")
-        print(self.object_pose)
-        print("object_mesh:")
-        print(self.object_mesh)
-        print("object_name:")
-        print(self.object_name)
-        print("-----------")
+#     def print_manifold_detail(self):
+#         print("----------- manifold:")
+#         print("constraint:")
+#         print("moveit constraint:")
+#         print(self.constraint)
+#         print("has_object_in_hand:")
+#         print(self.has_object_in_hand)
+#         print("object_pose:")
+#         print(self.object_pose)
+#         print("object_mesh:")
+#         print(self.object_mesh)
+#         print("object_name:")
+#         print(self.object_name)
+#         print("-----------")
 
-class IntersectionDetail:
-    '''
-    IntersectionDetail contains the detail of an intersection.
-    '''
-    def __init__(self,
-                has_object_in_hand_,
-                trajectory_motion_,
-                in_hand_pose_,
-                object_mesh_,
-                object_name_,
-                ):
-        # Constructor
-        self.has_object_in_hand = has_object_in_hand_
-        self.trajectory_motion = trajectory_motion_
-        self.in_hand_pose = in_hand_pose_
-        self.object_mesh = object_mesh_
-        self.object_name = object_name_
+# class IntersectionDetail:
+#     '''
+#     IntersectionDetail contains the detail of an intersection.
+#     '''
+#     def __init__(self,
+#                 has_object_in_hand_,
+#                 trajectory_motion_,
+#                 in_hand_pose_,
+#                 object_mesh_,
+#                 object_name_,
+#                 ):
+#         # Constructor
+#         self.has_object_in_hand = has_object_in_hand_
+#         self.trajectory_motion = trajectory_motion_
+#         self.in_hand_pose = in_hand_pose_
+#         self.object_mesh = object_mesh_
+#         self.object_name = object_name_
 
-    def get_inverse_motion(self):
-        return IntersectionDetail(
-            self.has_object_in_hand,
-            self.trajectory_motion[::-1],
-            self.in_hand_pose,
-            self.object_mesh,
-            self.object_name
-        )
+#     def get_inverse_motion(self):
+#         return IntersectionDetail(
+#             self.has_object_in_hand,
+#             self.trajectory_motion[::-1],
+#             self.in_hand_pose,
+#             self.object_mesh,
+#             self.object_name
+#         )
 
 class Task:
     def __init__(self, 
@@ -216,10 +217,11 @@ class BaseTaskPlanner(object):
         # add intersections
         for intersection in folaited_problem.intersections:
             foliation1_name, co_parameter1_index, foliation2_name, co_parameter2_index = intersection.get_foliation_names_and_co_parameter_indexes()
+            configuration_in_manifold1, configuration_in_manifold2 = intersection.get_edge_configurations()
             # get index of each foliation in the foliation list
             foliation1_index = folaited_problem.get_foliation_index(foliation1_name)
             foliation2_index = folaited_problem.get_foliation_index(foliation2_name)
-            self.add_intersection((foliation1_index, co_parameter1_index), (foliation2_index, co_parameter2_index), NewIntersectionDetail(intersection))
+            self.add_intersection((foliation1_index, co_parameter1_index), (foliation2_index, co_parameter2_index), NewIntersectionDetail(intersection, configuration_in_manifold1, configuration_in_manifold2, False))
 
     # reset task planner
     def reset_task_planner(self):
@@ -240,9 +242,9 @@ class BaseTaskPlanner(object):
 
     def set_start_and_goal(self,
                             start_manifold_id_,
-                            start_configuration_, 
+                            start_intersection_, 
                             goal_manifold_id_,
-                            goal_configuration_):
+                            goal_intersection_):
         """
         set start and goal configurations
         both start and goal configurations are intersection here.
@@ -584,9 +586,11 @@ class MTGTaskPlanner(BaseTaskPlanner):
     # MTGTaskPlanner
     def set_start_and_goal(self,
                             start_manifold_id_,
-                            start_configuration_, 
+                            start_intersection_, 
                             goal_manifold_id_,
-                            goal_configuration_):
+                            goal_intersection_):
+
+
         # if start and goal are set, then remove them from the task graph
         if self.task_graph.has_node('start'):
             self.task_graph.remove_node('start')
@@ -594,26 +598,50 @@ class MTGTaskPlanner(BaseTaskPlanner):
         if self.task_graph.has_node('goal'):
             self.task_graph.remove_node('goal')
 
+        # self.task_graph.add_node(
+        #     'start', 
+        #     intersection = IntersectionDetail(
+        #         False, 
+        #         [start_configuration_], 
+        #         None,
+        #         None,
+        #         None
+        #     ),
+        #     previous_manifold_id = None,
+        #     next_manifold_id = start_manifold_id_
+        # )
+        configuration_of_start, _ = start_intersection_.get_edge_configurations()
         self.task_graph.add_node(
             'start', 
-            intersection = IntersectionDetail(
-                False, 
-                [start_configuration_], 
-                None,
-                None,
-                None
+            intersection = NewIntersectionDetail(
+               start_intersection_,
+                configuration_of_start,
+                configuration_of_start,
+                False
             ),
             previous_manifold_id = None,
             next_manifold_id = start_manifold_id_
         )
+        # self.task_graph.add_node(
+        #     'goal', 
+        #     intersection = IntersectionDetail(
+        #         False,
+        #         [goal_configuration_],
+        #         None,
+        #         None,
+        #         None
+        #     ),
+        #     previous_manifold_id = goal_manifold_id_,
+        #     next_manifold_id = None
+        # )
+        configuration_of_goal, _ = goal_intersection_.get_edge_configurations()
         self.task_graph.add_node(
             'goal', 
-            intersection = IntersectionDetail(
-                False,
-                [goal_configuration_],
-                None,
-                None,
-                None
+            intersection = NewIntersectionDetail(
+                goal_intersection_,
+                configuration_of_goal,
+                configuration_of_goal,
+                True
             ),
             previous_manifold_id = goal_manifold_id_,
             next_manifold_id = None
@@ -638,11 +666,17 @@ class MTGTaskPlanner(BaseTaskPlanner):
 
         # construct the task sequence.
         for node1, node2 in zip(shortest_path[:-1], shortest_path[1:]):
+            # task = Task(
+            #             self.manifold_info[self.task_graph.edges[node1, node2]['manifold_id']],
+            #             nx.get_node_attributes(self.task_graph, 'intersection')[node1].trajectory_motion[-1],
+            #             nx.get_node_attributes(self.task_graph, 'intersection')[node2].trajectory_motion[0],
+            #             nx.get_node_attributes(self.task_graph, 'intersection')[node2].trajectory_motion
+            #         )
             task = Task(
                         self.manifold_info[self.task_graph.edges[node1, node2]['manifold_id']],
-                        nx.get_node_attributes(self.task_graph, 'intersection')[node1].trajectory_motion[-1],
-                        nx.get_node_attributes(self.task_graph, 'intersection')[node2].trajectory_motion[0],
-                        nx.get_node_attributes(self.task_graph, 'intersection')[node2].trajectory_motion
+                        nx.get_node_attributes(self.task_graph, 'intersection')[node1].configuration_in_manifold2,
+                        nx.get_node_attributes(self.task_graph, 'intersection')[node2].configuration_in_manifold1,
+                        nx.get_node_attributes(self.task_graph, 'intersection')[node2].intersection_data
                     )
             
             task.set_task_graph_info((node1, node2))
@@ -762,9 +796,9 @@ class MDPTaskPlanner(BaseTaskPlanner):
     # MDPTaskPlanner
     def set_start_and_goal(self,
                             start_manifold_id_,
-                            start_configuration_, 
+                            start_intersection_, 
                             goal_manifold_id_,
-                            goal_configuration_):
+                            goal_intersection_):
         # if start and goal are set, then remove them from the task graph
         if self.task_graph.has_node('start'):
             self.task_graph.remove_node('start')
@@ -773,26 +807,51 @@ class MDPTaskPlanner(BaseTaskPlanner):
             self.task_graph.remove_node('goal')
 
         # include start and goal configurations in the task graph
+        # self.task_graph.add_node(
+        #     'start', 
+        #     intersection = IntersectionDetail(
+        #         False, 
+        #         [start_configuration_], 
+        #         None,
+        #         None,
+        #         None
+        #     ),
+        #     previous_manifold_id = None,
+        #     next_manifold_id = start_manifold_id_
+        # )
+        configuration_of_start, _ = start_intersection_.get_edge_configurations()
         self.task_graph.add_node(
             'start', 
-            intersection = IntersectionDetail(
-                False, 
-                [start_configuration_], 
-                None,
-                None,
-                None
+            intersection = NewIntersectionDetail(
+                start_intersection_,
+                configuration_of_start,
+                configuration_of_start,
+                False
             ),
             previous_manifold_id = None,
             next_manifold_id = start_manifold_id_
         )
+        # self.task_graph.add_node(
+        #     'goal', 
+        #     intersection = IntersectionDetail(
+        #         False,
+        #         [goal_configuration_],
+        #         None,
+        #         None,
+        #         None
+        #     ),
+        #     previous_manifold_id = goal_manifold_id_,
+        #     next_manifold_id = None
+        # )
+
+        configuration_of_goal, _ = goal_intersection_.get_edge_configurations()
         self.task_graph.add_node(
             'goal', 
-            intersection = IntersectionDetail(
-                False,
-                [goal_configuration_],
-                None,
-                None,
-                None
+            intersection = NewIntersectionDetail(
+                goal_intersection_,
+                configuration_of_goal,
+                configuration_of_goal,
+                True
             ),
             previous_manifold_id = goal_manifold_id_,
             next_manifold_id = None
@@ -822,11 +881,18 @@ class MDPTaskPlanner(BaseTaskPlanner):
         task_sequence = []
         # construct the task sequence.
         for node1, node2 in zip(shortest_path[:-1], shortest_path[1:]):
+            # task = Task(
+            #             self.manifold_info[self.task_graph.edges[node1, node2]['manifold_id']],
+            #             nx.get_node_attributes(self.task_graph, 'intersection')[node1].trajectory_motion[-1],
+            #             nx.get_node_attributes(self.task_graph, 'intersection')[node2].trajectory_motion[0],
+            #             nx.get_node_attributes(self.task_graph, 'intersection')[node2].trajectory_motion
+            #         )
+
             task = Task(
                         self.manifold_info[self.task_graph.edges[node1, node2]['manifold_id']],
-                        nx.get_node_attributes(self.task_graph, 'intersection')[node1].trajectory_motion[-1],
-                        nx.get_node_attributes(self.task_graph, 'intersection')[node2].trajectory_motion[0],
-                        nx.get_node_attributes(self.task_graph, 'intersection')[node2].trajectory_motion
+                        nx.get_node_attributes(self.task_graph, 'intersection')[node1].configuration_in_manifold2,
+                        nx.get_node_attributes(self.task_graph, 'intersection')[node2].configuration_in_manifold1,
+                        nx.get_node_attributes(self.task_graph, 'intersection')[node2].intersection_data
                     )
             
             if self.task_graph.edges[node1, node2]['has_solution']:
