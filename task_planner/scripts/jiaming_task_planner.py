@@ -1038,13 +1038,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         # connect two distribution of this intersection_detail_ between two different manifolds(manifold1 and manifold2) if they have the same ditribution id in GMM.
         # first, find the related distribution that the intersection's ends are in in different manifolds.
 
-        # get the first of configuration of the intersection_detail
-        configuration1 = intersection_detail_.trajectory_motion[0]
-
-        # get the second of configuration of the intersection_detail
-        configuration2 = intersection_detail_.trajectory_motion[-1]
-
-        distribution_id_in_manifold1, distribution_id_in_manifold2 = self.gmm_.get_distribution_indexs([configuration1, configuration2])
+        distribution_id_in_manifold1, distribution_id_in_manifold2 = self.gmm_.get_distribution_indexs([intersection_detail_.configuration_in_manifold1, intersection_detail_.configuration_in_manifold2])
 
         if(not self.task_graph.has_edge(
                 (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
@@ -1077,9 +1071,9 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
     # MTGTaskPlannerWithGMM
     def set_start_and_goal(self,
                             start_manifold_id_,
-                            start_configuration_, 
+                            start_intersection_, 
                             goal_manifold_id_,
-                            goal_configuration_):
+                            goal_intersection_):
 
         self.set_start_and_goal_for_task_solution_graph(start_manifold_id_, goal_manifold_id_)
 
@@ -1094,12 +1088,13 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         self.task_graph.add_node('start') #, weight = 0.0)
         self.task_graph.add_node('goal') #, weight = 0.0)
 
+        configuration_of_start, _ = start_intersection_.get_edge_configurations()
         self.task_graph.add_edge(
             'start', 
             (
                 start_manifold_id_[0], 
                 start_manifold_id_[1], 
-                self.gmm_.get_distribution_index(np.array(start_configuration_))
+                self.gmm_.get_distribution_index(np.array(configuration_of_start))
             ), 
             weight = 0.0,
             has_intersection=False, 
@@ -1107,25 +1102,26 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             intersection_id=None
         )
 
+        configuration_of_goal, _ = goal_intersection_.get_edge_configurations()
         self.task_graph.add_edge(
             (
                 goal_manifold_id_[0], 
                 goal_manifold_id_[1], 
-                self.gmm_.get_distribution_index(np.array(goal_configuration_))
+                self.gmm_.get_distribution_index(np.array(configuration_of_goal))
             ), 
             'goal', 
             weight = 0.0,
             has_intersection=True, 
-            intersection=IntersectionDetail(
-                False,
-                [goal_configuration_],
-                None,
-                None,
-                None),
+            intersection=NewIntersectionDetail(
+                goal_intersection_,
+                configuration_of_goal,
+                configuration_of_goal,
+                True
+            ),
             intersection_id='goal'
         )
 
-        self.current_start_configuration = start_configuration_
+        self.current_start_configuration = configuration_of_start
 
     # MTGTaskPlannerWithGMM
     def generate_task_sequence(self):
@@ -1149,11 +1145,17 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
             if current_edge['has_intersection']:
                 # current edge is a transition from one manifold to another manifold
+                # task = Task(
+                #     self.manifold_info[self.get_manifold_id_from_task_solution_graph(last_intersection_id, current_edge['intersection_id'])],
+                #     task_start_configuration, # start configuration of the task
+                #     current_edge['intersection'].trajectory_motion[0], # target configuration of the task
+                #     current_edge['intersection'].trajectory_motion # the motion after the task.
+                # )
                 task = Task(
                     self.manifold_info[self.get_manifold_id_from_task_solution_graph(last_intersection_id, current_edge['intersection_id'])],
                     task_start_configuration, # start configuration of the task
-                    current_edge['intersection'].trajectory_motion[0], # target configuration of the task
-                    current_edge['intersection'].trajectory_motion # the motion after the task.
+                    current_edge['intersection'].configuration_in_manifold1, # target configuration of the task
+                    current_edge['intersection'].intersection_data # the motion after the task.
                 )
 
                 task.distributions = list(task_gaussian_distribution)
@@ -1172,7 +1174,8 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 if node2 != 'goal': # if the edge is to goal, then no need to prepare for the next task
                     task_gaussian_distribution = [self.gmm_.distributions[node2[2]]]
                     # consider the last state of the intersection motion as the start state of next task.
-                    task_start_configuration = current_edge['intersection'].trajectory_motion[-1] 
+                    # task_start_configuration = current_edge['intersection'].trajectory_motion[-1] 
+                    task_start_configuration = current_edge['intersection'].configuration_in_manifold2
                     last_intersection_id = current_edge['intersection_id']
             else:
                 # edge in the same manifold except start and goal transition
@@ -1353,13 +1356,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
         # connect two distribution of this intersection_detail_ between two different manifolds(manifold1 and manifold2) if they have the same ditribution id in GMM.
         # first, find the related distribution that the intersection's ends are in in different manifolds.
 
-        # get the first of configuration of the intersection_detail
-        configuration1 = intersection_detail_.trajectory_motion[0]
-
-        # get the second of configuration of the intersection_detail
-        configuration2 = intersection_detail_.trajectory_motion[-1]
-
-        distribution_id_in_manifold1, distribution_id_in_manifold2 = self.gmm_.get_distribution_indexs([configuration1, configuration2])
+        distribution_id_in_manifold1, distribution_id_in_manifold2 = self.gmm_.get_distribution_indexs([intersection_detail_.configuration_in_manifold1, intersection_detail_.configuration_in_manifold2])
 
         if(not self.task_graph.has_edge(
                 (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
@@ -1466,9 +1463,9 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
     # MDPTaskPlannerWithGMM
     def set_start_and_goal(self,
                             start_manifold_id_,
-                            start_configuration_, 
+                            start_intersection_, 
                             goal_manifold_id_,
-                            goal_configuration_):
+                            goal_intersection_):
 
         self.set_start_and_goal_for_task_solution_graph(start_manifold_id_, goal_manifold_id_)
 
@@ -1483,12 +1480,13 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
         self.task_graph.add_node('start', collision_free_count=0, path_constraint_violation_count=0, obj_env_collision_count=0)
         self.task_graph.add_node('goal', collision_free_count=0, path_constraint_violation_count=0, obj_env_collision_count=0)
 
+        configuration_of_start, _ = start_intersection_.get_edge_configurations()
         self.task_graph.add_edge(
             'start', 
             (
                 start_manifold_id_[0], 
                 start_manifold_id_[1], 
-                self.gmm_.get_distribution_index(np.array(start_configuration_))
+                self.gmm_.get_distribution_index(np.array(configuration_of_start))
             ), 
             has_intersection=False, 
             intersection=None,
@@ -1496,20 +1494,20 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
             probability = 1.0
         )
 
+        configuration_of_goal, _ = goal_intersection_.get_edge_configurations()
         self.task_graph.add_edge(
             (
                 goal_manifold_id_[0], 
                 goal_manifold_id_[1], 
-                self.gmm_.get_distribution_index(np.array(goal_configuration_))
+                self.gmm_.get_distribution_index(np.array(configuration_of_goal))
             ), 
             'goal', 
             has_intersection=True, 
-            intersection=IntersectionDetail(
-                False,
-                [goal_configuration_],
-                None,
-                None,
-                None
+            intersection=NewIntersectionDetail(
+                goal_intersection_,
+                configuration_of_goal,
+                configuration_of_goal,
+                True
             ),
             intersection_id='goal',
             probability = 1.0
@@ -1522,7 +1520,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
         for node in removed_nodes:
             self.task_graph.remove_node(node)
 
-        self.current_start_configuration = start_configuration_
+        self.current_start_configuration = configuration_of_start
 
         # initialize the value function of each node
         self.value_function = {node: 0 for node in self.task_graph.nodes}
@@ -1552,11 +1550,17 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
             if current_edge['has_intersection']:
                 # current edge is a transition from one manifold to another manifold
+                # task = Task(
+                #     self.manifold_info[self.get_manifold_id_from_task_solution_graph(last_intersection_id, current_edge['intersection_id'])],
+                #     task_start_configuration,
+                #     current_edge['intersection'].trajectory_motion[0],
+                #     current_edge['intersection'].trajectory_motion
+                # )
                 task = Task(
                     self.manifold_info[self.get_manifold_id_from_task_solution_graph(last_intersection_id, current_edge['intersection_id'])],
                     task_start_configuration,
-                    current_edge['intersection'].trajectory_motion[0],
-                    current_edge['intersection'].trajectory_motion
+                    current_edge['intersection'].configuration_in_manifold1,
+                    current_edge['intersection'].intersection_data
                 )
 
                 task.distributions = list(task_gaussian_distribution)
@@ -1574,7 +1578,8 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
                 if node2 != 'goal': # if the edge is to goal, then no need to prepare for the next task
                     task_gaussian_distribution = [self.gmm_.distributions[node2[2]]]
                     # consider the last state of the intersection motion as the start state of next task
-                    task_start_configuration = current_edge['intersection'].trajectory_motion[-1]
+                    # task_start_configuration = current_edge['intersection'].trajectory_motion[-1]
+                    task_start_configuration = current_edge['intersection'].configuration_in_manifold2
                     last_intersection_id = current_edge['intersection_id']
             else:
                 # edge in the same manifold except start and goal transition

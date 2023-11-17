@@ -27,7 +27,9 @@ if __name__ == "__main__":
     # load it into the task planner.
     # task_planner = MTGTaskPlanner()
     # task_planner = MDPTaskPlanner()
-    task_planner = MTGTaskPlannerWithGMM(gmm)
+    # task_planner = MTGTaskPlannerWithGMM(gmm)
+    task_planner = MDPTaskPlannerWithGMM(gmm)
+
 
     task_planner.reset_task_planner()
 
@@ -35,9 +37,9 @@ if __name__ == "__main__":
 
     task_planner.set_start_and_goal(
         (0,0),
-        ManipulationIntersection(action='start', motion=[[0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]]),
+        ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),
         (1,1),
-        ManipulationIntersection(action='start', motion=[[0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]])
+        ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
     )
 
     task_sequence = task_planner.generate_task_sequence()
