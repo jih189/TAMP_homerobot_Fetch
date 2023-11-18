@@ -2,13 +2,31 @@
 # base_global_planner: "navfn/NavfnROS"
 base_global_planner: "global_planner/GlobalPlanner"
 # base_local_planner: "base_local_planner/TrajectoryPlannerROS"
-base_local_planner: "mpc_local_planner/MpcLocalPlannerROS"
+base_local_planner: "teb_local_planner/TebLocalPlannerROS"
 
-# Recovery behaviors are defined in robot folders
+recovery_behavior_enabled: true
+recovery_behaviors:
+  - name: "reset_costmap_init"
+    type: "clear_costmap_recovery/ClearCostmapRecovery"
+  - name: "rotate_recovery"
+    type: "rotate_recovery/RotateRecovery"
+  - name: "reset_costmap_agressive"
+    type: "clear_costmap_recovery/ClearCostmapRecovery"
+reset_costmap_init:
+  reset_distance: 1.5
+rotate_recovery:
+  frequency: 20.0
+  sim_granularity: 0.010
+reset_costmap_agressive: 
+  reset_distance: 0.8
+rotate_recovery:
+  frequency: 20.0
+  sim_granularity: 0.010
+
 
 # Oscillation
-oscillation_timeout: 0.0
-oscillation_distance: 0.5
+oscillation_timeout: 40
+oscillation_distance: 0.2
 
 # Global planner
 planner_frequency: 0.0
