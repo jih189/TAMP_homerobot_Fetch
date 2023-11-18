@@ -151,7 +151,7 @@ class FoliatedProblem:
 
         self.has_setup = True
 
-    def sample_intersections(self):
+    def sample_intersections(self, number_of_samples=500):
 
         if not self.has_setup:
             raise Exception("The foliated problem has not been setup!!!")
@@ -160,9 +160,8 @@ class FoliatedProblem:
             # print "sample between " + foliated_intersection.foliation1.foliation_name + " and " + foliated_intersection.foliation2.foliation_name
             foliated_intersection.prepare_sample()
 
-            # for i in range(0, 500):
             # use tqdm to show the progress bar
-            for i in tqdm(range(0, 500)):
+            for i in tqdm(range(0, number_of_samples)):
                 success_flag, co_parameter1_index, co_parameter2_index, sampled_intersection = foliated_intersection.sample()
 
                 if success_flag:

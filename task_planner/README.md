@@ -26,6 +26,10 @@ The objective of this project is to leverage Gaussian Mixture Models (GMM) to mo
 - compare MTG and MDP with deep learning based GMM (Optional)
 - compared MTG and MDP with GMM and constraint preprocess (Optional)
 
+## Foliated Problem Problem Construction
+
+The tutorial is in here [foliated manifold framework setup](foliation_setup_tutorial.md)
+
 ## Experiments
 
 Here is the list of experiment we will have for this project:
