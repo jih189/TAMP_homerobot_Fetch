@@ -11,7 +11,8 @@ The objective of this project is to leverage Gaussian Mixture Models (GMM) to mo
 - [Task planner](#task-planner)
   - [Idea](#idea)
   - [Goal](#goal)
-  - [Experiments](#experiments)
+  - [Foliated Problem Problem Construction](#foliated-problem-problem-construction)
+  <!-- - [Experiments](#experiments) -->
   - [Nautilus](#nautilus)
   - [Usage](#usage)
     - [Base tutorial](#base-tutorial)
@@ -30,7 +31,7 @@ The objective of this project is to leverage Gaussian Mixture Models (GMM) to mo
 
 The tutorial is in here [foliated manifold framework setup](foliation_setup_tutorial.md)
 
-## Experiments
+<!-- ## Experiments
 
 Here is the list of experiment we will have for this project:
 
@@ -42,7 +43,7 @@ Here is the list of experiment we will have for this project:
 Each experiment here will be saved as a file in directory [experiment_dir](experiment_dir) so later we can load them for testing. Thus, you may need to read the comment in the file to understand how to save and load them. To create the experiment file, you can use the following code:
 ```
 rosrun task_planner create_experiment_[experiment-name].py
-```
+``` -->
 
 ### Future work
 In the future, we will implement a code to read a yaml file describing the experiment and generate the experiment file. This way, we can easily create a new experiment.
