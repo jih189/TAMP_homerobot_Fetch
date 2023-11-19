@@ -19,7 +19,7 @@ class BaseMotionPlanner(object):
         raise NotImplementedError("Please Implement this method")
 
     def plan(self, start_configuration, goal_configuration, constraints, planning_hint):
-        # Returns a motion plan which can be visualized.
+        # Returns a success flag and a motion plan which can be visualized.
         raise NotImplementedError("Please Implement this method")
 
     def visualize_plan(self, plan):
@@ -32,7 +32,6 @@ class BaseMotionPlanner(object):
 
 class MoveitMotionPlanner(BaseMotionPlanner):
     def prepare_planner(self):
-        rospy.init_node('main_pipeline_node', anonymous=True)
         moveit_commander.roscpp_initialize(sys.argv)
         self.robot = moveit_commander.RobotCommander()
         scene = moveit_commander.PlanningSceneInterface()
@@ -40,15 +39,9 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         scene.clear()
 
         self.move_group = moveit_commander.MoveGroupCommander("arm")
-        self.move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
+        # self.move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
+        self.move_group.set_planner_id('RRTConnectkConfigDefault')
         self.move_group.set_planning_time(2.0)
-
-        # this is used to display the planned path in rviz
-        self.display_robot_state_publisher = rospy.Publisher(
-            "/move_group/result_display_robot_state",
-            moveit_msgs.msg.DisplayRobotState,
-            queue_size=5,
-        )
 
     def plan(self, start_configuration, goal_configuration, constraints, planning_hint):
         # reset the motion planner
@@ -66,7 +59,7 @@ class MoveitMotionPlanner(BaseMotionPlanner):
 
         motion_plan_result = self.move_group.plan()
 
-        return success_flag, motion_plan_result
+        return motion_plan_result[0], motion_plan_result
 
     def shutdown_planner(self):
         moveit_commander.roscpp_shutdown()
