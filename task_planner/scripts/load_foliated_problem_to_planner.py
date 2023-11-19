@@ -2,6 +2,7 @@
 from foliated_problem import FoliatedProblem, FoliatedIntersection
 from manipulation_foliations_and_intersections import ManipulationFoliation, ManipulationIntersection
 from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, MDPTaskPlannerWithGMM, GMM
+from jiaming_motion_planner import MoveitMotionPlanner
 
 import sys
 import rospy
@@ -14,6 +15,10 @@ if __name__ == "__main__":
     
     # Get the path of the desired package
     package_path = rospack.get_path('task_planner')
+
+    # load the motion planner
+    motion_planner = MoveitMotionPlanner()
+    motion_planner.prepare_planner()
 
     # load the gmm
     gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm/'
@@ -37,7 +42,7 @@ if __name__ == "__main__":
     task_planner.set_start_and_goal(
         (0,0),
         ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),
-        (1,1),
+        (0,2),
         ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
     )
 
@@ -55,3 +60,15 @@ if __name__ == "__main__":
         print task.manifold_detail.foliation.constraint_parameters
         print "action on goal"
         print task.next_motion
+    
+        # plan the motion
+        success_flag, motion_plan_result = motion_planner.plan(
+            task.start_configuration, 
+            task.goal_configuration, 
+            task.manifold_detail.foliation.constraint_parameters, 
+            task.next_motion
+        )
+
+        break
+
+    motion_planner.shutdown_planner()
