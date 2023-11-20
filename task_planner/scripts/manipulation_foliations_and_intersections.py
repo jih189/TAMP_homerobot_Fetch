@@ -9,16 +9,18 @@ from geometry_msgs.msg import Pose
 
 # define the intersection class
 class ManipulationIntersection(BaseIntersection):
-    def __init__(self, action, motion, active_joints):
+    def __init__(self, action, motion, active_joints, object_pose=None, object_mesh_path=None):
         self.action = action
         self.motion = motion
         self.active_joints = active_joints
+        self.object_pose = object_pose
+        self.object_mesh_path = object_mesh_path
 
     def inverse(self):
         if self.action == 'grasp':
-            return ManipulationIntersection(action='release', motion=self.motion[::-1], active_joints=self.active_joints)
+            return ManipulationIntersection(action='release', motion=self.motion[::-1], active_joints=self.active_joints, object_pose=self.object_pose, object_mesh_path=self.object_mesh_path)
         else:
-            return ManipulationIntersection(action='grasp', motion=self.motion[::-1], active_joints=self.active_joints)
+            return ManipulationIntersection(action='grasp', motion=self.motion[::-1], active_joints=self.active_joints, object_pose=self.object_pose, object_mesh_path=self.object_mesh_path)
 
     def get_edge_configurations(self):
         return self.motion[0], self.motion[-1]
@@ -34,7 +36,9 @@ class ManipulationIntersection(BaseIntersection):
             "co_parameter2_index": co_parameter2_index,
             "action": self.action,
             "motion": [m.tolist() for m in self.motion],
-            "active_joints": self.active_joints
+            "active_joints": self.active_joints, 
+            "object_pose": self.object_pose.tolist(), # convert numpy array to list
+            "object_mesh_path": self.object_mesh_path
         }
 
         # create a json file
@@ -42,12 +46,11 @@ class ManipulationIntersection(BaseIntersection):
             json.dump(intersection_data, json_file)
 
     def get_task_motion(self):
-        #TODO implement this function
         return ManipulationTaskMotion(
             planned_motion=convert_joint_values_to_robot_trajectory(self.motion, self.active_joints),
-            has_object_in_hand=True,
-            object_pose=None,
-            object_mesh_path=None
+            has_object_in_hand=False,
+            object_pose=self.object_pose,
+            object_mesh_path=self.object_mesh_path
         )
 
     @staticmethod
@@ -58,13 +61,16 @@ class ManipulationIntersection(BaseIntersection):
 
         loaded_intersection = ManipulationIntersection(action=intersection_data.get("action"),
                                             motion=[np.array(m) for m in intersection_data.get("motion")],
-                                            active_joints=intersection_data.get("active_joints"))
+                                            active_joints=intersection_data.get("active_joints"),
+                                            object_pose=np.array(intersection_data.get("object_pose")),
+                                            object_mesh_path=intersection_data.get("object_mesh_path")
+        )
 
         foliation1_name = intersection_data.get("foliation1_name")
         co_parameter1_index = intersection_data.get("co_parameter1_index")
         foliation2_name = intersection_data.get("foliation2_name")
         co_parameter2_index = intersection_data.get("co_parameter2_index")
-
+        
         loaded_intersection.set_foliation_names_and_co_parameter_indexes(foliation1_name, co_parameter1_index, foliation2_name, co_parameter2_index)
         
         return loaded_intersection

@@ -115,7 +115,6 @@ class FoliatedPlanningFramework():
                 if success_flag:
                     list_of_motion_plan.append(motion_plan_result)
                     # add the intersection action to the list of motion plan
-                    print "next motion: ", task.next_motion.action
                     list_of_motion_plan.append(task.next_motion.get_task_motion())
                 else:
                     found_solution = False

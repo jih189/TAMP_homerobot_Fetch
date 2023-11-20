@@ -28,11 +28,6 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         self.move_group.set_planning_time(2.0)
 
     def plan(self, start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint):
-        print "constraints of a motion task"
-        print foliation_constraints
-        print "co_parameter"
-        print co_parameter
-
         # reset the motion planner
         self.move_group.clear_path_constraints()
         self.move_group.clear_in_hand_pose()

@@ -244,7 +244,13 @@ if __name__ == "__main__":
 
         intersection_motion = np.array([p.positions for p in planned_motion.joint_trajectory.points])
 
-        return True, selected_co_parameters1_index, selected_co_parameters2_index, ManipulationIntersection('release', intersection_motion, move_group.get_active_joints())
+        return True, selected_co_parameters1_index, selected_co_parameters2_index, ManipulationIntersection(
+            'release', 
+            intersection_motion, 
+            move_group.get_active_joints(), 
+            placement,
+            manipulated_object_mesh_path 
+        )
         
     foliated_intersection = FoliatedIntersection(foliation_slide, foliation_regrasp, slide_regrasp_sampling_function, prepare_sampling_function, sampling_done_function)
 

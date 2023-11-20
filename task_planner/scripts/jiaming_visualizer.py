@@ -1,13 +1,13 @@
 import os
 import rospy
 from foliated_base_class import BaseIntersection, BaseTaskMotion, BaseVisualizer
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, Pose, PoseStamped
 from std_msgs.msg import ColorRGBA
 import moveit_msgs.msg
-from jiaming_helper import convert_joint_values_to_robot_state
+from jiaming_helper import convert_joint_values_to_robot_state, make_mesh
 from visualization_msgs.msg import Marker, MarkerArray
 from ros_numpy import msgify
-import geometry_msgs.msg
+import numpy as np
 
 class ManipulationTaskMotion(BaseTaskMotion):
     def __init__(self, planned_motion, has_object_in_hand, object_pose, object_mesh_path):
@@ -48,6 +48,15 @@ class MoveitVisualizer(BaseVisualizer):
         self.manipulated_object_marker.color = ColorRGBA(0,1,0,1)
         # manipulated_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].object_mesh)
 
+        self.current_object_pose_stamped = PoseStamped()
+        self.current_object_pose_stamped.header.frame_id = "wrist_roll_link"
+        self.current_object_pose_stamped.pose = Pose()
+
+        self.attached_object = moveit_msgs.msg.AttachedCollisionObject()
+        self.attached_object.link_name = "wrist_roll_link"
+        self.attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
+
+
     def visualize_plan(self, list_of_motion_plan):
         '''
         This function will receive a list of motion plan and visualize it.
@@ -67,14 +76,23 @@ class MoveitVisualizer(BaseVisualizer):
                     current_robot_state_msg = moveit_msgs.msg.DisplayRobotState()
                     current_robot_state_msg.state = convert_joint_values_to_robot_state(p.positions, self.active_joints, self.robot)
 
-                    if has_object_in_hand:
-                        pass
-                    else:
-                        self.manipulated_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(object_mesh_path)
-                        self.manipulated_object_marker.action = Marker.ADD
-                        self.manipulated_object_marker.pose = msgify(geometry_msgs.msg.Pose, object_pose)
+                    # if not manipulated object, then does not need to publish the object
+                    if object_pose is not None:
+                        if has_object_in_hand:
+                            self.attached_object.object = make_mesh(
+                                "object", 
+                                self.current_object_pose_stamped, 
+                                object_mesh_path
+                            )
+                            self.attached_object.object.pose = msgify(Pose, np.linalg.inv(object_pose))
+                            current_robot_state_msg.state.attached_collision_objects.append(self.attached_object)
+                            self.manipulated_object_marker.action = Marker.DELETE
+                        else:
+                            self.manipulated_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(object_mesh_path)
+                            self.manipulated_object_marker.action = Marker.ADD
+                            self.manipulated_object_marker.pose = msgify(Pose, object_pose)
 
-                    self.object_publisher.publish(self.manipulated_object_marker)
+                        self.object_publisher.publish(self.manipulated_object_marker)
 
                     self.display_robot_state_publisher.publish(current_robot_state_msg)
 
