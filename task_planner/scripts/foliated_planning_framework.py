@@ -80,13 +80,14 @@ class FoliatedPlanningFramework():
             # generate the task sequence
             task_sequence = self.task_planner.generate_task_sequence()
 
-            # # print detail of generetated task_sequence
-            # for t, task in enumerate(task_sequence):
-            #     print "task ", t, "-----------------------"
-            #     print "start configuration"
-            #     print(task.start_configuration)
-            #     print "goal configuration"
-            #     print(task.goal_configuration)
+            # print detail of generetated task_sequence
+            for t, task in enumerate(task_sequence):
+                print "task ", t, "-----------------------"
+                print "foliation name: ", task.manifold_detail.foliation.foliation_name
+                # print "start configuration"
+                # print(task.start_configuration)
+                # print "goal configuration"
+                # print(task.goal_configuration)
 
             if len(task_sequence) == 0:
                 return False, None
@@ -113,19 +114,16 @@ class FoliatedPlanningFramework():
                 if success_flag:
                     list_of_motion_plan.append(motion_plan_result)
                     # add the intersection action to the list of motion plan
+                    print "next motion: ", task.next_motion.action
                     list_of_motion_plan.append(task.next_motion.get_task_motion())
-
-                    return True, list_of_motion_plan
                 else:
-                    # found_solution = False
-                    # break
-                    return False, None
+                    found_solution = False
+                    break
 
-
-            #     if not found_solution:
-            #         continue
-            #     else:
-            #         return True, list_of_motion_plan
+            if not found_solution:
+                continue
+            else:
+                return True, list_of_motion_plan
 
         return False, None
 

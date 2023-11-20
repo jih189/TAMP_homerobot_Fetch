@@ -201,7 +201,7 @@ if __name__ == "__main__":
 
         # need to calculate the grasp pose in the base_link frame
         grasp_pose_mat = np.dot(placement, grasp)
-        pre_grasp_pose_mat = np.dot(grasp_pose_mat, np.array([[1, 0 ,0, -0.09],
+        pre_grasp_pose_mat = np.dot(grasp_pose_mat, np.array([[1, 0 ,0, -0.05],
                                                               [0, 1, 0, 0],
                                                               [0, 0, 1, 0],
                                                               [0, 0, 0, 1]]))
@@ -244,7 +244,7 @@ if __name__ == "__main__":
 
         return True, selected_co_parameters1_index, selected_co_parameters2_index, ManipulationIntersection('release', intersection_motion, move_group.get_active_joints())
         
-    foliated_intersection = FoliatedIntersection(foliation_regrasp, foliation_slide, sampling_function, prepare_sampling_function, sampling_done_function)
+    foliated_intersection = FoliatedIntersection(foliation_slide, foliation_regrasp, sampling_function, prepare_sampling_function, sampling_done_function)
 
     foliated_problem = FoliatedProblem("maze_task")
     foliated_problem.set_foliation_n_foliated_intersection([foliation_regrasp, foliation_slide], [foliated_intersection])
