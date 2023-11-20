@@ -151,6 +151,7 @@ if __name__ == "__main__":
     foliation_regrasp = ManipulationFoliation(foliation_name='regrasp', 
                                                 constraint_parameters={
                                                     "frame_id": "base_link",
+                                                    "is_object_in_hand": False,
                                                     "object_mesh_path": manipulated_object_mesh_path,
                                                     "obstacle_mesh": env_mesh_path,
                                                     "obstacle_pose": convert_pose_stamped_to_matrix(env_pose)
@@ -162,7 +163,8 @@ if __name__ == "__main__":
 
     foliation_slide = ManipulationFoliation(foliation_name='slide', 
                                             constraint_parameters={
-                                                'frame_id': "base_link", 
+                                                "frame_id": "base_link", 
+                                                "is_object_in_hand": True,
                                                 'object_mesh_path': manipulated_object_mesh_path,
                                                 "obstacle_mesh": env_mesh_path,
                                                 "obstacle_pose": convert_pose_stamped_to_matrix(env_pose),
@@ -184,9 +186,9 @@ if __name__ == "__main__":
         scene.clear()
 
     # define the sampling function
-    def sampling_function(co_parameters1, co_parameters2):
-        # co_parameters1 is the co-parameters for re-grasping foliation
-        # co_parameters2 is the co-parameters for sliding foliation
+    def slide_regrasp_sampling_function(co_parameters1, co_parameters2):
+        # co_parameters1 is the co-parameters for sliding foliation
+        # co_parameters2 is the co-parameters for regrasping foliation
         # return a ManipulationIntersection class
 
         # randomly select a index for both co_parameters1 and co_parameters2
@@ -194,10 +196,10 @@ if __name__ == "__main__":
         selected_co_parameters2_index = random.randint(0, len(co_parameters2) - 1)
 
         # randomly sample a placement
-        placement = co_parameters1[selected_co_parameters1_index]
-
+        placement = co_parameters2[selected_co_parameters2_index]
+        
         # randomly sample a grasp
-        grasp = co_parameters2[selected_co_parameters2_index]
+        grasp = co_parameters1[selected_co_parameters1_index]
 
         # need to calculate the grasp pose in the base_link frame
         grasp_pose_mat = np.dot(placement, grasp)
@@ -244,11 +246,11 @@ if __name__ == "__main__":
 
         return True, selected_co_parameters1_index, selected_co_parameters2_index, ManipulationIntersection('release', intersection_motion, move_group.get_active_joints())
         
-    foliated_intersection = FoliatedIntersection(foliation_slide, foliation_regrasp, sampling_function, prepare_sampling_function, sampling_done_function)
+    foliated_intersection = FoliatedIntersection(foliation_slide, foliation_regrasp, slide_regrasp_sampling_function, prepare_sampling_function, sampling_done_function)
 
     foliated_problem = FoliatedProblem("maze_task")
     foliated_problem.set_foliation_n_foliated_intersection([foliation_regrasp, foliation_slide], [foliated_intersection])
-    foliated_problem.sample_intersections()
+    foliated_problem.sample_intersections(3000)
     ###############################################################################################################
     
     # save the foliated problem

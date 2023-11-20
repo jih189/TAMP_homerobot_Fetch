@@ -286,15 +286,15 @@ class BaseMotionPlanner:
         raise NotImplementedError("Please Implement this method")
 
     @abstractmethod
-    def plan(self, start_configuration, goal_configuration, constraints, planning_hint):
+    def plan(self, start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint):
         # Returns a success flag, a motion plan which can be visualized, and an experience which can be used to update the task planner.
         raise NotImplementedError("Please Implement this method")
 
-    def _plan(self, start_configuration, goal_configuration, constraints, planning_hint):
+    def _plan(self, start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint):
         '''
             This function must return a success flag, a motion plan, and an experience.
         '''
-        success_flag, task_motion_result, experience = self.plan(start_configuration, goal_configuration, constraints, planning_hint)
+        success_flag, task_motion_result, experience = self.plan(start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint)
         if not isinstance(success_flag, bool):
             raise Exception("The first return value of plan function is not a boolean value!!!")
         if not isinstance(task_motion_result, BaseTaskMotion):

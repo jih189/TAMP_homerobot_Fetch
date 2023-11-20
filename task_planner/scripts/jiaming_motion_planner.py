@@ -27,7 +27,12 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         self.move_group.set_planner_id('RRTConnectkConfigDefault')
         self.move_group.set_planning_time(2.0)
 
-    def plan(self, start_configuration, goal_configuration, constraints, planning_hint):
+    def plan(self, start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint):
+        print "constraints of a motion task"
+        print foliation_constraints
+        print "co_parameter"
+        print co_parameter
+
         # reset the motion planner
         self.move_group.clear_path_constraints()
         self.move_group.clear_in_hand_pose()
@@ -46,8 +51,9 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         # the section returned value should be a BaseTaskMotion
         return motion_plan_result[0], ManipulationTaskMotion(
                 planned_motion=motion_plan_result[1], 
-                has_object_in_hand=False, 
-                object_pose=None
+                has_object_in_hand=foliation_constraints['is_object_in_hand'], 
+                object_pose=co_parameter,
+                object_mesh_path=foliation_constraints['object_mesh_path']
             ), motion_plan_result
 
     def shutdown_planner(self):

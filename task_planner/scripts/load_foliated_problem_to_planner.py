@@ -54,9 +54,9 @@ if __name__ == "__main__":
 
     # set the start and goal
     foliated_planning_framework.setStartAndGoal(
-        0, 0,
+        0, 14,
         ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints()),
-        0, 19,
+        0, 18,
         ManipulationIntersection(action='goal', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints())
     )
 

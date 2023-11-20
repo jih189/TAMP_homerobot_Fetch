@@ -106,6 +106,7 @@ class FoliatedPlanningFramework():
                     task.start_configuration, 
                     task.goal_configuration, 
                     task.manifold_detail.foliation.constraint_parameters, 
+                    task.manifold_detail.foliation.co_parameters[task.manifold_detail.co_parameter_index],
                     None
                 )
 

@@ -4,6 +4,8 @@ import json
 import numpy as np
 from jiaming_visualizer import ManipulationTaskMotion
 from jiaming_helper import convert_joint_values_to_robot_trajectory
+from ros_numpy import numpify, msgify
+from geometry_msgs.msg import Pose
 
 # define the intersection class
 class ManipulationIntersection(BaseIntersection):
@@ -43,8 +45,9 @@ class ManipulationIntersection(BaseIntersection):
         #TODO implement this function
         return ManipulationTaskMotion(
             planned_motion=convert_joint_values_to_robot_trajectory(self.motion, self.active_joints),
-            has_object_in_hand=False,
-            object_pose=None
+            has_object_in_hand=True,
+            object_pose=None,
+            object_mesh_path=None
         )
 
     @staticmethod
