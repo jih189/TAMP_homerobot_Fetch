@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# from experiment_scripts.experiment_helper import Experiment, Manifold, Intersection
 import os
 import json
 import numpy as np
@@ -35,6 +34,10 @@ class BaseIntersection(object):
 
     def save(self, file_path):
         """Save the intersection"""
+        raise NotImplementedError("Please Implement this method")
+
+    def get_task_motion(self):
+        """Return the task motion"""
         raise NotImplementedError("Please Implement this method")
 
     @staticmethod

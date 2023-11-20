@@ -59,6 +59,8 @@ class MoveitMotionPlanner(BaseMotionPlanner):
 
         motion_plan_result = self.move_group.plan()
 
+        # the section returned value should be a BaseTaskMotion
+
         return motion_plan_result[0], motion_plan_result
 
     def shutdown_planner(self):
