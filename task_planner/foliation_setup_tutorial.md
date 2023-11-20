@@ -9,7 +9,7 @@ A foliation is a set of manifolds defined by a common constraints with a list of
 ## How to use the foliation framework
 To use the foliation framework, you need to construct the foliated problem, so you can pass it to the task planner to generate the plan and use the motion planner to solve it.
 ### Construct foliation and intersection
-In this project, we provide a template that user can over write them for their own use. The template is in foliated_problem.py(<b>BaseFoliation</b> and <b>BaseIntersection</b>). To use it, you need to construct the foliation and intersection class. For example, if you want to construct a foliation and intersection for manipulation, you can do the following:
+In this project, we provide a template that user can over write them for their own use. The template is in foliated_base_class.py(<b>BaseFoliation</b> and <b>BaseIntersection</b>). To use it, you need to construct the foliation and intersection class. For example, if you want to construct a foliation and intersection for manipulation, you can do the following:
 
 Each foliatin contains four variables:
 1. <b>foliation name</b>: the name of the foliation.
@@ -28,7 +28,7 @@ custom_foliation = BaseFoliation(
 ```
 Based on user's definition, the save and load function must be over written as follows:
 ```
-from foliated_problem import BaseFoliation
+from foliated_base_class import BaseFoliation
 # define the foliation class
 class ManipulationFoliation(BaseFoliation):
     def save(self, dir_path):
@@ -39,7 +39,7 @@ class ManipulationFoliation(BaseFoliation):
 ```
 In manipulation, the intersection between manifolds may not be only a configuration. It can be anything such as a action or motion. For example, in pick and place task, the robot need to open gripper to transit from grasping manifold to ungrasping manifold. Therefore, we need to define the intersection class as follows:
 ```
-from foliated_problem import BaseIntersection
+from foliated_base_class import BaseIntersection
 class ManipulationIntersection(BaseIntersection):
     def __init__(self, ...):
         # define the action of intersection
@@ -69,7 +69,7 @@ def sampling_function(co_parameters_from_foliation1, co_parameters_from_foliatio
 ``` 
 Once you have defined all above functions, you can generate the intersection by calling the following function:
 ```
-from foliated_problem import FoliatedIntersection
+from foliated_base_class import FoliatedIntersection
 foliated_intersection = FoliatedIntersection(
     foliation1=foliation1, # the first foliation
     foliation2=foliation2, # the second foliation
@@ -83,7 +83,7 @@ foliated_intersection = FoliatedIntersection(
 Let's assume you have implemented the foliation and intersection class. Here we call them ManipulationFoliation and ManipulationIntersection. Then, you can construct the foliated problem as follows:
 
 ```
-from foliated_problem import FoliatedProblem
+from foliated_base_class import FoliatedProblem
 from manipulation_foliations_and_intersections import ManipulationFoliation, ManipulationIntersection 
 
 foliated_problem = FoliatedProblem('problem name')

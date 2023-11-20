@@ -3,6 +3,7 @@ import os
 import json
 import numpy as np
 from tqdm import tqdm
+from abc import ABCMeta, abstractmethod
 
 # user needs to implement this function
 class BaseIntersection(object):
@@ -193,14 +194,6 @@ class FoliatedProblem:
             foliated_intersection.sample_done()
             print "sampled " + str(self.intersections.__len__()) + " intersections bewteen foliations ", foliated_intersection.foliation1.foliation_name, " and ", foliated_intersection.foliation2.foliation_name
 
-    # def set_start_and_goal(self, start_configuration, start_foliation, start_co_parameter, goal_configuration, goal_foliation, goal_co_parameter):
-    #     """Set the start and goal configurations"""
-    #     self.start_configuration = start_configuration
-    #     self.start_foliation = start_foliation
-    #     self.start_co_parameter = start_co_parameter
-    #     self.goal_configuration = goal_configuration
-    #     self.goal_foliation = goal_foliation
-    #     self.goal_co_parameter = goal_co_parameter
 
     def save(self, dir_name):
         '''Save the foliated problem'''
@@ -274,7 +267,48 @@ class FoliatedProblem:
         loaded_problem.intersections = [intersection_class.load(dir_name + "/intersections/" + intersection_name + ".json") for intersection_name in problem_data["intersections"]]
 
         return loaded_problem
-
-    # def get_number_of_intersections(self):
-    #     '''Return the number of intersections'''
         
+class BaseMotionPlanner(object):
+
+    def prepare_planner(self):
+        # Prepares the planner
+        raise NotImplementedError("Please Implement this method")
+
+    def plan(self, start_configuration, goal_configuration, constraints, planning_hint):
+        # Returns a success flag and a motion plan which can be visualized.
+        raise NotImplementedError("Please Implement this method")
+
+    def visualize_plan(self, plan):
+        # Visualizes the plan
+        raise NotImplementedError("Please Implement this method")
+
+    def shutdown_planner(self):
+        # Deletes the planner
+        raise NotImplementedError("Please Implement this method")
+
+class BaseTaskMotion(object):
+    '''
+        This class is used to store the motion plan for each task. Then, the visualizer can use this class to visualize the motion plan.
+        For BaseIntersection and motion planner's result, they should provide a function to convert them to this class.
+        So, the visualizer can use this class to visualize the motion plan.
+    '''
+    def __init__(self, motion_plan):
+        # check it motion plan is a dictionary
+        if not isinstance(motion_plan, dict):
+            raise TypeError("motion plan must be a dictionary")
+        self.motion_plan = motion_plan
+
+    def get(self):
+        # user has to implement this function properly based on how they use
+        # the visualizer to visualize the motion plan.
+        raise NotImplementedError("Please Implement this method")
+    
+class BaseVisualizer(object):
+    def __init__(self):
+        pass
+
+    def prepare_visualizer(self):
+        raise NotImplementedError("Please Implement this method")
+
+    def visualize_plan(self, list_of_motion_plan):
+        raise NotImplementedError("Please Implement this method")

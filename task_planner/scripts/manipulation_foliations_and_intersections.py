@@ -1,4 +1,4 @@
-from foliated_problem import BaseFoliation, BaseIntersection
+from foliated_base_class import BaseFoliation, BaseIntersection
 import copy
 import json
 import numpy as np

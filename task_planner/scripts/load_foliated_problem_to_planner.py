@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from foliated_problem import FoliatedProblem, FoliatedIntersection
+from foliated_base_class import FoliatedProblem, FoliatedIntersection
 from manipulation_foliations_and_intersections import ManipulationFoliation, ManipulationIntersection
 from foliated_planning_framework import FoliatedPlanningFramework
 from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, MDPTaskPlannerWithGMM, GMM

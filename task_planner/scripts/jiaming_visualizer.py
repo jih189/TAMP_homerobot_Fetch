@@ -1,31 +1,5 @@
 import rospy
-from foliated_problem import BaseIntersection
-class BaseTaskMotion(object):
-    '''
-        This class is used to store the motion plan for each task. Then, the visualizer can use this class to visualize the motion plan.
-        For BaseIntersection and motion planner's result, they should provide a function to convert them to this class.
-        So, the visualizer can use this class to visualize the motion plan.
-    '''
-    def __init__(self, motion_plan):
-        # check it motion plan is a dictionary
-        if not isinstance(motion_plan, dict):
-            raise TypeError("motion plan must be a dictionary")
-        self.motion_plan = motion_plan
-
-    def get(self):
-        # user has to implement this function properly based on how they use
-        # the visualizer to visualize the motion plan.
-        raise NotImplementedError("Please Implement this method")
-    
-class BaseVisualizer(object):
-    def __init__(self):
-        pass
-
-    def prepare_visualizer(self):
-        raise NotImplementedError("Please Implement this method")
-
-    def visualize_plan(self, list_of_motion_plan):
-        raise NotImplementedError("Please Implement this method")
+from foliated_base_class import BaseIntersection, BaseTaskMotion, BaseVisualizer
 
 class ManipulationTaskMotion(BaseTaskMotion):
     def get(self):

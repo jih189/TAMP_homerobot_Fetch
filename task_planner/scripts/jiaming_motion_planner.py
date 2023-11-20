@@ -11,24 +11,7 @@ from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 
 from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint, construct_moveit_constraint, make_mesh 
-
-class BaseMotionPlanner(object):
-
-    def prepare_planner(self):
-        # Prepares the planner
-        raise NotImplementedError("Please Implement this method")
-
-    def plan(self, start_configuration, goal_configuration, constraints, planning_hint):
-        # Returns a success flag and a motion plan which can be visualized.
-        raise NotImplementedError("Please Implement this method")
-
-    def visualize_plan(self, plan):
-        # Visualizes the plan
-        raise NotImplementedError("Please Implement this method")
-
-    def shutdown_planner(self):
-        # Deletes the planner
-        raise NotImplementedError("Please Implement this method")
+from foliated_base_class import BaseMotionPlanner
 
 class MoveitMotionPlanner(BaseMotionPlanner):
     def prepare_planner(self):

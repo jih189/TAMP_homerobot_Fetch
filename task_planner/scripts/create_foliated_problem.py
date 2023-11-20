@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # from experiment_scripts.experiment_helper import Experiment, Manifold, Intersection
-from foliated_problem import FoliatedProblem, FoliatedIntersection
+from foliated_base_class import FoliatedProblem, FoliatedIntersection
 from manipulation_foliations_and_intersections import ManipulationFoliation, ManipulationIntersection
 
 import sys
