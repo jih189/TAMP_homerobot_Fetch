@@ -8,6 +8,7 @@ class ManipulationIntersection(BaseIntersection):
     def __init__(self, action, motion):
         self.action = action
         self.motion = motion
+
     def inverse(self):
         if self.action == 'grasp':
             return ManipulationIntersection(action='release', motion=self.motion[::-1])
@@ -33,6 +34,10 @@ class ManipulationIntersection(BaseIntersection):
         # create a json file
         with open(file_path, "w") as json_file:
             json.dump(intersection_data, json_file)
+
+    def get_task_motion(self):
+        #TODO implement this function
+        return None
 
     @staticmethod
     def load(file_path):

@@ -6,7 +6,8 @@ from tqdm import tqdm
 from abc import ABCMeta, abstractmethod
 
 # user needs to implement this function
-class BaseIntersection(object):
+class BaseIntersection:
+    __metaclass__ = ABCMeta
     """
         This class represents a base intersection.
         It is an abstract class. It is used to represent the intersection of two manifolds.
@@ -23,30 +24,36 @@ class BaseIntersection(object):
         """Get the foliation and co-parameter index"""
         return self.foliation1_name, self.co_parameter1_index, self.foliation2_name, self.co_parameter2_index
 
+    @abstractmethod
     def get_edge_configurations(self):
         """Return two edge configurations of intersection motion"""
         raise NotImplementedError("Please Implement this method")
 
+    @abstractmethod
     def inverse(self):
         """Return the inverse of the intersection, user needs to implement this function"""
         """Inverse function does not inverse the foliation and co-parameter index."""
         # Return inversed the intersection
         raise NotImplementedError("Please Implement this method")
 
+    @abstractmethod
     def save(self, file_path):
         """Save the intersection"""
         raise NotImplementedError("Please Implement this method")
 
+    @abstractmethod
     def get_task_motion(self):
         """Return the task motion"""
         raise NotImplementedError("Please Implement this method")
 
     @staticmethod
+    @abstractmethod
     def load(file_path):
         """Load the intersection"""
         raise NotImplementedError("Please Implement this method")
 
 class BaseFoliation:
+    __metaclass__ = ABCMeta
     def __init__(self, foliation_name, constraint_parameters, co_parameters = [], similarity_matrix = None):
         if not isinstance(co_parameters, list):
             raise Exception("co_parameters is not a list")
@@ -70,11 +77,13 @@ class BaseFoliation:
         self.co_parameters = co_parameters # list of co-parameters
         self.similarity_matrix = similarity_matrix # similarity matrix between co-parameters
 
+    @abstractmethod
     def save(self, file_path):
         """Save the foliation"""
         raise NotImplementedError("Please Implement this method")
 
     @staticmethod
+    @abstractmethod
     def load(file_path):
         """Load the foliation and return a foliation object"""
         raise NotImplementedError("Please Implement this method")
@@ -268,25 +277,26 @@ class FoliatedProblem:
 
         return loaded_problem
         
-class BaseMotionPlanner(object):
+class BaseMotionPlanner:
+    __metaclass__ = ABCMeta
 
+    @abstractmethod
     def prepare_planner(self):
         # Prepares the planner
         raise NotImplementedError("Please Implement this method")
 
+    @abstractmethod
     def plan(self, start_configuration, goal_configuration, constraints, planning_hint):
         # Returns a success flag and a motion plan which can be visualized.
         raise NotImplementedError("Please Implement this method")
 
-    def visualize_plan(self, plan):
-        # Visualizes the plan
-        raise NotImplementedError("Please Implement this method")
-
+    @abstractmethod
     def shutdown_planner(self):
         # Deletes the planner
         raise NotImplementedError("Please Implement this method")
 
 class BaseTaskMotion(object):
+    __metaclass__ = ABCMeta
     '''
         This class is used to store the motion plan for each task. Then, the visualizer can use this class to visualize the motion plan.
         For BaseIntersection and motion planner's result, they should provide a function to convert them to this class.
@@ -298,17 +308,21 @@ class BaseTaskMotion(object):
             raise TypeError("motion plan must be a dictionary")
         self.motion_plan = motion_plan
 
+    @abstractmethod
     def get(self):
         # user has to implement this function properly based on how they use
         # the visualizer to visualize the motion plan.
         raise NotImplementedError("Please Implement this method")
     
 class BaseVisualizer(object):
+    __metaclass__ = ABCMeta
     def __init__(self):
         pass
 
+    @abstractmethod
     def prepare_visualizer(self):
         raise NotImplementedError("Please Implement this method")
 
+    @abstractmethod
     def visualize_plan(self, list_of_motion_plan):
         raise NotImplementedError("Please Implement this method")
