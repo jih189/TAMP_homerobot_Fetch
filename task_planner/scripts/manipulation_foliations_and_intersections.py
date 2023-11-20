@@ -2,18 +2,21 @@ from foliated_base_class import BaseFoliation, BaseIntersection
 import copy
 import json
 import numpy as np
+from jiaming_visualizer import ManipulationTaskMotion
+from jiaming_helper import convert_joint_values_to_robot_trajectory
 
 # define the intersection class
 class ManipulationIntersection(BaseIntersection):
-    def __init__(self, action, motion):
+    def __init__(self, action, motion, active_joints):
         self.action = action
         self.motion = motion
+        self.active_joints = active_joints
 
     def inverse(self):
         if self.action == 'grasp':
-            return ManipulationIntersection(action='release', motion=self.motion[::-1])
+            return ManipulationIntersection(action='release', motion=self.motion[::-1], active_joints=self.active_joints)
         else:
-            return ManipulationIntersection(action='grasp', motion=self.motion[::-1])
+            return ManipulationIntersection(action='grasp', motion=self.motion[::-1], active_joints=self.active_joints)
 
     def get_edge_configurations(self):
         return self.motion[0], self.motion[-1]
@@ -28,7 +31,8 @@ class ManipulationIntersection(BaseIntersection):
             "foliation2_name": foliation2_name,
             "co_parameter2_index": co_parameter2_index,
             "action": self.action,
-            "motion": [m.tolist() for m in self.motion]
+            "motion": [m.tolist() for m in self.motion],
+            "active_joints": self.active_joints
         }
 
         # create a json file
@@ -37,7 +41,11 @@ class ManipulationIntersection(BaseIntersection):
 
     def get_task_motion(self):
         #TODO implement this function
-        return None
+        return ManipulationTaskMotion(
+            planned_motion=convert_joint_values_to_robot_trajectory(self.motion, self.active_joints),
+            has_object_in_hand=False,
+            object_pose=None
+        )
 
     @staticmethod
     def load(file_path):
@@ -46,7 +54,8 @@ class ManipulationIntersection(BaseIntersection):
             intersection_data = json.load(json_file)
 
         loaded_intersection = ManipulationIntersection(action=intersection_data.get("action"),
-                                            motion=[np.array(m) for m in intersection_data.get("motion")])
+                                            motion=[np.array(m) for m in intersection_data.get("motion")],
+                                            active_joints=intersection_data.get("active_joints"))
 
         foliation1_name = intersection_data.get("foliation1_name")
         co_parameter1_index = intersection_data.get("co_parameter1_index")

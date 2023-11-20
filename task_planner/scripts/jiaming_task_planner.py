@@ -26,7 +26,6 @@ class IntersectionDetail:
         self.configuration_in_manifold2 = configuration_in_manifold2
         self.is_goal = is_goal
 
-
 class Task:
     def __init__(self, 
                 manifold_detail_, 

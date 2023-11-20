@@ -80,13 +80,13 @@ class FoliatedPlanningFramework():
             # generate the task sequence
             task_sequence = self.task_planner.generate_task_sequence()
 
-            # print detail of generetated task_sequence
-            for t, task in enumerate(task_sequence):
-                print "task ", t, "-----------------------"
-                print "start configuration"
-                print(task.start_configuration)
-                print "goal configuration"
-                print(task.goal_configuration)
+            # # print detail of generetated task_sequence
+            # for t, task in enumerate(task_sequence):
+            #     print "task ", t, "-----------------------"
+            #     print "start configuration"
+            #     print(task.start_configuration)
+            #     print "goal configuration"
+            #     print(task.goal_configuration)
 
             if len(task_sequence) == 0:
                 return False, None
@@ -97,25 +97,23 @@ class FoliatedPlanningFramework():
             # solve the problem
             for task in task_sequence:
 
-                if task.has_solution:
-                    list_of_motion_plan.append(task.solution_trajectory)
-                else:
-                    # plan the motion
-                    success_flag, motion_plan_result = self.motion_planner.plan(
-                        task.start_configuration, 
-                        task.goal_configuration, 
-                        task.manifold_detail.foliation.constraint_parameters, 
-                        task.next_motion
-                    )
+                # if task.has_solution:
+                #     list_of_motion_plan.append(task.solution_trajectory)
+                # else:
+                # plan the motion
+                success_flag, motion_plan_result, experience = self.motion_planner._plan(
+                    task.start_configuration, 
+                    task.goal_configuration, 
+                    task.manifold_detail.foliation.constraint_parameters, 
+                    None
+                )
 
-                self.task_planner.update(task.task_graph_info, motion_plan_result)
+                self.task_planner.update(task.task_graph_info, experience)
 
                 if success_flag:
                     list_of_motion_plan.append(motion_plan_result)
                     # add the intersection action to the list of motion plan
-                    print "next motion"
-                    print task.next_motion
-                    list_of_motion_plan.append(task.next_motion)
+                    list_of_motion_plan.append(task.next_motion.get_task_motion())
 
                     return True, list_of_motion_plan
                 else:
@@ -136,7 +134,7 @@ class FoliatedPlanningFramework():
         This function visualizes the solution path.
         '''
         if self.has_visualizer:
-            self.visualizer.visualize_plan(list_of_motion_plan)
+            self.visualizer._visualize_plan(list_of_motion_plan)
         else:
             raise Exception("No visualizer is set to the planning framework.")
 

@@ -12,6 +12,7 @@ from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 
 from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint, construct_moveit_constraint, make_mesh 
 from foliated_base_class import BaseMotionPlanner
+from jiaming_visualizer import ManipulationTaskMotion
 
 class MoveitMotionPlanner(BaseMotionPlanner):
     def prepare_planner(self):
@@ -43,8 +44,11 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         motion_plan_result = self.move_group.plan()
 
         # the section returned value should be a BaseTaskMotion
-
-        return motion_plan_result[0], motion_plan_result
+        return motion_plan_result[0], ManipulationTaskMotion(
+                planned_motion=motion_plan_result[1], 
+                has_object_in_hand=False, 
+                object_pose=None
+            ), motion_plan_result
 
     def shutdown_planner(self):
         moveit_commander.roscpp_shutdown()

@@ -287,26 +287,38 @@ class BaseMotionPlanner:
 
     @abstractmethod
     def plan(self, start_configuration, goal_configuration, constraints, planning_hint):
-        # Returns a success flag and a motion plan which can be visualized.
+        # Returns a success flag, a motion plan which can be visualized, and an experience which can be used to update the task planner.
         raise NotImplementedError("Please Implement this method")
+
+    def _plan(self, start_configuration, goal_configuration, constraints, planning_hint):
+        '''
+            This function must return a success flag, a motion plan, and an experience.
+        '''
+        success_flag, task_motion_result, experience = self.plan(start_configuration, goal_configuration, constraints, planning_hint)
+        if not isinstance(success_flag, bool):
+            raise Exception("The first return value of plan function is not a boolean value!!!")
+        if not isinstance(task_motion_result, BaseTaskMotion):
+            raise Exception("The second return value of plan function is not a BaseTaskMotion class!!!")
+        return success_flag, task_motion_result, experience
+
 
     @abstractmethod
     def shutdown_planner(self):
         # Deletes the planner
         raise NotImplementedError("Please Implement this method")
 
-class BaseTaskMotion(object):
+class BaseTaskMotion:
     __metaclass__ = ABCMeta
     '''
         This class is used to store the motion plan for each task. Then, the visualizer can use this class to visualize the motion plan.
         For BaseIntersection and motion planner's result, they should provide a function to convert them to this class.
         So, the visualizer can use this class to visualize the motion plan.
     '''
-    def __init__(self, motion_plan):
-        # check it motion plan is a dictionary
-        if not isinstance(motion_plan, dict):
-            raise TypeError("motion plan must be a dictionary")
-        self.motion_plan = motion_plan
+    # def __init__(self, motion_plan):
+    #     # check it motion plan is a dictionary
+    #     if not isinstance(motion_plan, dict):
+    #         raise TypeError("motion plan must be a dictionary")
+    #     self.motion_plan = motion_plan
 
     @abstractmethod
     def get(self):
@@ -316,13 +328,14 @@ class BaseTaskMotion(object):
     
 class BaseVisualizer(object):
     __metaclass__ = ABCMeta
-    def __init__(self):
-        pass
-
-    @abstractmethod
-    def prepare_visualizer(self):
-        raise NotImplementedError("Please Implement this method")
 
     @abstractmethod
     def visualize_plan(self, list_of_motion_plan):
         raise NotImplementedError("Please Implement this method")
+
+    def _visualize_plan(self, list_of_motion_plan):
+        # check it each element in list_of_motion_plan is a BaseTaskMotion class
+        for motion_plan in list_of_motion_plan:
+            if not isinstance(motion_plan, BaseTaskMotion):
+                raise TypeError("Each element in list_of_motion_plan must be a BaseTaskMotion class")
+        self.visualize_plan(list_of_motion_plan)
