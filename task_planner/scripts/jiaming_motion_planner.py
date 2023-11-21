@@ -29,6 +29,10 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         self.move_group.set_planning_time(2.0)
 
     def plan(self, start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint):
+
+        print "--------"
+        print foliation_constraints
+
         # reset the motion planner
         self.scene.clear()
         self.move_group.clear_path_constraints()
@@ -63,6 +67,16 @@ class MoveitMotionPlanner(BaseMotionPlanner):
             attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
             attached_object.object.pose = msgify(Pose, np.linalg.inv(co_parameter))
             start_moveit_robot_state.attached_collision_objects.append(attached_object)
+        else:
+            # becasuse object is not in hand, so we need to add the object into the planning scene
+            current_object_pose_stamped = PoseStamped()
+            current_object_pose_stamped.header.frame_id = "base_link"
+            current_object_pose_stamped.pose = msgify(Pose, co_parameter)
+            self.scene.add_mesh("object", current_object_pose_stamped, foliation_constraints['object_mesh_path'], size=(1,1,1))
+
+            while "object" not in self.scene.get_known_object_names():
+                rospy.sleep(0.0001)
+
 
         # set the start configuration
         self.move_group.set_start_state(start_moveit_robot_state)
