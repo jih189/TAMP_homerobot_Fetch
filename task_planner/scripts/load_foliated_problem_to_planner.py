@@ -10,6 +10,8 @@ import sys
 import rospy
 import rospkg
 
+import networkx as nx
+
 
 if __name__ == "__main__":
 
@@ -28,10 +30,22 @@ if __name__ == "__main__":
     gmm = GMM()
     gmm.load_distributions(gmm_dir_path)
 
+    # G = nx.Graph()
+    # for e in gmm.edge_of_distribution:
+    #     G.add_edge(e[0], e[1])
+
+    # # print number of components in the graph
+    # print "number of components in the graph: ", nx.number_connected_components(G)
+    # for c in nx.connected_components(G):
+    #     # print size of each component
+    #     print "size of component: ", len(c)
+
+    # exit()
+
     # load it into the task planner.
-    task_planner = MTGTaskPlanner()
+    # task_planner = MTGTaskPlanner()
     # task_planner = MDPTaskPlanner()
-    # task_planner = MTGTaskPlannerWithGMM(gmm)
+    task_planner = MTGTaskPlannerWithGMM(gmm)
     # task_planner = MDPTaskPlannerWithGMM(gmm)
 
     # initialize the motion planner
@@ -54,11 +68,19 @@ if __name__ == "__main__":
 
     # set the start and goal
     foliated_planning_framework.setStartAndGoal(
-        0, 14,
+        0, 16,
         ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints()),
         0, 18,
         ManipulationIntersection(action='goal', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints())
     )
+
+    # foliated_planning_framework.setStartAndGoal(
+    #     0, 10,
+    #     ManipulationIntersection(action='start', motion=[[ 0.38, -1.28, 1.51, 0.35, 1.81, 1.47, 0.0]], active_joints=motion_planner.move_group.get_active_joints()),
+    #     0, 11,
+    #     ManipulationIntersection(action='goal', motion=[[ 0.38, -1.28, 1.51, 0.35, 1.81, 1.47, 0.0]], active_joints=motion_planner.move_group.get_active_joints())
+    # )
+
 
     # solve the problem
     found_solution, solution_trajectory = foliated_planning_framework.solve()

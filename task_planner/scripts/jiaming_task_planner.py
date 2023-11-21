@@ -774,24 +774,24 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         distribution_id_in_manifold1, distribution_id_in_manifold2 = self.gmm_.get_distribution_indexs([intersection_detail_.configuration_in_manifold1, intersection_detail_.configuration_in_manifold2])
 
-        if(not self.task_graph.has_edge(
-                (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
-                (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2)) and 
-           not self.task_graph.has_edge(
-                (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2), 
-                (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1))
-        ):
-            # intersection_from_1_to_2_id, intersection_from_2_to_1_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
-            intersection_from_1_to_2_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
+        # if(not self.task_graph.has_edge(
+        #         (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
+        #         (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2)) and 
+        #    not self.task_graph.has_edge(
+        #         (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2), 
+        #         (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1))
+        # ):
+        # intersection_from_1_to_2_id, intersection_from_2_to_1_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
+        intersection_from_1_to_2_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
 
-            self.task_graph.add_edge(
-                (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
-                (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2), 
-                weight = 0.0,
-                has_intersection=True, 
-                intersection=intersection_detail_, 
-                intersection_id=intersection_from_1_to_2_id
-            )
+        self.task_graph.add_edge(
+            (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
+            (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2), 
+            weight = 0.0,
+            has_intersection=True, 
+            intersection=intersection_detail_, 
+            intersection_id=intersection_from_1_to_2_id
+        )
 
     # MTGTaskPlannerWithGMM
     def set_start_and_goal(self,
@@ -850,6 +850,9 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
     # MTGTaskPlannerWithGMM
     def generate_task_sequence(self):
+        # print the number of nodes can achieve the goal
+        # print "number of nodes can achieve the goal: ", len([node for node in self.task_graph.nodes if nx.has_path(self.task_graph, node, 'goal')])
+
         # check the connectivity of the task graph from start to goal
         if not nx.has_path(self.task_graph, 'start', 'goal'):
             print "no connection between start and goal!"
@@ -917,6 +920,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             return
 
         sampled_data_numpy = np.array([sampled_data.sampled_state for sampled_data in plan_[4].verified_motions])
+        
         # if sampled_data_numpy is empty, then skip it.
         sampled_data_distribution_id = self.gmm_._sklearn_gmm.predict(sampled_data_numpy).tolist()
         current_manifold_id = self.get_manifold_id_from_task_solution_graph(task_graph_info_[0], task_graph_info_[1])
@@ -1074,20 +1078,20 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
         distribution_id_in_manifold1, distribution_id_in_manifold2 = self.gmm_.get_distribution_indexs([intersection_detail_.configuration_in_manifold1, intersection_detail_.configuration_in_manifold2])
 
-        if(not self.task_graph.has_edge(
-                (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
-                (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2))
-        ):
-            intersection_from_1_to_2_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
+        # if(not self.task_graph.has_edge(
+        #         (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
+        #         (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2))
+        # ):
+        intersection_from_1_to_2_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
 
-            self.task_graph.add_edge(
-                (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
-                (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2), 
-                has_intersection=True, 
-                intersection=intersection_detail_,
-                intersection_id=intersection_from_1_to_2_id,
-                probability = 0.5 * self.lowest_probability + 0.5
-            )
+        self.task_graph.add_edge(
+            (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
+            (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2), 
+            has_intersection=True, 
+            intersection=intersection_detail_,
+            intersection_id=intersection_from_1_to_2_id,
+            probability = 0.5 * self.lowest_probability + 0.5
+        )
     
     # MDPTaskPlannerWithGMM
     def add_intersections(self, list_of_manifold_id1_, list_of_manifold_id2_, list_of_intersection_detail_):

@@ -30,13 +30,11 @@ class MoveitMotionPlanner(BaseMotionPlanner):
 
     def plan(self, start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint):
 
-        print "--------"
-        print foliation_constraints
-
         # reset the motion planner
         self.scene.clear()
         self.move_group.clear_path_constraints()
         self.move_group.clear_in_hand_pose()
+        self.move_group.clear_distribution()
 
         obstacle_pose_stamped = PoseStamped()
         obstacle_pose_stamped.header.frame_id = "base_link"
@@ -68,6 +66,9 @@ class MoveitMotionPlanner(BaseMotionPlanner):
             attached_object.object.pose = msgify(Pose, np.linalg.inv(co_parameter))
             start_moveit_robot_state.attached_collision_objects.append(attached_object)
 
+            self.move_group.set_distribution(planning_hint)
+            # self.move_group.set_clean_planning_context_flag(True)
+
             # need to add the constraint
             manifold_constraint = construct_moveit_constraint(
                 np.linalg.inv(co_parameter),
@@ -96,6 +97,13 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         self.move_group.set_joint_value_target(goal_configuration)
 
         motion_plan_result = self.move_group.plan()
+
+        # need to process the result for update the task graph
+        if len(motion_plan_result[4].verified_motions) > 0:
+            # print "need to process the result for update the task graph"
+            for motion in motion_plan_result[4].verified_motions:
+                motion.sampled_state = [motion.sampled_state.joint_state.position[motion.sampled_state.joint_state.name.index(jn)] for jn in self.move_group.get_active_joints()]
+
 
         # the section returned value should be a BaseTaskMotion
         return motion_plan_result[0], ManipulationTaskMotion(

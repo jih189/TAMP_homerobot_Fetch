@@ -81,9 +81,9 @@ class FoliatedPlanningFramework():
             task_sequence = self.task_planner.generate_task_sequence()
 
             # print detail of generetated task_sequence
-            for t, task in enumerate(task_sequence):
-                print "task ", t, "-----------------------"
-                print "foliation name: ", task.manifold_detail.foliation.foliation_name
+            # for t, task in enumerate(task_sequence):
+            #     print "task ", t, "-----------------------"
+            #     print "foliation name: ", task.manifold_detail.foliation.foliation_name
                 # print "start configuration"
                 # print(task.start_configuration)
                 # print "goal configuration"
@@ -107,7 +107,7 @@ class FoliatedPlanningFramework():
                     task.goal_configuration, 
                     task.manifold_detail.foliation.constraint_parameters, 
                     task.manifold_detail.foliation.co_parameters[task.manifold_detail.co_parameter_index],
-                    None
+                    task.distributions
                 )
 
                 self.task_planner.update(task.task_graph_info, experience)
