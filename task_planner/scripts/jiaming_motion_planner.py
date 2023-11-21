@@ -24,8 +24,8 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         self.scene.clear()
 
         self.move_group = moveit_commander.MoveGroupCommander("arm")
-        # self.move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
-        self.move_group.set_planner_id('RRTConnectkConfigDefault')
+        self.move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
+        # self.move_group.set_planner_id('RRTConnectkConfigDefault')
         self.move_group.set_planning_time(2.0)
 
     def plan(self, start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint):
@@ -67,6 +67,17 @@ class MoveitMotionPlanner(BaseMotionPlanner):
             attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
             attached_object.object.pose = msgify(Pose, np.linalg.inv(co_parameter))
             start_moveit_robot_state.attached_collision_objects.append(attached_object)
+
+            # need to add the constraint
+            manifold_constraint = construct_moveit_constraint(
+                np.linalg.inv(co_parameter),
+                foliation_constraints['reference_pose'],
+                foliation_constraints['orientation_tolerance'],
+                foliation_constraints['position_tolerance']
+            )
+            self.move_group.set_path_constraints(manifold_constraint)
+            self.move_group.set_in_hand_pose(msgify(Pose, np.linalg.inv(co_parameter)))
+
         else:
             # becasuse object is not in hand, so we need to add the object into the planning scene
             current_object_pose_stamped = PoseStamped()
@@ -76,6 +87,8 @@ class MoveitMotionPlanner(BaseMotionPlanner):
 
             while "object" not in self.scene.get_known_object_names():
                 rospy.sleep(0.0001)
+
+            self.move_group.set_path_constraints(get_no_constraint())
 
 
         # set the start configuration
