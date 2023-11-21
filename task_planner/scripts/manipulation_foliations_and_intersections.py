@@ -9,18 +9,36 @@ from geometry_msgs.msg import Pose
 
 # define the intersection class
 class ManipulationIntersection(BaseIntersection):
-    def __init__(self, action, motion, active_joints, object_pose=None, object_mesh_path=None):
+    def __init__(self, action, motion, active_joints, object_pose=None, object_mesh_path=None, obstacle_pose=None, obstacle_mesh_path=None):
         self.action = action
         self.motion = motion
         self.active_joints = active_joints
         self.object_pose = object_pose
         self.object_mesh_path = object_mesh_path
+        self.obstacle_pose = obstacle_pose
+        self.obstacle_mesh_path = obstacle_mesh_path
 
     def inverse(self):
         if self.action == 'grasp':
-            return ManipulationIntersection(action='release', motion=self.motion[::-1], active_joints=self.active_joints, object_pose=self.object_pose, object_mesh_path=self.object_mesh_path)
+            return ManipulationIntersection(
+                action='release', 
+                motion=self.motion[::-1], 
+                active_joints=self.active_joints, 
+                object_pose=self.object_pose, 
+                object_mesh_path=self.object_mesh_path, 
+                obstacle_pose=self.obstacle_pose, 
+                obstacle_mesh_path=self.obstacle_mesh_path
+                )
         else:
-            return ManipulationIntersection(action='grasp', motion=self.motion[::-1], active_joints=self.active_joints, object_pose=self.object_pose, object_mesh_path=self.object_mesh_path)
+            return ManipulationIntersection(
+                action='grasp', 
+                motion=self.motion[::-1], 
+                active_joints=self.active_joints, 
+                object_pose=self.object_pose, 
+                object_mesh_path=self.object_mesh_path,
+                obstacle_pose=self.obstacle_pose,
+                obstacle_mesh_path=self.obstacle_mesh_path
+                )
 
     def get_edge_configurations(self):
         return self.motion[0], self.motion[-1]
@@ -38,7 +56,9 @@ class ManipulationIntersection(BaseIntersection):
             "motion": [m.tolist() for m in self.motion],
             "active_joints": self.active_joints, 
             "object_pose": self.object_pose.tolist(), # convert numpy array to list
-            "object_mesh_path": self.object_mesh_path
+            "object_mesh_path": self.object_mesh_path, 
+            "obstacle_pose": self.obstacle_pose.tolist(), # convert numpy array to list
+            "obstacle_mesh_path": self.obstacle_mesh_path
         }
 
         # create a json file
@@ -50,7 +70,9 @@ class ManipulationIntersection(BaseIntersection):
             planned_motion=convert_joint_values_to_robot_trajectory(self.motion, self.active_joints),
             has_object_in_hand=False,
             object_pose=self.object_pose,
-            object_mesh_path=self.object_mesh_path
+            object_mesh_path=self.object_mesh_path,
+            obstacle_pose=self.obstacle_pose,
+            obstacle_mesh_path=self.obstacle_mesh_path
         )
 
     @staticmethod
@@ -63,7 +85,9 @@ class ManipulationIntersection(BaseIntersection):
                                             motion=[np.array(m) for m in intersection_data.get("motion")],
                                             active_joints=intersection_data.get("active_joints"),
                                             object_pose=np.array(intersection_data.get("object_pose")),
-                                            object_mesh_path=intersection_data.get("object_mesh_path")
+                                            object_mesh_path=intersection_data.get("object_mesh_path"),
+                                            obstacle_pose=np.array(intersection_data.get("obstacle_pose")),
+                                            obstacle_mesh_path=intersection_data.get("obstacle_mesh_path")
         )
 
         foliation1_name = intersection_data.get("foliation1_name")

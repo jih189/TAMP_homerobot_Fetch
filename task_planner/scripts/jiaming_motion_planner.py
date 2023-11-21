@@ -18,9 +18,9 @@ class MoveitMotionPlanner(BaseMotionPlanner):
     def prepare_planner(self):
         moveit_commander.roscpp_initialize(sys.argv)
         self.robot = moveit_commander.RobotCommander()
-        scene = moveit_commander.PlanningSceneInterface()
+        self.scene = moveit_commander.PlanningSceneInterface()
         rospy.sleep(0.5) # wait for the planning scene to be ready
-        scene.clear()
+        self.scene.clear()
 
         self.move_group = moveit_commander.MoveGroupCommander("arm")
         # self.move_group.set_planner_id('CDISTRIBUTIONRRTConfigDefault')
@@ -29,8 +29,16 @@ class MoveitMotionPlanner(BaseMotionPlanner):
 
     def plan(self, start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint):
         # reset the motion planner
+        self.scene.clear()
         self.move_group.clear_path_constraints()
         self.move_group.clear_in_hand_pose()
+
+        obstacle_pose_stamped = PoseStamped()
+        obstacle_pose_stamped.header.frame_id = "base_link"
+        obstacle_pose_stamped.pose = msgify(Pose, foliation_constraints['obstacle_pose'])
+
+        # add the obstacle into the planning scene.
+        self.scene.add_mesh("obstacle", obstacle_pose_stamped, foliation_constraints['obstacle_mesh'], size=(1,1,1))
 
         start_moveit_robot_state = convert_joint_values_to_robot_state(start_configuration, self.move_group.get_active_joints(), self.robot)
 
@@ -48,7 +56,9 @@ class MoveitMotionPlanner(BaseMotionPlanner):
                 planned_motion=motion_plan_result[1], 
                 has_object_in_hand=foliation_constraints['is_object_in_hand'], 
                 object_pose=co_parameter,
-                object_mesh_path=foliation_constraints['object_mesh_path']
+                object_mesh_path=foliation_constraints['object_mesh_path'],
+                obstacle_pose=foliation_constraints['obstacle_pose'],
+                obstacle_mesh_path=foliation_constraints['obstacle_mesh']
             ), motion_plan_result
 
     def shutdown_planner(self):

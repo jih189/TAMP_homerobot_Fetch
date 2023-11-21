@@ -249,7 +249,9 @@ if __name__ == "__main__":
             intersection_motion, 
             move_group.get_active_joints(), 
             placement,
-            manipulated_object_mesh_path 
+            manipulated_object_mesh_path,
+            convert_pose_stamped_to_matrix(env_pose),
+            env_mesh_path
         )
         
     foliated_intersection = FoliatedIntersection(foliation_slide, foliation_regrasp, slide_regrasp_sampling_function, prepare_sampling_function, sampling_done_function)
