@@ -9,6 +9,7 @@ from moveit_msgs.msg import RobotState, Constraints, OrientationConstraint, Move
 from sensor_msgs.msg import JointState
 from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
+import numpy as np
 
 from jiaming_helper import convert_joint_values_to_robot_trajectory, convert_joint_values_to_robot_state, get_no_constraint, construct_moveit_constraint, make_mesh 
 from foliated_base_class import BaseMotionPlanner
@@ -39,11 +40,29 @@ class MoveitMotionPlanner(BaseMotionPlanner):
 
         # add the obstacle into the planning scene.
         self.scene.add_mesh("obstacle", obstacle_pose_stamped, foliation_constraints['obstacle_mesh'], size=(1,1,1))
+        # wait for the obstacle to be added into the planning scene
+        while "obstacle" not in self.scene.get_known_object_names():
+            rospy.sleep(0.0001)
 
         start_moveit_robot_state = convert_joint_values_to_robot_state(start_configuration, self.move_group.get_active_joints(), self.robot)
 
         # if you have object in hand, then you need to set the object in hand pose
-        
+        if foliation_constraints['is_object_in_hand']:
+            current_object_pose_stamped = PoseStamped()
+            current_object_pose_stamped.header.frame_id = "wrist_roll_link"
+            current_object_pose_stamped.pose = Pose()
+            manipulated_object = make_mesh(
+                "object", 
+                current_object_pose_stamped, 
+                foliation_constraints['object_mesh_path'],
+            )
+
+            attached_object = AttachedCollisionObject()
+            attached_object.link_name = "wrist_roll_link"
+            attached_object.object = manipulated_object
+            attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
+            attached_object.object.pose = msgify(Pose, np.linalg.inv(co_parameter))
+            start_moveit_robot_state.attached_collision_objects.append(attached_object)
 
         # set the start configuration
         self.move_group.set_start_state(start_moveit_robot_state)

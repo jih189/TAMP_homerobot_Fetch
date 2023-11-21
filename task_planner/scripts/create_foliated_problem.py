@@ -108,7 +108,7 @@ if __name__ == "__main__":
     num_of_col = 8
     x_shift = 0.56
     y_shift = 0.1
-    z_shift = 0.8
+    z_shift = 0.78
     feasible_placements = []
     for i in range(num_of_row):
         for j in range(num_of_col):
