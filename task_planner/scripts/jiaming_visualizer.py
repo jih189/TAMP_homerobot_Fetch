@@ -10,6 +10,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from ros_numpy import msgify, numpify
 import numpy as np
 from moveit_msgs.srv import GetPositionFK, GetPositionFKRequest
+import random
 
 class ManipulationTaskMotion(BaseTaskMotion):
     def __init__(self, planned_motion, has_object_in_hand, object_pose, object_mesh_path, obstacle_pose, obstacle_mesh_path):
@@ -92,6 +93,10 @@ class MoveitVisualizer(BaseVisualizer):
     def visualize_sampled_configurations(self, sampled_configurations):
         # use the moveit visualizer to visualize the sampled configurations
         # sampled_configurations is a list of configurations
+
+        # if number of sampled configuration is more than 100, then only visualize 100 of them randomly
+        if len(sampled_configurations) > 100:
+            sampled_configurations = random.sample(sampled_configurations, 100)
 
         delete_marker_arrary = MarkerArray()
         for i in self.sampled_marker_ids:
