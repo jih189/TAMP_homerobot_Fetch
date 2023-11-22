@@ -75,6 +75,8 @@ class FoliatedPlanningFramework():
 
         for attempt_time in range(self.max_attempt_time):
 
+            print "attempt time: ", attempt_time
+
             # generate the task sequence
             task_sequence = self.task_planner.generate_task_sequence()
 

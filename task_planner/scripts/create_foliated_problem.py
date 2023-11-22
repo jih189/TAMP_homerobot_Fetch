@@ -146,6 +146,51 @@ if __name__ == "__main__":
         feasible_grasps.append(np.dot(loaded_array[loaded_array.files[ind]], rotated_matrix)) # add the grasp poses in object frame
 
     ####################################################################################################################
+    # generate the similarity matrix for both foliations
+    def get_position_difference_between_poses(pose_1_, pose_2_):
+        '''
+        Get the position difference between two poses.
+        pose_1_ and pose_2_ are both 4x4 numpy matrices.
+        '''
+        return np.linalg.norm(pose_1_[:3, 3] - pose_2_[:3, 3])
+
+    def gaussian_similarity(distance, max_distance, sigma=0.01):
+        """
+        Calculate the similarity score using Gaussian function.
+        distance: the distance between two configurations
+        sigma: the sigma of the Gaussian function
+        max_distance: the maximum distance between two configurations
+        The score is between 0 and 1. The larger the score, the more similar the two configurations are.
+        If sigma is heigher, the scope of the Gaussian function is wider.
+        """
+        if distance == 0: # when the distance is 0, the score should be 1
+            return 1.0
+
+        # Calculate the similarity score using Gaussian function
+        score = np.exp(-(distance**2) / (2 * sigma**2))
+        max_score = np.exp(-(max_distance**2) / (2 * sigma**2))
+        score = (score - max_score) / (1 - max_score)
+
+        if score < 0.001:
+            score = 0.0
+
+        return score
+
+    # for sliding
+    different_matrix = np.zeros((len(feasible_grasps), len(feasible_grasps)))
+    for i, grasp in enumerate(feasible_grasps):
+        for j, grasp in enumerate(feasible_grasps):
+            if i == j:
+                different_matrix[i, j] = 0
+            different_matrix[i, j] = get_position_difference_between_poses(feasible_grasps[i], feasible_grasps[j])
+
+    sliding_similarity_matrix = np.zeros((len(feasible_grasps), len(feasible_grasps)))
+    max_distance = np.max(different_matrix)
+    for i, grasp in enumerate(feasible_grasps):
+        for j, grasp in enumerate(feasible_grasps):
+            sliding_similarity_matrix[i, j] = gaussian_similarity(different_matrix[i, j], max_distance, sigma=0.1)
+
+    ####################################################################################################################
 
     # build the foliations for both re-grasping and sliding
     foliation_regrasp = ManipulationFoliation(foliation_name='regrasp', 
@@ -173,7 +218,7 @@ if __name__ == "__main__":
                                                 "position_tolerance": np.array([2000, 2000, 0.05])
                                             }, 
                                             co_parameters=feasible_grasps,
-                                            similarity_matrix=np.identity(feasible_grasps.__len__()))
+                                            similarity_matrix=sliding_similarity_matrix)
     
     print "number of feasible grasps: ", feasible_grasps.__len__()
 

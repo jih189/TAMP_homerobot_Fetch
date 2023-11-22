@@ -5,7 +5,7 @@ import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
 from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest, GetJointWithConstraints, GetJointWithConstraintsRequest
-from moveit_msgs.msg import RobotState, Constraints, OrientationConstraint, MoveItErrorCodes, AttachedCollisionObject
+from moveit_msgs.msg import RobotState, Constraints, OrientationConstraint, MoveItErrorCodes, AttachedCollisionObject, SamplingDistribution
 from sensor_msgs.msg import JointState
 from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
@@ -66,7 +66,15 @@ class MoveitMotionPlanner(BaseMotionPlanner):
             attached_object.object.pose = msgify(Pose, np.linalg.inv(co_parameter))
             start_moveit_robot_state.attached_collision_objects.append(attached_object)
 
-            self.move_group.set_distribution(planning_hint)
+            distribution_sequence = []
+
+            for h in planning_hint:
+                distribution = SamplingDistribution()
+                distribution.distribution_mean = h.mean.tolist()
+                distribution.distribution_convariance = h.covariance.flatten().tolist()
+                distribution_sequence.append(distribution)
+
+            self.move_group.set_distribution(distribution_sequence)
             # self.move_group.set_clean_planning_context_flag(True)
 
             # need to add the constraint

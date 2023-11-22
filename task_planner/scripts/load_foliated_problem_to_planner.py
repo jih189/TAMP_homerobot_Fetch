@@ -49,6 +49,8 @@ if __name__ == "__main__":
     # initialize the foliated planning framework
     foliated_planning_framework = FoliatedPlanningFramework(task_planner=task_planner, motion_planner=motion_planner)
 
+    foliated_planning_framework.setMaxAttemptTime(50)
+    
     # set the visualizer
     foliated_planning_framework.setVisualizer(visualizer)
 
@@ -83,62 +85,3 @@ if __name__ == "__main__":
 
     # shutdown the planning framework
     foliated_planning_framework.shutdown()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # task_planner.reset_task_planner()
-
-    # task_planner.load_foliated_problem(loaded_foliated_problem)
-
-    # task_planner.set_start_and_goal(
-    #     (0,0),
-    #     ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),
-    #     (0,2),
-    #     ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
-    # )
-
-    # task_sequence = task_planner.generate_task_sequence()
-
-    # for task in task_sequence:
-    #     print "-------------------"
-    #     print "start configuration"
-    #     print(task.start_configuration)
-    #     print "goal configuration"
-    #     print(task.goal_configuration)
-    #     print "constraints"
-    #     print task.manifold_detail.foliation.foliation_name
-    #     print task.manifold_detail.co_parameter_index
-    #     print task.manifold_detail.foliation.constraint_parameters
-    #     print "action on goal"
-    #     print task.next_motion
-    
-    #     # plan the motion
-    #     success_flag, motion_plan_result = motion_planner.plan(
-    #         task.start_configuration, 
-    #         task.goal_configuration, 
-    #         task.manifold_detail.foliation.constraint_parameters, 
-    #         task.next_motion
-    #     )
-
-    #     break
-
-    # motion_planner.shutdown_planner()
