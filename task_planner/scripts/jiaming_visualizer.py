@@ -4,6 +4,7 @@ from foliated_base_class import BaseIntersection, BaseTaskMotion, BaseVisualizer
 from geometry_msgs.msg import Point, Pose, PoseStamped
 from std_msgs.msg import ColorRGBA
 import moveit_msgs.msg
+import trajectory_msgs.msg
 from jiaming_helper import convert_joint_values_to_robot_state, make_mesh
 from visualization_msgs.msg import Marker, MarkerArray
 from ros_numpy import msgify
@@ -32,6 +33,12 @@ class MoveitVisualizer(BaseVisualizer):
         '''
         This function prepares the visualizer.
         '''
+        self.distribution_robot_state_publisher = rospy.Publisher(
+            "/move_group/result_distribution_robot_state",
+            moveit_msgs.msg.DisplayTrajectory,
+            queue_size=5,
+        )
+
         # self.object_publisher = rospy.Publisher('/intermediate_object', Marker, queue_size=10)
         self.object_publisher = rospy.Publisher('/intermediate_object', MarkerArray, queue_size=10)
         # this is used to display the planned path in rviz
@@ -70,6 +77,29 @@ class MoveitVisualizer(BaseVisualizer):
         self.attached_object.link_name = "wrist_roll_link"
         self.attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
 
+    def visualize_distribution(self, distributions):
+        '''
+        distribution is a list of distribution.
+        '''
+        if len(distributions) > 0:
+
+            display_trajectory_msg = moveit_msgs.msg.DisplayTrajectory()
+            # display_trajectory_msg.model_id = self.robot.get_name()
+            display_trajectory_msg.trajectory_start = convert_joint_values_to_robot_state(distributions[0].mean, self.active_joints, self.robot)
+
+            robot_trajectory_msg = moveit_msgs.msg.RobotTrajectory()
+            robot_trajectory_msg.joint_trajectory.joint_names = self.active_joints
+            for t, d in enumerate(distributions):
+                joint_trajectory_point = trajectory_msgs.msg.JointTrajectoryPoint()
+                joint_trajectory_point.positions = d.mean.tolist()
+                joint_trajectory_point.time_from_start = rospy.Duration(0.02 * t)
+                robot_trajectory_msg.joint_trajectory.points.append(joint_trajectory_point)
+            # robot_trajectory_msg.joint_trajectory.points
+            # [d.mean.tolist() for d in distributions]
+
+            display_trajectory_msg.trajectory.append(robot_trajectory_msg)
+
+            self.distribution_robot_state_publisher.publish(display_trajectory_msg)
 
     def visualize_plan(self, list_of_motion_plan):
         '''

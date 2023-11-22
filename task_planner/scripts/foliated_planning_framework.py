@@ -98,6 +98,12 @@ class FoliatedPlanningFramework():
             # solve the problem
             for task in task_sequence:
 
+                # try to visualize the task hints which is a list of distributions
+                print "distribution list"
+                for distribution in task.distributions:
+                    print distribution.mean
+                self.visualizer.visualize_distribution(task.distributions)
+
                 # if task.has_solution:
                 #     list_of_motion_plan.append(task.solution_trajectory)
                 # else:

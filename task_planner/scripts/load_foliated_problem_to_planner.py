@@ -27,20 +27,9 @@ if __name__ == "__main__":
 
     # load the gmm
     gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm/'
+    # gmm_dir_path = package_path + '/computed_gmms_dir/gmm/'
     gmm = GMM()
     gmm.load_distributions(gmm_dir_path)
-
-    # G = nx.Graph()
-    # for e in gmm.edge_of_distribution:
-    #     G.add_edge(e[0], e[1])
-
-    # # print number of components in the graph
-    # print "number of components in the graph: ", nx.number_connected_components(G)
-    # for c in nx.connected_components(G):
-    #     # print size of each component
-    #     print "size of component: ", len(c)
-
-    # exit()
 
     # load it into the task planner.
     # task_planner = MTGTaskPlanner()
