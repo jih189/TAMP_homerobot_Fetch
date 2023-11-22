@@ -7,8 +7,9 @@ import moveit_msgs.msg
 import trajectory_msgs.msg
 from jiaming_helper import convert_joint_values_to_robot_state, make_mesh
 from visualization_msgs.msg import Marker, MarkerArray
-from ros_numpy import msgify
+from ros_numpy import msgify, numpify
 import numpy as np
+from moveit_msgs.srv import GetPositionFK, GetPositionFKRequest
 
 class ManipulationTaskMotion(BaseTaskMotion):
     def __init__(self, planned_motion, has_object_in_hand, object_pose, object_mesh_path, obstacle_pose, obstacle_mesh_path):
@@ -33,6 +34,17 @@ class MoveitVisualizer(BaseVisualizer):
         '''
         This function prepares the visualizer.
         '''
+        rospy.wait_for_service('/compute_fk')
+        self.compute_fk_srv = rospy.ServiceProxy('/compute_fk', GetPositionFK)
+
+        # initialize a ros marker array publisher
+        self.sampled_robot_state_publisher = rospy.Publisher(
+            "sampled_robot_state",
+            MarkerArray,
+            queue_size=5)
+
+        self.sampled_marker_ids = []
+
         self.distribution_robot_state_publisher = rospy.Publisher(
             "/move_group/result_distribution_robot_state",
             moveit_msgs.msg.DisplayTrajectory,
@@ -76,6 +88,72 @@ class MoveitVisualizer(BaseVisualizer):
         self.attached_object = moveit_msgs.msg.AttachedCollisionObject()
         self.attached_object.link_name = "wrist_roll_link"
         self.attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
+
+    def visualize_sampled_configurations(self, sampled_configurations):
+        # use the moveit visualizer to visualize the sampled configurations
+        # sampled_configurations is a list of configurations
+
+        delete_marker_arrary = MarkerArray()
+        for i in self.sampled_marker_ids:
+            delete_marker = Marker()
+            delete_marker.header.frame_id = "base_link"
+            delete_marker.id = i
+            delete_marker.action = Marker.DELETE
+            delete_marker_arrary.markers.append(delete_marker)
+        self.sampled_robot_state_publisher.publish(delete_marker_arrary)
+
+        # create a marker array
+        marker_array = MarkerArray()
+
+        for t, c in enumerate(sampled_configurations):
+            # convert the sampled configuration into RobotState
+            current_robot_state = convert_joint_values_to_robot_state(c, self.active_joints, self.robot)
+
+            # pass current robot state to compute fk service
+            fk_request = GetPositionFKRequest()
+            fk_request.header.frame_id = "base_link"
+            fk_request.fk_link_names = self.robot.get_link_names(group="arm")
+            fk_request.robot_state = current_robot_state
+
+            fk_response = self.compute_fk_srv(fk_request)
+
+            arm_marker = Marker()
+            arm_marker.header.frame_id = "base_link"
+            arm_marker.id = 3*t
+            arm_marker.type = Marker.LINE_STRIP
+            arm_marker.scale = Point(0.02, 0.02, 0.02)
+            arm_marker.color = ColorRGBA(1,0,0,1)
+            arm_marker.points = [Point(p.pose.position.x,p.pose.position.y,p.pose.position.z) for p in fk_response.pose_stamped]
+            marker_array.markers.append(arm_marker)
+            self.sampled_marker_ids.append(3*t)
+
+            # fk_request.fk_link_names = self.robot.get_link_names(group="gripper")
+            # fk_response = self.compute_fk_srv(fk_request)
+
+            l_finger_marker = Marker()
+            l_finger_marker.header.frame_id = "base_link"
+            l_finger_marker.id = 3*t + 1
+            l_finger_marker.type = Marker.CUBE
+            l_finger_marker.scale = Point(0.1, 0.02, 0.02)
+            l_finger_marker.color = ColorRGBA(0,1,0,1)
+            l_finger_marker.pose = msgify(Pose, np.dot(numpify(fk_response.pose_stamped[-1].pose), np.array([[1,0,0,0.15],[0,1,0,0.045],[0,0,1,0],[0,0,0,1]])))
+            marker_array.markers.append(l_finger_marker)
+            self.sampled_marker_ids.append(3*t + 1)
+
+            r_finger_marker = Marker()
+            r_finger_marker.header.frame_id = "base_link"
+            r_finger_marker.id = 3*t + 2
+            r_finger_marker.type = Marker.CUBE
+            r_finger_marker.scale = Point(0.1, 0.02, 0.02)
+            r_finger_marker.color = ColorRGBA(0,1,0,1)
+            r_finger_marker.pose = msgify(Pose, np.dot(numpify(fk_response.pose_stamped[-1].pose), np.array([[1,0,0,0.15],[0,1,0,-0.045],[0,0,1,0],[0,0,0,1]])))
+            marker_array.markers.append(r_finger_marker)
+            self.sampled_marker_ids.append(3*t + 2)
+
+        self.sampled_robot_state_publisher.publish(marker_array)
+        # wait for the marker to be published
+        rospy.sleep(1.0)
+
 
     def visualize_distribution(self, distributions):
         '''
