@@ -44,7 +44,10 @@ class FoliatedPlanningFramework():
     def setStartAndGoal(self, start_foliation_index, start_co_parameter_index, start_configuration, goal_foliation_index, goal_co_parameter_index, goal_configuration):
         '''
         This function sets the start and goal configuration to the planning framework.
+        Both start and goal manifolds should not be the same.
         '''
+        if start_foliation_index == goal_foliation_index and start_co_parameter_index == goal_co_parameter_index:
+            raise Exception("Start and goal manifolds should not be the same.")
         self.start_foliation_index = start_foliation_index
         self.start_co_parameter_index = start_co_parameter_index
         self.goal_foliation_index = goal_foliation_index
