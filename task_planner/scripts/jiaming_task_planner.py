@@ -193,7 +193,7 @@ class BaseTaskPlanner(object):
         """
         raise NotImplementedError("Please Implement this method")
 
-    def update(self, task_graph_info_, plan_):
+    def update(self, task_graph_info_, plan_, solution_):
         """
         update task planner
         """
@@ -478,7 +478,7 @@ class MTGTaskPlanner(BaseTaskPlanner):
         return task_sequence
 
     # MTGTaskPlanner
-    def update(self, task_graph_info_, plan_):
+    def update(self, task_graph_info_, plan_, solution_):
 
         # get the current manifold id, previous manifold id and next manifold id of the task.
         current_manifold_id = self.task_graph.edges[task_graph_info_]['manifold_id']
@@ -490,7 +490,7 @@ class MTGTaskPlanner(BaseTaskPlanner):
 
             # save the solution trajectory to the task graph.
             self.task_graph.edges[task_graph_info_]['has_solution'] = True
-            self.task_graph.edges[task_graph_info_]['solution_trajectory'] = plan_[1]
+            self.task_graph.edges[task_graph_info_]['solution_trajectory'] = solution_ # plan_[1]
 
         else:
             if previous_manifold_id != None and next_manifold_id != None:
@@ -643,7 +643,7 @@ class MDPTaskPlanner(BaseTaskPlanner):
         return task_sequence
 
     # MDPTaskPlanner
-    def update(self, task_graph_info_, plan_):
+    def update(self, task_graph_info_, plan_, solution_):
         
         current_manifold_id = self.task_graph.edges[task_graph_info_]['manifold_id']
         previous_manifold_id = self.task_graph.nodes[task_graph_info_[0]]['previous_manifold_id']
@@ -686,7 +686,7 @@ class MDPTaskPlanner(BaseTaskPlanner):
         if plan_[0]:
             # save the solution trajectory to the task graph.
             self.task_graph.edges[task_graph_info_]['has_solution'] = True
-            self.task_graph.edges[task_graph_info_]['solution_trajectory'] = plan_[1]
+            self.task_graph.edges[task_graph_info_]['solution_trajectory'] = solution_ #plan_[1]
             # set the current edge's probability to 1.0
             self.task_graph.edges[task_graph_info_]['probability'] = 1.0
 
@@ -905,7 +905,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         return task_sequence
 
     # MTGTaskPlannerWithGMM
-    def update(self, task_graph_info_, plan_):
+    def update(self, task_graph_info_, plan_, solution_):
         # use the sample data to update the task graph.
         # sampled_state_tag hint
         # 0: collision free
@@ -927,7 +927,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         if plan_[0]:
             # save the solution if it exists.
-            self.save_solution_to_task_solution_graph(task_graph_info_[0], task_graph_info_[1], plan_[1])
+            self.save_solution_to_task_solution_graph(task_graph_info_[0], task_graph_info_[1], solution_) # plan_[1])
 
         # initialize a table with number of distributions in GMM times 4.
         # each row is a distribution in GMM, and each column is a tag of sampled data.
@@ -1245,7 +1245,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
         return task_sequence
 
     # MDPTaskPlannerWithGMM
-    def update(self, task_graph_info_, plan_):
+    def update(self, task_graph_info_, plan_, solution_):
 
         # use the sample data to update the task graph.
         # sampled_state_tag hint
@@ -1267,7 +1267,7 @@ class MDPTaskPlannerWithGMM(BaseTaskPlanner):
 
         if plan_[0]:
             # save the solution if it exists.
-            self.save_solution_to_task_solution_graph(task_graph_info_[0], task_graph_info_[1], plan_[1])
+            self.save_solution_to_task_solution_graph(task_graph_info_[0], task_graph_info_[1], solution_) # plan_[1])
 
         # initialize a table with number of distributions in GMM times 4.
         # each row is a distribution in GMM, and each column is a tag of sampled data.
