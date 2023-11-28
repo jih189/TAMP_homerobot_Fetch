@@ -202,7 +202,7 @@ class MoveitVisualizer(BaseVisualizer):
         marker_array.markers.append(action_name_marker)
         self.task_info_marker_ids.append(action_name_marker.id)
 
-        # # add the object marker based on the task_constraint_parameters
+        # add the object marker based on the task_constraint_parameters
         if task_constraint_parameters['is_object_in_hand']:
             # get end effector pose
             start_end_effector_pose = self.get_end_effector_pose(start_configuration)
@@ -247,6 +247,19 @@ class MoveitVisualizer(BaseVisualizer):
             marker_array.markers.append(object_marker)
 
             self.task_info_marker_ids.append(object_marker.id)
+
+        # add the obstacle marker based on the task_constraint_parameters
+        obstacle_marker = Marker()
+        obstacle_marker.header.frame_id = "base_link"
+        obstacle_marker.id = 9
+        obstacle_marker.type = Marker.MESH_RESOURCE
+        obstacle_marker.scale = Point(1,1,1)
+        obstacle_marker.color = ColorRGBA(1,1,1,1)
+        obstacle_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_constraint_parameters['obstacle_mesh'])
+        obstacle_marker.pose = msgify(Pose, task_constraint_parameters['obstacle_pose'])
+        marker_array.markers.append(obstacle_marker)
+
+        self.task_info_marker_ids.append(obstacle_marker.id)
 
         self.task_info_publisher.publish(marker_array)
 
