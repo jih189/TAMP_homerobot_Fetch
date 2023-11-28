@@ -49,7 +49,7 @@ if __name__ == "__main__":
     # initialize the foliated planning framework
     foliated_planning_framework = FoliatedPlanningFramework(task_planner=task_planner, motion_planner=motion_planner)
 
-    foliated_planning_framework.setMaxAttemptTime(50)
+    foliated_planning_framework.setMaxAttemptTime(5)
     
     # set the visualizer
     foliated_planning_framework.setVisualizer(visualizer)
@@ -59,9 +59,9 @@ if __name__ == "__main__":
 
     # set the start and goal
     foliated_planning_framework.setStartAndGoal(
-        0, 16,
+        0, 0,
         ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints()),
-        0, 18,
+        0, 14,
         ManipulationIntersection(action='goal', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints())
     )
 

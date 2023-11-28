@@ -3,6 +3,7 @@
 from foliated_base_class import FoliatedProblem, FoliatedIntersection
 from manipulation_foliations_and_intersections import ManipulationFoliation, ManipulationIntersection
 
+import os
 import sys
 import rospy
 import rospkg
@@ -27,6 +28,8 @@ import struct
 import random
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 import json
+from visualization_msgs.msg import Marker, MarkerArray
+from std_msgs.msg import ColorRGBA
 
 def convert_pose_stamped_to_matrix(pose_stamped):
     pose_matrix = transformations.quaternion_matrix([pose_stamped.pose.orientation.w, 
@@ -72,6 +75,11 @@ if __name__ == "__main__":
         rate.sleep()
     joint_state_publisher.publish(joint_state)
 
+    ###############################################################################################################
+    # need to visualize all feasbile placement and the obstacle as markerarray in the rviz
+
+    problem_publisher = rospy.Publisher('/problem_visualization_marker_array', MarkerArray, queue_size=5)
+
     ########################################## create a foliated problem ##########################################
 
     # For the maze problem, we have two foliations:
@@ -81,7 +89,7 @@ if __name__ == "__main__":
 
     table_top_pose = np.array([[1, 0, 0, 0.5],
                             [0, 1, 0, 0],
-                            [0, 0, 1, 0.8],
+                            [0, 0, 1, 0.78],
                             [0, 0, 0, 1]])
 
     env_pose = PoseStamped()
@@ -104,10 +112,10 @@ if __name__ == "__main__":
     collision_manager.add_object('env', env_mesh)
 
     # find all feasible placements as the co-parameter for re-grasping foliation
-    num_of_row = 6
-    num_of_col = 8
-    x_shift = 0.56
-    y_shift = 0.1
+    num_of_row = 5
+    num_of_col = 9
+    x_shift = 0.6
+    y_shift = 0.09
     z_shift = 0.78
     feasible_placements = []
     for i in range(num_of_row):
@@ -215,7 +223,7 @@ if __name__ == "__main__":
                                                 "obstacle_pose": convert_pose_stamped_to_matrix(env_pose),
                                                 "reference_pose": table_top_pose,
                                                 "orientation_tolerance": np.array([0.1, 0.1, 2*3.14]),
-                                                "position_tolerance": np.array([2000, 2000, 0.05])
+                                                "position_tolerance": np.array([2000, 2000, 0.02])
                                             }, 
                                             co_parameters=feasible_grasps,
                                             similarity_matrix=sliding_similarity_matrix)
@@ -304,6 +312,42 @@ if __name__ == "__main__":
     foliated_problem = FoliatedProblem("maze_task")
     foliated_problem.set_foliation_n_foliated_intersection([foliation_regrasp, foliation_slide], [foliated_intersection])
     foliated_problem.sample_intersections(3000)
+
+    ###############################################################################################################
+    # visualize both intermedaite placements and obstacles
+    marker_array = MarkerArray()
+
+    # visualize the obstacle
+    obstacle_marker = Marker()
+    obstacle_marker.header.frame_id = "base_link"
+    obstacle_marker.header.stamp = rospy.Time.now()
+    obstacle_marker.ns = "obstacle"
+    obstacle_marker.id = 0
+    obstacle_marker.type = Marker.MESH_RESOURCE
+    obstacle_marker.action = Marker.ADD
+    obstacle_marker.pose = env_pose.pose
+    obstacle_marker.scale = Point(1, 1, 1)
+    obstacle_marker.color = ColorRGBA(0.5, 0.5, 0.5, 1)
+    obstacle_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(env_mesh_path)
+    marker_array.markers.append(obstacle_marker)
+
+    # visualize the placements
+    for i, placement in enumerate(feasible_placements):
+        object_marker = Marker()
+        object_marker.header.frame_id = "base_link"
+        object_marker.header.stamp = rospy.Time.now()
+        object_marker.ns = "placement"
+        object_marker.id = i + 1
+        object_marker.type = Marker.MESH_RESOURCE
+        object_marker.action = Marker.ADD
+        object_marker.pose = msgify(geometry_msgs.msg.Pose, placement)
+        object_marker.scale = Point(1, 1, 1)
+        object_marker.color = ColorRGBA(0.5, 0.5, 0.5, 1)
+        object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(manipulated_object_mesh_path)
+        marker_array.markers.append(object_marker)
+        
+    problem_publisher.publish(marker_array)
+
     ###############################################################################################################
     
     # save the foliated problem

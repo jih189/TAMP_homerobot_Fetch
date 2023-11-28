@@ -40,11 +40,11 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         obstacle_pose_stamped.header.frame_id = "base_link"
         obstacle_pose_stamped.pose = msgify(Pose, foliation_constraints['obstacle_pose'])
 
-        # add the obstacle into the planning scene.
-        self.scene.add_mesh("obstacle", obstacle_pose_stamped, foliation_constraints['obstacle_mesh'], size=(1,1,1))
-        # wait for the obstacle to be added into the planning scene
-        while "obstacle" not in self.scene.get_known_object_names():
-            rospy.sleep(0.0001)
+        # # add the obstacle into the planning scene.
+        # self.scene.add_mesh("obstacle", obstacle_pose_stamped, foliation_constraints['obstacle_mesh'], size=(1,1,1))
+        # # wait for the obstacle to be added into the planning scene
+        # while "obstacle" not in self.scene.get_known_object_names():
+        #     rospy.sleep(0.0001)
 
         start_moveit_robot_state = convert_joint_values_to_robot_state(start_configuration, self.move_group.get_active_joints(), self.robot)
 
