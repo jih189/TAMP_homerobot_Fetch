@@ -98,10 +98,6 @@ class FoliatedPlanningFramework():
             # solve the problem
             for task in task_sequence:
 
-                # try to visualize the task hints which is a list of distributions
-                if self.has_visualizer:
-                    self.visualizer.visualize_distribution(task.distributions)
-
                 # if task.has_solution:
                 #     list_of_motion_plan.append(task.solution_trajectory)
                 # else:
@@ -114,12 +110,20 @@ class FoliatedPlanningFramework():
                     task.distributions
                 )
 
-                # the following code is for debugging
+                # the following code is for debugging with visualizer.
                 if self.has_visualizer:
                     sampled_data = [sampled_data.sampled_state for sampled_data in experience[4].verified_motions]
-                    # down sampling the sampled_data to 100
-                    self.visualizer.visualize_sampled_configurations(sampled_data, action_name=task.manifold_detail.foliation.foliation_name)
-
+                    # visualize the sampled data
+                    # self.visualizer.visualize_for_debug(sampled_data, action_name=task.manifold_detail.foliation.foliation_name)
+                    self.visualizer.visualize_for_debug(
+                        sampled_data, 
+                        task_constraint_parameters=task.manifold_detail.foliation.constraint_parameters,
+                        start_configuration=task.start_configuration,
+                        goal_configuration=task.goal_configuration,
+                        action_name=task.manifold_detail.foliation.foliation_name,
+                        co_parameter=task.manifold_detail.foliation.co_parameters[task.manifold_detail.co_parameter_index]
+                    )
+                    
                 self.task_planner.update(task.task_graph_info, experience)
 
                 if success_flag:

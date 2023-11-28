@@ -46,13 +46,13 @@ class MoveitVisualizer(BaseVisualizer):
 
         self.sampled_marker_ids = []
 
-        self.distribution_robot_state_publisher = rospy.Publisher(
-            "/move_group/result_distribution_robot_state",
-            moveit_msgs.msg.DisplayTrajectory,
-            queue_size=5,
-        )
+        self.task_info_publisher = rospy.Publisher(
+            "task_info",
+            MarkerArray,
+            queue_size=5)
 
-        # self.object_publisher = rospy.Publisher('/intermediate_object', Marker, queue_size=10)
+        self.task_info_marker_ids = []
+
         self.object_publisher = rospy.Publisher('/intermediate_object', MarkerArray, queue_size=10)
         # this is used to display the planned path in rviz
         self.display_robot_state_publisher = rospy.Publisher(
@@ -71,7 +71,6 @@ class MoveitVisualizer(BaseVisualizer):
         self.manipulated_object_marker.type = Marker.MESH_RESOURCE
         self.manipulated_object_marker.scale = Point(1,1,1)
         self.manipulated_object_marker.color = ColorRGBA(0,1,0,1)
-        # manipulated_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_planner.manifold_info[(experiment.start_foliation_id, experiment.start_manifold_id)].object_mesh)
         self.whole_scene_marker_array.markers.append(self.manipulated_object_marker)
 
         self.obstacle_marker = Marker()
@@ -90,7 +89,168 @@ class MoveitVisualizer(BaseVisualizer):
         self.attached_object.link_name = "wrist_roll_link"
         self.attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
 
-    def visualize_sampled_configurations(self, sampled_configurations, action_name=None):
+    def visualize_for_debug(self, sampled_configurations, task_constraint_parameters, start_configuration, goal_configuration, action_name, co_parameter):
+
+        self.visualize_sampled_configurations(sampled_configurations)
+
+        self.visualize_task_information(task_constraint_parameters, start_configuration, goal_configuration, action_name, co_parameter)
+
+        # wait for the marker to be published
+        rospy.sleep(1.0)
+
+    def get_end_effector_pose(self, configuration):
+        '''
+        This function will return the end effector pose of the given configuration.
+        '''
+        # convert the sampled configuration into RobotState
+        current_robot_state = convert_joint_values_to_robot_state(configuration, self.active_joints, self.robot)
+
+        # pass current robot state to compute fk service
+        fk_request = GetPositionFKRequest()
+        fk_request.header.frame_id = "base_link"
+        fk_request.fk_link_names = ['wrist_roll_link']
+        fk_request.robot_state = current_robot_state
+
+        fk_response = self.compute_fk_srv(fk_request)
+
+        return numpify(fk_response.pose_stamped[0].pose)
+
+    def generate_configuration_marker(self, configuration, id, arm_color=ColorRGBA(1,0,0,0.3), finger_color=ColorRGBA(0,1,0,0.3)):
+        '''
+        '''
+        # convert the sampled configuration into RobotState
+        current_robot_state = convert_joint_values_to_robot_state(configuration, self.active_joints, self.robot)
+
+        # pass current robot state to compute fk service
+        fk_request = GetPositionFKRequest()
+        fk_request.header.frame_id = "base_link"
+        fk_request.fk_link_names = self.robot.get_link_names(group="arm")
+        fk_request.robot_state = current_robot_state
+
+        fk_response = self.compute_fk_srv(fk_request)
+
+        arm_marker = Marker()
+        arm_marker.header.frame_id = "base_link"
+        arm_marker.id = id
+        arm_marker.type = Marker.LINE_STRIP
+        arm_marker.scale = Point(0.02, 0.02, 0.02)
+        arm_marker.color = arm_color
+        arm_marker.points = [Point(p.pose.position.x,p.pose.position.y,p.pose.position.z) for p in fk_response.pose_stamped]
+        
+        l_finger_marker = Marker()
+        l_finger_marker.header.frame_id = "base_link"
+        l_finger_marker.id = id + 1
+        l_finger_marker.type = Marker.CUBE
+        l_finger_marker.scale = Point(0.1, 0.02, 0.02)
+        l_finger_marker.color = finger_color
+        l_finger_marker.pose = msgify(Pose, np.dot(numpify(fk_response.pose_stamped[-1].pose), np.array([[1,0,0,0.15],[0,1,0,0.045],[0,0,1,0],[0,0,0,1]])))
+
+        r_finger_marker = Marker()
+        r_finger_marker.header.frame_id = "base_link"
+        r_finger_marker.id = id + 2
+        r_finger_marker.type = Marker.CUBE
+        r_finger_marker.scale = Point(0.1, 0.02, 0.02)
+        r_finger_marker.color = finger_color
+        r_finger_marker.pose = msgify(Pose, np.dot(numpify(fk_response.pose_stamped[-1].pose), np.array([[1,0,0,0.15],[0,1,0,-0.045],[0,0,1,0],[0,0,0,1]])))
+
+        return arm_marker, l_finger_marker, r_finger_marker
+
+    def visualize_task_information(self, task_constraint_parameters, start_configuration, goal_configuration, action_name, co_parameter):
+        # visualize the task information
+
+        # clean previous marker
+        delete_marker_arrary = MarkerArray()
+        for i in self.task_info_marker_ids:
+            delete_marker = Marker()
+            delete_marker.header.frame_id = "base_link"
+            delete_marker.id = i
+            delete_marker.action = Marker.DELETE
+            delete_marker_arrary.markers.append(delete_marker)
+        self.task_info_publisher.publish(delete_marker_arrary)
+
+        marker_array = MarkerArray()
+
+        # visualize the start configuration
+        start_arm_marker, start_l_finger_marker, start_r_finger_marker = self.generate_configuration_marker(start_configuration, 0, arm_color=ColorRGBA(0,0,1,1), finger_color=ColorRGBA(0,0,1,1))
+        marker_array.markers.append(start_arm_marker)
+        marker_array.markers.append(start_l_finger_marker)
+        marker_array.markers.append(start_r_finger_marker)
+
+        self.task_info_marker_ids.append(start_arm_marker.id)
+        self.task_info_marker_ids.append(start_l_finger_marker.id)
+        self.task_info_marker_ids.append(start_r_finger_marker.id)
+
+        # visualize the goal configuration
+        goal_arm_marker, goal_l_finger_marker, goal_r_finger_marker = self.generate_configuration_marker(goal_configuration, 3, arm_color=ColorRGBA(0,0,1,1), finger_color=ColorRGBA(0,0,1,1))
+        marker_array.markers.append(goal_arm_marker)
+        marker_array.markers.append(goal_l_finger_marker)
+        marker_array.markers.append(goal_r_finger_marker)
+
+        self.task_info_marker_ids.append(goal_arm_marker.id)
+        self.task_info_marker_ids.append(goal_l_finger_marker.id)
+        self.task_info_marker_ids.append(goal_r_finger_marker.id)
+
+        # visualize the action name
+        action_name_marker = Marker()
+        action_name_marker.header.frame_id = "base_link"
+        action_name_marker.id = 6
+        action_name_marker.type = Marker.TEXT_VIEW_FACING
+        action_name_marker.scale = Point(0.15, 0.15, 0.15)
+        action_name_marker.color = ColorRGBA(1,1,1,1)
+        action_name_marker.text = action_name
+        action_name_marker.pose.position = Point(0,0,2.0)
+        marker_array.markers.append(action_name_marker)
+        self.task_info_marker_ids.append(action_name_marker.id)
+
+        # # add the object marker based on the task_constraint_parameters
+        if task_constraint_parameters['is_object_in_hand']:
+            # get end effector pose
+            start_end_effector_pose = self.get_end_effector_pose(start_configuration)
+            # add the object marker
+            start_object_marker = Marker()
+            start_object_marker.header.frame_id = "base_link"
+            start_object_marker.id = 7
+            start_object_marker.type = Marker.MESH_RESOURCE
+            start_object_marker.scale = Point(1,1,1)
+            start_object_marker.color = ColorRGBA(0,1,1,1)
+            start_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_constraint_parameters['object_mesh_path'])
+            start_object_marker.pose = msgify(Pose, np.dot(start_end_effector_pose, np.linalg.inv(co_parameter)))
+            marker_array.markers.append(start_object_marker)
+
+            self.task_info_marker_ids.append(start_object_marker.id)
+
+            # get end effector pose
+            goal_end_effector_pose = self.get_end_effector_pose(goal_configuration)
+            # add the object marker
+            goal_object_marker = Marker()
+            goal_object_marker.header.frame_id = "base_link"
+            goal_object_marker.id = 8
+            goal_object_marker.type = Marker.MESH_RESOURCE
+            goal_object_marker.scale = Point(1,1,1)
+            goal_object_marker.color = ColorRGBA(0,1,1,1)
+            goal_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_constraint_parameters['object_mesh_path'])
+            goal_object_marker.pose = msgify(Pose, np.dot(goal_end_effector_pose, np.linalg.inv(co_parameter)))
+            marker_array.markers.append(goal_object_marker)
+
+            self.task_info_marker_ids.append(goal_object_marker.id)
+
+        else:
+
+            object_marker = Marker()
+            object_marker.header.frame_id = "base_link"
+            object_marker.id = 7
+            object_marker.type = Marker.MESH_RESOURCE
+            object_marker.scale = Point(1,1,1)
+            object_marker.color = ColorRGBA(0,1,1,1)
+            object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_constraint_parameters['object_mesh_path'])
+            object_marker.pose = msgify(Pose, co_parameter)
+            marker_array.markers.append(object_marker)
+
+            self.task_info_marker_ids.append(object_marker.id)
+
+        self.task_info_publisher.publish(marker_array)
+
+    def visualize_sampled_configurations(self, sampled_configurations):
         # use the moveit visualizer to visualize the sampled configurations
         # sampled_configurations is a list of configurations
 
@@ -111,92 +271,15 @@ class MoveitVisualizer(BaseVisualizer):
         marker_array = MarkerArray()
 
         for t, c in enumerate(sampled_configurations):
-            # convert the sampled configuration into RobotState
-            current_robot_state = convert_joint_values_to_robot_state(c, self.active_joints, self.robot)
-
-            # pass current robot state to compute fk service
-            fk_request = GetPositionFKRequest()
-            fk_request.header.frame_id = "base_link"
-            fk_request.fk_link_names = self.robot.get_link_names(group="arm")
-            fk_request.robot_state = current_robot_state
-
-            fk_response = self.compute_fk_srv(fk_request)
-
-            arm_marker = Marker()
-            arm_marker.header.frame_id = "base_link"
-            arm_marker.id = 3*t
-            arm_marker.type = Marker.LINE_STRIP
-            arm_marker.scale = Point(0.02, 0.02, 0.02)
-            arm_marker.color = ColorRGBA(1,0,0,1)
-            arm_marker.points = [Point(p.pose.position.x,p.pose.position.y,p.pose.position.z) for p in fk_response.pose_stamped]
+            arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t)
             marker_array.markers.append(arm_marker)
-            self.sampled_marker_ids.append(3*t)
-
-            # fk_request.fk_link_names = self.robot.get_link_names(group="gripper")
-            # fk_response = self.compute_fk_srv(fk_request)
-
-            l_finger_marker = Marker()
-            l_finger_marker.header.frame_id = "base_link"
-            l_finger_marker.id = 3*t + 1
-            l_finger_marker.type = Marker.CUBE
-            l_finger_marker.scale = Point(0.1, 0.02, 0.02)
-            l_finger_marker.color = ColorRGBA(0,1,0,1)
-            l_finger_marker.pose = msgify(Pose, np.dot(numpify(fk_response.pose_stamped[-1].pose), np.array([[1,0,0,0.15],[0,1,0,0.045],[0,0,1,0],[0,0,0,1]])))
             marker_array.markers.append(l_finger_marker)
-            self.sampled_marker_ids.append(3*t + 1)
-
-            r_finger_marker = Marker()
-            r_finger_marker.header.frame_id = "base_link"
-            r_finger_marker.id = 3*t + 2
-            r_finger_marker.type = Marker.CUBE
-            r_finger_marker.scale = Point(0.1, 0.02, 0.02)
-            r_finger_marker.color = ColorRGBA(0,1,0,1)
-            r_finger_marker.pose = msgify(Pose, np.dot(numpify(fk_response.pose_stamped[-1].pose), np.array([[1,0,0,0.15],[0,1,0,-0.045],[0,0,1,0],[0,0,0,1]])))
             marker_array.markers.append(r_finger_marker)
-            self.sampled_marker_ids.append(3*t + 2)
-
-        if action_name is not None:
-            # visualize the action name
-            action_name_marker = Marker()
-            action_name_marker.header.frame_id = "base_link"
-            action_name_marker.id = 3*len(sampled_configurations)
-            action_name_marker.type = Marker.TEXT_VIEW_FACING
-            action_name_marker.scale = Point(0.15, 0.15, 0.15)
-            action_name_marker.color = ColorRGBA(1,1,1,1)
-            action_name_marker.text = action_name
-            action_name_marker.pose.position = Point(0,0,2.0)
-            marker_array.markers.append(action_name_marker)
-            self.sampled_marker_ids.append(3*len(sampled_configurations))
-
+            self.sampled_marker_ids.append(arm_marker.id)
+            self.sampled_marker_ids.append(l_finger_marker.id)
+            self.sampled_marker_ids.append(r_finger_marker.id)
 
         self.sampled_robot_state_publisher.publish(marker_array)
-        # wait for the marker to be published
-        rospy.sleep(1.0)
-
-
-    def visualize_distribution(self, distributions):
-        '''
-        distribution is a list of distribution.
-        '''
-        if len(distributions) > 0:
-
-            display_trajectory_msg = moveit_msgs.msg.DisplayTrajectory()
-            # display_trajectory_msg.model_id = self.robot.get_name()
-            display_trajectory_msg.trajectory_start = convert_joint_values_to_robot_state(distributions[0].mean, self.active_joints, self.robot)
-
-            robot_trajectory_msg = moveit_msgs.msg.RobotTrajectory()
-            robot_trajectory_msg.joint_trajectory.joint_names = self.active_joints
-            for t, d in enumerate(distributions):
-                joint_trajectory_point = trajectory_msgs.msg.JointTrajectoryPoint()
-                joint_trajectory_point.positions = d.mean.tolist()
-                joint_trajectory_point.time_from_start = rospy.Duration(0.02 * t)
-                robot_trajectory_msg.joint_trajectory.points.append(joint_trajectory_point)
-            # robot_trajectory_msg.joint_trajectory.points
-            # [d.mean.tolist() for d in distributions]
-
-            display_trajectory_msg.trajectory.append(robot_trajectory_msg)
-
-            self.distribution_robot_state_publisher.publish(display_trajectory_msg)
 
     def visualize_plan(self, list_of_motion_plan):
         '''
