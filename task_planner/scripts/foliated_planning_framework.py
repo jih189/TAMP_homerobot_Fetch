@@ -118,7 +118,7 @@ class FoliatedPlanningFramework():
                 if self.has_visualizer:
                     sampled_data = [sampled_data.sampled_state for sampled_data in experience[4].verified_motions]
                     # down sampling the sampled_data to 100
-                    self.visualizer.visualize_sampled_configurations(sampled_data)
+                    self.visualizer.visualize_sampled_configurations(sampled_data, action_name=task.manifold_detail.foliation.foliation_name)
 
                 self.task_planner.update(task.task_graph_info, experience)
 

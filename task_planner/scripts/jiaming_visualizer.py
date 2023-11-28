@@ -90,7 +90,7 @@ class MoveitVisualizer(BaseVisualizer):
         self.attached_object.link_name = "wrist_roll_link"
         self.attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
 
-    def visualize_sampled_configurations(self, sampled_configurations):
+    def visualize_sampled_configurations(self, sampled_configurations, action_name=None):
         # use the moveit visualizer to visualize the sampled configurations
         # sampled_configurations is a list of configurations
 
@@ -154,6 +154,20 @@ class MoveitVisualizer(BaseVisualizer):
             r_finger_marker.pose = msgify(Pose, np.dot(numpify(fk_response.pose_stamped[-1].pose), np.array([[1,0,0,0.15],[0,1,0,-0.045],[0,0,1,0],[0,0,0,1]])))
             marker_array.markers.append(r_finger_marker)
             self.sampled_marker_ids.append(3*t + 2)
+
+        if action_name is not None:
+            # visualize the action name
+            action_name_marker = Marker()
+            action_name_marker.header.frame_id = "base_link"
+            action_name_marker.id = 3*len(sampled_configurations)
+            action_name_marker.type = Marker.TEXT_VIEW_FACING
+            action_name_marker.scale = Point(0.15, 0.15, 0.15)
+            action_name_marker.color = ColorRGBA(1,1,1,1)
+            action_name_marker.text = action_name
+            action_name_marker.pose.position = Point(0,0,2.0)
+            marker_array.markers.append(action_name_marker)
+            self.sampled_marker_ids.append(3*len(sampled_configurations))
+
 
         self.sampled_robot_state_publisher.publish(marker_array)
         # wait for the marker to be published
