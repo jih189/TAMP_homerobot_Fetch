@@ -6,11 +6,8 @@ from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerW
 from jiaming_motion_planner import MoveitMotionPlanner
 from jiaming_visualizer import MoveitVisualizer
 
-import sys
 import rospy
 import rospkg
-
-import networkx as nx
 
 
 if __name__ == "__main__":
