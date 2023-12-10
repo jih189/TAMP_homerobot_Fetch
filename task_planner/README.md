@@ -92,6 +92,8 @@ Then, run following code to load the problem and solve it with our planning fram
 rosrun task_planner load_foliated_problem_to_planner.py
 ```
 
+In case you want to visualize the task and sampling data, you can add two MarkerArray makers named "/sampled_robot_state" and "task_info" in Rviz. The final result should be RobotState named "move_group/result_display_robot_state", and Rviz should display the solution trajectory as anime.
+
 ## Evaluation tutorial
 TODO
 <!-- We also provide the code to evaluate different task planner. 
