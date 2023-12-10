@@ -83,7 +83,7 @@ roslaunch fetch_moveit_config fake_move_group.launch
 Then you need to provide your own code to generate folited problem, and then a code to load the problem and solve it with our planning framework. Here are the examples to do that, such <b>created_foliated_problem.py</b> and <b>load_foliated_problem_to_planner.py</b>. Then, run following code to generate the problem.
   
 ```
-rosrun task_planner created_foliated_problem.py
+rosrun task_planner create_foliated_problem.py
 ```
 
 Then, run following code to load the problem and solve it with our planning framework.
