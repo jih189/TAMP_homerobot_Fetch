@@ -28,6 +28,20 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         # self.move_group.set_planner_id('RRTConnectkConfigDefault')
         self.move_group.set_planning_time(2.0)
 
+        # set initial joint state
+        joint_state_publisher = rospy.Publisher('/move_group/fake_controller_joint_states', JointState, queue_size=1)
+
+        # Create a JointState message
+        joint_state = JointState()
+        joint_state.header.stamp = rospy.Time.now()
+        joint_state.name = ['torso_lift_joint', 'shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'wrist_flex_joint', 'l_gripper_finger_joint', 'r_gripper_finger_joint']
+        joint_state.position = [0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
+
+        rate = rospy.Rate(10)
+        while(joint_state_publisher.get_num_connections() < 1): # need to wait until the publisher is ready.
+            rate.sleep()
+        joint_state_publisher.publish(joint_state)
+
     def plan(self, start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint):
 
         # reset the motion planner
