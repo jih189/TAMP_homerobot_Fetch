@@ -1,76 +1,10 @@
 import numpy as np
 import networkx as nx
-from sklearn import mixture
 from foliated_base_class import BaseTaskPlanner, ManifoldDetail, IntersectionDetail, Task
 import time
+from jiaming_GMM import GMM
 
 import matplotlib.pyplot as plt
-
-class GaussianDistribution:
-    def __init__(self, 
-                mean_,
-                covariance_,
-                ):
-        # Constructor
-        self.mean = mean_
-        self.covariance = covariance_
-
-class GMM:
-    def __init__(self):
-        # Constructor
-        self.distributions = []
-        self.edge_of_distribution = []
-        self.edge_probabilities = []
-        self._sklearn_gmm = None
-        
-        self.collision_free_rates = []
-
-    def get_distribution_index(self, configuration_):
-        # find which distribution the configuration belongs to
-        # then return the distribution
-        # configuration_ is a (d,) element array : (d = 7)
-        dist_num = self._sklearn_gmm.predict(configuration_.reshape((1, -1))).squeeze()
-        return dist_num.item()
-
-    def get_distribution_indexs(self, configurations_):
-        # find which distribution the configuration belongs to
-        # then return the distribution
-        # configuration_ is a (d,) element array : (d = 7)
-        dist_nums = self._sklearn_gmm.predict(configurations_)
-        return dist_nums
-
-    def get_distribution(self, configuration_):
-        # find which distribution the configuration belongs to
-        # then return the distribution
-        # configuration_ is a (d,) element array : (d = 7)
-        dist_num = self._sklearn_gmm.predict(configuration_.reshape((1, -1))).squeeze()
-        # return GaussianDistribution(self._sklearn_gmm.means_[dist_num], self._sklearn_gmm.covariances_[dist_num])
-        return self.distributions[dist_num]
-
-    def load_distributions(self, dir_name = "../gmm/"):
-
-        means = np.load(dir_name + 'means.npy')
-        covariances = np.load(dir_name + 'covariances.npy')
-
-        # Create an sklearn Gaussian Mixture Model 
-        self._sklearn_gmm = mixture.GaussianMixture(n_components = len(means), covariance_type='full')
-        self._sklearn_gmm.precisions_cholesky_ = np.linalg.cholesky(np.linalg.inv(covariances))
-        self._sklearn_gmm.weights_ = np.load(dir_name + 'weights.npy') # how common this distribution is.
-        self._sklearn_gmm.means_ = means
-        self._sklearn_gmm.covariances_ = covariances
-
-        for mean, covariance in zip(means, covariances):
-            self.distributions.append(GaussianDistribution(mean, covariance))
-            self.collision_free_rates.append(0.5)
-        print("Loaded %d distributions " % len(means), dir_name)
-        self.edge_of_distribution = np.load(dir_name + 'edges.npy')
-        self.edge_probabilities = np.load(dir_name + 'edge_probabilities.npy')
-
-    def update_collision_free_rates(self, pointcloud_):
-        '''
-        update the collision-free rate of each distribution.
-        '''
-        pass
 
 class MTGTaskPlanner(BaseTaskPlanner):
     def __init__(self, planner_name_="MTGTaskPlanner", parameter_dict_={}):
@@ -398,6 +332,21 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
     # MTGTaskPlannerWithGMM
     def update(self, task_graph_info_, plan_):
+        """
+        After planning a motion task in a foliated manifold M(f', c'), we receive a set of configuration with its status.
+        Where f', c' are the foliation id and co-parameter id define the current task's manifold.
+        The sampled_data_distribution_tag_table is a table with shape (number of distributions in GMM, 4).
+        Each row is a distribution in GMM, and each column is a tag of sampled data.
+        The value in the table is the number of sampled data with the same distribution id and tag.
+
+        Then, we need to update the weight of all nodes in the task graph having the same foliation with the foliated manifold M(f', c').
+        For each node (f, c, d) where f is the foliation id, c is the co-parameter id, and d is the distribution id, we update the weight of the node by:
+        current_similarity_score is the similarty between c and c' in the foliation f.
+        arm_env_collision_score = sampled_data_distribution_tag_table[d][1] * 1.0
+        path_constraint_violation_score = current_similarity_score * sampled_data_distribution_tag_table[d][2] * 1.0
+        obj_env_collision_score = current_similarity_score * sampled_data_distribution_tag_table[d][3] * 1.0
+        weight = weight + arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+        """
         # use the sample data to update the task graph.
         # sampled_state_tag hint
         # 0: collision free
@@ -428,6 +377,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         # tag in column 3: obj-env collision
         sampled_data_distribution_tag_table = np.zeros((len(self.gmm_.distributions), 4))
 
+        # count the number of sampled data with the same distribution id and tag.
         for i in range(len(sampled_data_distribution_id)):
             sampled_data_gmm_id = sampled_data_distribution_id[i]
             sampled_data_tag = plan_[4].verified_motions[i].sampled_state_tag
