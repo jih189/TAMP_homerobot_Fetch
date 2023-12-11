@@ -53,6 +53,8 @@ In this project, we will compare the following methods in different setup:
 
 The tutorial is in here [foliated manifold framework setup](readme_files/foliation_setup_tutorial.md)
 
+Here is the tutorial about how to implement your own task planner and motion planner [task and motion planner tutorial](readme_files/task_and_motion_planner_tutorial.md)
+
 # Nautilus tutorial
 Nautilus provides a powerful platform with a lot of resources for us to run training and testing. The tutorial link is [here](readme_files/nautilus_tutorial.md).
 
