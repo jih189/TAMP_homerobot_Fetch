@@ -100,12 +100,6 @@ class FoliatedPlanningFramework():
 
             # solve the problem
             for task in task_sequence:
-
-                # check if the task has solution, if so, just add the solution to the list of motion plan
-                # the returned previous solution is with wrong type, they are moveit_msgs.msg._RobotTrajectory.RobotTrajectory
-                if task.has_solution:
-                    list_of_motion_plan.append(task.solution_trajectory)
-                    continue
                     
                 # plan the motion
                 success_flag, motion_plan_result, experience = self.motion_planner._plan(
@@ -130,7 +124,7 @@ class FoliatedPlanningFramework():
                         co_parameter=task.manifold_detail.foliation.co_parameters[task.manifold_detail.co_parameter_index]
                     )
                     
-                self.task_planner.update(task.task_graph_info, experience, motion_plan_result)
+                self.task_planner.update(task.task_graph_info, experience)
 
                 if success_flag:
                     list_of_motion_plan.append(motion_plan_result)

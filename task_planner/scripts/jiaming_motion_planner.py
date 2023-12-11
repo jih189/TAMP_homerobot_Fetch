@@ -42,6 +42,7 @@ class MoveitMotionPlanner(BaseMotionPlanner):
 
         # add the obstacle into the planning scene.
         self.scene.add_mesh("obstacle", obstacle_pose_stamped, foliation_constraints['obstacle_mesh'], size=(1,1,1))
+
         # wait for the obstacle to be added into the planning scene
         while "obstacle" not in self.scene.get_known_object_names():
             rospy.sleep(0.0001)

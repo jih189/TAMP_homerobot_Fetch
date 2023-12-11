@@ -2,7 +2,7 @@
 from foliated_base_class import FoliatedProblem, FoliatedIntersection
 from manipulation_foliations_and_intersections import ManipulationFoliation, ManipulationIntersection
 from foliated_planning_framework import FoliatedPlanningFramework
-from jiaming_task_planner import MTGTaskPlanner, MDPTaskPlanner, MTGTaskPlannerWithGMM, MDPTaskPlannerWithGMM, GMM
+from jiaming_task_planner import MTGTaskPlanner, MTGTaskPlannerWithGMM, GMM
 from jiaming_motion_planner import MoveitMotionPlanner
 from jiaming_visualizer import MoveitVisualizer
 
@@ -30,9 +30,7 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     # task_planner = MTGTaskPlanner()
-    # task_planner = MDPTaskPlanner()
     task_planner = MTGTaskPlannerWithGMM(gmm)
-    # task_planner = MDPTaskPlannerWithGMM(gmm)
 
     # initialize the motion planner
     motion_planner = MoveitMotionPlanner()
@@ -46,7 +44,7 @@ if __name__ == "__main__":
     # initialize the foliated planning framework
     foliated_planning_framework = FoliatedPlanningFramework(task_planner=task_planner, motion_planner=motion_planner)
 
-    foliated_planning_framework.setMaxAttemptTime(5)
+    foliated_planning_framework.setMaxAttemptTime(30)
     
     # set the visualizer
     foliated_planning_framework.setVisualizer(visualizer)
@@ -58,7 +56,7 @@ if __name__ == "__main__":
     foliated_planning_framework.setStartAndGoal(
         0, 0,
         ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints()),
-        0, 14,
+        0, 1,
         ManipulationIntersection(action='goal', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints())
     )
 

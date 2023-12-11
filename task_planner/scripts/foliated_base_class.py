@@ -5,6 +5,8 @@ import numpy as np
 from tqdm import tqdm
 from abc import ABCMeta, abstractmethod
 
+import networkx as nx
+
 # user needs to implement this function
 class BaseIntersection:
     __metaclass__ = ABCMeta
@@ -325,7 +327,7 @@ class BaseTaskMotion:
         # user has to implement this function properly based on how they use
         # the visualizer to visualize the motion plan.
         raise NotImplementedError("Please Implement this method")
-    
+
 class BaseVisualizer(object):
     __metaclass__ = ABCMeta
 
@@ -339,3 +341,214 @@ class BaseVisualizer(object):
             if not isinstance(motion_plan, BaseTaskMotion):
                 raise TypeError("Each element in list_of_motion_plan must be a BaseTaskMotion class")
         self.visualize_plan(list_of_motion_plan)
+
+class Task:
+    def __init__(self, 
+                manifold_detail_, 
+                start_configuration_,
+                goal_configuration_,
+                next_motion_
+                ):
+        # Constructor
+        self.manifold_detail = manifold_detail_
+        self.start_configuration = start_configuration_
+        self.goal_configuration = goal_configuration_
+        self.next_motion = next_motion_ # the robot motion after the task is completed
+        self.distributions = []
+
+    # set which edge of the task graph this task is.
+    # so user can use this information to update the task graph.
+    def set_task_graph_info(self, task_graph_info_):
+        self.task_graph_info = task_graph_info_
+
+class ManifoldDetail:
+    '''
+    ManifoldDetail contains the detail of a manifold. A manifold is defined by a foliation and a co-parameter.
+    '''
+    def __init__(self, foliation, co_parameter_index):
+        # Constructor
+        self.foliation = foliation
+        self.co_parameter_index = co_parameter_index
+
+class IntersectionDetail:
+    '''
+    IntersectionDetail contains the detail of an intersection. ALl information is stored in a dictionary.
+    '''
+    def __init__(self, intersection_data, configuration_in_manifold1, configuration_in_manifold2, is_goal=False):
+        # Constructor
+        self.intersection_data = intersection_data
+        self.configuration_in_manifold1 = configuration_in_manifold1
+        self.configuration_in_manifold2 = configuration_in_manifold2
+        self.is_goal = is_goal
+
+class BaseTaskPlanner:
+    __metaclass__ = ABCMeta
+
+    def load_foliated_problem(self, folaited_problem):
+        '''
+        load the foliated problem into the task planner
+        '''
+
+        # add manifolds
+        for foliation_index, foliation in enumerate(folaited_problem.foliations):
+            for co_parameter_index, co_parameter in enumerate(foliation.co_parameters):
+                self.add_manifold(ManifoldDetail(foliation, co_parameter_index), (foliation_index, co_parameter_index))
+
+            # set similarity matrix for each foliation
+            self.set_similarity_matrix(foliation_index, foliation.similarity_matrix)
+
+        # add intersections
+        for intersection in folaited_problem.intersections:
+            foliation1_name, co_parameter1_index, foliation2_name, co_parameter2_index = intersection.get_foliation_names_and_co_parameter_indexes()
+            configuration_in_manifold1, configuration_in_manifold2 = intersection.get_edge_configurations()
+            # get index of each foliation in the foliation list
+            foliation1_index = folaited_problem.get_foliation_index(foliation1_name)
+            foliation2_index = folaited_problem.get_foliation_index(foliation2_name)
+            self.add_intersection((foliation1_index, co_parameter1_index), (foliation2_index, co_parameter2_index), IntersectionDetail(intersection, configuration_in_manifold1, configuration_in_manifold2, False))
+
+    @abstractmethod
+    def reset_task_planner(self):
+        # reset the task planner
+        raise NotImplementedError("Please Implement this method")
+
+    def read_pointcloud(self, pointcloud_):
+        print '-- the task planner does not support read point point because it does not use GMM --'
+        raise NotImplementedError("Please Implement this method if you need to read point cloud")
+
+    @abstractmethod
+    def add_manifold(self, manifold_info_, manifold_id_):
+        raise NotImplementedError("Please Implement this method")
+
+    @abstractmethod
+    def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
+        """
+        add intersection to the manifold
+        """
+        raise NotImplementedError("Please Implement this method")
+
+    @abstractmethod
+    def set_start_and_goal(self,
+                            start_manifold_id_,
+                            start_intersection_, 
+                            goal_manifold_id_,
+                            goal_intersection_):
+        """
+        set start and goal configurations
+        both start and goal configurations are intersection here.
+        """
+        raise NotImplementedError("Please Implement this method")
+
+    @abstractmethod
+    def generate_task_sequence(self):
+        """
+        generate task sequence
+        """
+        raise NotImplementedError("Please Implement this method")
+
+    @abstractmethod
+    def update(self, task_graph_info_, plan_):
+        """
+        update task planner
+        """
+        raise NotImplementedError("Please Implement this method")
+
+    def set_similarity_matrix(self, foliation_id_, similarity_matrix_):
+        """
+        set similarity matrix for a foliation
+        """
+        self.total_similiarity_table[foliation_id_] = similarity_matrix_
+    
+    #########################################################################################
+    # task solution graph is a graph used to save the solution. Later, the task planner can 
+    # use this graph to check if the solution exists, then return the solution trajectory.
+    # def reset_task_solution_graph(self):
+    #     self.task_solution_graph = nx.DiGraph()
+    #     self.incomming_manifold_intersections = {} # the incomming intersections of each manifold
+    #     self.outgoing_manifold_intersections = {} # the outgoing intersections of each manifold
+    #     self.new_intersection_id = 0
+
+    # def add_manifold_for_task_solution_graph(self, manifold_id_):
+    #     self.incomming_manifold_intersections[manifold_id_] = []
+    #     self.outgoing_manifold_intersections[manifold_id_] = []
+
+    # def add_intersection_for_task_solution_graph(self, manifold_id1_, manifold_id2_):
+    #     intersection_from_1_to_2_id = self.new_intersection_id
+    #     self.new_intersection_id += 1
+
+    #     self.task_solution_graph.add_node(
+    #         intersection_from_1_to_2_id, 
+    #         previous_manifold_id=manifold_id1_, 
+    #         next_manifold_id=manifold_id2_)
+
+    #     for i in self.incomming_manifold_intersections[manifold_id1_]:
+    #         self.task_solution_graph.add_edge(
+    #             i, 
+    #             intersection_from_1_to_2_id, 
+    #             manifold_id=manifold_id1_, 
+    #             has_solution=False, 
+    #             solution_trajectory=None)
+
+    #     for i in self.outgoing_manifold_intersections[manifold_id2_]:
+    #         self.task_solution_graph.add_edge(
+    #             intersection_from_1_to_2_id, 
+    #             i, 
+    #             manifold_id=manifold_id2_, 
+    #             has_solution=False, 
+    #             solution_trajectory=None)
+
+    #     self.outgoing_manifold_intersections[manifold_id1_].append(intersection_from_1_to_2_id)
+    #     self.incomming_manifold_intersections[manifold_id2_].append(intersection_from_1_to_2_id)
+
+    #     return intersection_from_1_to_2_id
+
+    # def set_start_and_goal_for_task_solution_graph(self, start_manifold_id_, goal_manifold_id_):
+    #     if self.task_solution_graph.has_node('start'):
+    #         self.task_solution_graph.remove_node('start')
+
+    #     if self.task_solution_graph.has_node('goal'):
+    #         self.task_solution_graph.remove_node('goal')
+
+    #     self.task_solution_graph.add_node(
+    #         'start', 
+    #         previous_manifold_id = None,
+    #         next_manifold_id = start_manifold_id_
+    #     )
+
+    #     self.task_solution_graph.add_node(
+    #         'goal',
+    #         previous_manifold_id = goal_manifold_id_,
+    #         next_manifold_id = None
+    #     )
+
+    #     for i in self.outgoing_manifold_intersections[start_manifold_id_]:
+    #         self.task_solution_graph.add_edge(
+    #             'start', 
+    #             i, 
+    #             manifold_id=start_manifold_id_, 
+    #             has_solution=False, 
+    #             solution_trajectory=None)
+
+    #     for i in self.incomming_manifold_intersections[goal_manifold_id_]:
+    #         self.task_solution_graph.add_edge(
+    #             i, 
+    #             'goal', 
+    #             manifold_id=goal_manifold_id_, 
+    #             has_solution=False, 
+    #             solution_trajectory=None)
+
+    # def check_solution_existence(self, intersection_id1_, intersection_id2_):
+    #     '''
+    #     check if the solution exists between two intersections. If the solution exists,
+    #     then return the solution trajectory. Otherwise, return None.
+    #     '''
+    #     if self.task_solution_graph.edges[intersection_id1_, intersection_id2_]['has_solution']:
+    #         return self.task_solution_graph.edges[intersection_id1_, intersection_id2_]['solution_trajectory']
+    #     else:
+    #         return None
+
+    # def save_solution_to_task_solution_graph(self, intersection_id1_, intersection_id2_, solution_trajectory_):
+    #     self.task_solution_graph.edges[intersection_id1_, intersection_id2_]['has_solution'] = True
+    #     self.task_solution_graph.edges[intersection_id1_, intersection_id2_]['solution_trajectory'] = solution_trajectory_
+
+    # def get_manifold_id_from_task_solution_graph(self, intersection_id1_, intersection_id2_):
+    #     return self.task_solution_graph.edges[intersection_id1_, intersection_id2_]['manifold_id']
