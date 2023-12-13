@@ -223,7 +223,7 @@ if __name__ == "__main__":
                                                 "obstacle_pose": convert_pose_stamped_to_matrix(env_pose),
                                                 "reference_pose": table_top_pose,
                                                 "orientation_tolerance": np.array([0.1, 0.1, 2*3.14]),
-                                                "position_tolerance": np.array([2000, 2000, 0.02])
+                                                "position_tolerance": np.array([2000, 2000, 0.0001])
                                             }, 
                                             co_parameters=feasible_grasps,
                                             similarity_matrix=sliding_similarity_matrix)
