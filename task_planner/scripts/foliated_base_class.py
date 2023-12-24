@@ -296,12 +296,12 @@ class BaseMotionPlanner:
         '''
             This function must return a success flag, a motion plan, and an experience.
         '''
-        success_flag, task_motion_result, experience = self.plan(start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint)
+        success_flag, task_motion_result, experience, manifold_constraint = self.plan(start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint)
         if not isinstance(success_flag, bool):
             raise Exception("The first return value of plan function is not a boolean value!!!")
         if not isinstance(task_motion_result, BaseTaskMotion):
             raise Exception("The second return value of plan function is not a BaseTaskMotion class!!!")
-        return success_flag, task_motion_result, experience
+        return success_flag, task_motion_result, experience, manifold_constraint
 
 
     @abstractmethod
@@ -354,7 +354,7 @@ class Task:
         self.start_configuration = start_configuration_
         self.goal_configuration = goal_configuration_
         self.next_motion = next_motion_ # the robot motion after the task is completed
-        self.distributions = []
+        self.related_experience = []
 
     # set which edge of the task graph this task is.
     # so user can use this information to update the task graph.
@@ -446,7 +446,7 @@ class BaseTaskPlanner:
         raise NotImplementedError("Please Implement this method")
 
     @abstractmethod
-    def update(self, task_graph_info_, plan_):
+    def update(self, task_graph_info_, plan_, manifold_constraint_):
         """
         update task planner
         """

@@ -95,9 +95,6 @@ class MoveitVisualizer(BaseVisualizer):
 
         self.visualize_task_information(task_constraint_parameters, start_configuration, goal_configuration, action_name, co_parameter)
 
-        # wait for the marker to be published
-        rospy.sleep(1.0)
-
     def get_end_effector_pose(self, configuration):
         '''
         This function will return the end effector pose of the given configuration.
@@ -265,7 +262,7 @@ class MoveitVisualizer(BaseVisualizer):
 
     def visualize_sampled_configurations(self, sampled_configurations):
         # use the moveit visualizer to visualize the sampled configurations
-        # sampled_configurations is a list of configurations
+        # sampled_configurations is a list pair of configurations and status
 
         # if number of sampled configuration is more than 100, then only visualize 100 of them randomly
         if len(sampled_configurations) > 100:
@@ -283,8 +280,16 @@ class MoveitVisualizer(BaseVisualizer):
         # create a marker array
         marker_array = MarkerArray()
 
-        for t, c in enumerate(sampled_configurations):
-            arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t)
+        for t, (c, s) in enumerate(sampled_configurations):
+            if s == 5:
+                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t, arm_color=ColorRGBA(1,1,1,0.3), finger_color=ColorRGBA(1,1,1,0.3))
+            elif s > 5:
+                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t, arm_color=ColorRGBA(0,0,0,0.3), finger_color=ColorRGBA(0,0,0,0.3))
+            elif s == 0:
+                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t, arm_color=ColorRGBA(0,1,0,0.3), finger_color=ColorRGBA(0,1,0,0.3))
+            else:
+                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t, arm_color=ColorRGBA(1,0,0,0.3), finger_color=ColorRGBA(1,0,0,0.3))
+            # arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t)
             marker_array.markers.append(arm_marker)
             marker_array.markers.append(l_finger_marker)
             marker_array.markers.append(r_finger_marker)

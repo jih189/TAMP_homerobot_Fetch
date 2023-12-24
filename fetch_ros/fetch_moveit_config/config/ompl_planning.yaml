@@ -36,7 +36,7 @@ planner_configs:
   CDISTRIBUTIONRRTConfigDefault:
     type: geometric::CDISTRIBUTIONRRT
     use_distribution: true
-    sample_ratio: 0.8
+    sample_ratio: 0.95
   CLazyPRMConfigDefault:
     type: geometric::CLazyPRM
     multi_query_planning_enabled: true

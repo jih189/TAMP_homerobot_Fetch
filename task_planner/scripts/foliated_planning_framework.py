@@ -102,19 +102,19 @@ class FoliatedPlanningFramework():
             for task in task_sequence:
                     
                 # plan the motion
-                success_flag, motion_plan_result, experience = self.motion_planner._plan(
+                success_flag, motion_plan_result, experience, manifold_constraint = self.motion_planner._plan(
                     task.start_configuration, 
                     task.goal_configuration, 
                     task.manifold_detail.foliation.constraint_parameters, 
                     task.manifold_detail.foliation.co_parameters[task.manifold_detail.co_parameter_index],
-                    task.distributions
+                    task.related_experience
                 )
 
                 # the following code is for debugging with visualizer.
                 if self.has_visualizer:
-                    sampled_data = [sampled_data.sampled_state for sampled_data in experience[4].verified_motions]
+                    sampled_data = [(sampled_data.sampled_state, sampled_data.sampled_state_tag) for sampled_data in experience[4].verified_motions]
+
                     # visualize the sampled data
-                    # self.visualizer.visualize_for_debug(sampled_data, action_name=task.manifold_detail.foliation.foliation_name)
                     self.visualizer.visualize_for_debug(
                         sampled_data, 
                         task_constraint_parameters=task.manifold_detail.foliation.constraint_parameters,
@@ -124,7 +124,7 @@ class FoliatedPlanningFramework():
                         co_parameter=task.manifold_detail.foliation.co_parameters[task.manifold_detail.co_parameter_index]
                     )
                     
-                self.task_planner.update(task.task_graph_info, experience)
+                self.task_planner.update(task.task_graph_info, experience, manifold_constraint)
 
                 if success_flag:
                     list_of_motion_plan.append(motion_plan_result)
