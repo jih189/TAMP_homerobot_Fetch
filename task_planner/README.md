@@ -15,8 +15,9 @@ The objective of this project is to leverage both atlas and Gaussian Mixture Mod
 - [Usage](#usage)
   - [Base tutorial](#base-tutorial)
   - [Visualization tutorial](#visualization-tutorial)
+  - [GMM generation tutorial](#gmm-generation-tutorial)
+  - [Experience task generation tutorial](#experience-task-generation-tutorial)
   - [Evaluation tutorial](#evaluation-tutorial)
-  - [Experience generation tutorial](#experience-generation-tutorial)
 - [Other tutorial](#other-tutorial)
 
 # Preivous Works
@@ -147,7 +148,10 @@ In case you want to visualize the task and sampling data, you can add two Marker
 
 ![](readme_files/experience_example.png)
 
-## Experience generation tutorial
+## GMM generation tutorial
+TODO
+
+## Experience task generation tutorial
 TODO
 
 ## Evaluation tutorial
