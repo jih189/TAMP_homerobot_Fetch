@@ -188,3 +188,184 @@ Include information about the license for your project, along with any restricti
 ## Acknowledgments
 
 If your project was built using someone else's work, give credit to the original author and provide a link to their work. You can also use this section to thank anyone who helped you with your project.
+
+predicted_grasp_poses: 
+  - 
+    header: 
+      seq: 0
+      stamp: 
+        secs: 0
+        nsecs:         0
+      frame_id: "base_link"
+    pose: 
+      position: 
+        x: 1.88977508651
+        y: 1.93812029984
+        z: 2.16230552903
+      orientation: 
+        x: -0.246540134256
+        y: 0.680135133783
+        z: 0.636264791092
+        w: 0.267957604133
+  - 
+    header: 
+      seq: 0
+      stamp: 
+        secs: 0
+        nsecs:         0
+      frame_id: "base_link"
+    pose: 
+      position: 
+        x: 1.61764755961
+        y: 2.09899962006
+        z: 1.84668261341
+      orientation: 
+        x: -0.25345032488
+        y: 0.663945974008
+        z: 0.655572919675
+        w: 0.255270098925
+  - 
+
+  import rospy
+from visualization_msgs.msg import Marker, MarkerArray
+from std_msgs.msg import Header, ColorRGBA
+from geometry_msgs.msg import Vector3
+
+# 初始化ROS节点
+rospy.init_node('grasp_markers_visualization')
+
+# 创建一个MarkerArray类型的Publisher
+marker_array_publisher = rospy.Publisher('/grasp_markers', MarkerArray, queue_size=10)
+
+def publish_markers(predict_response):
+    marker_array_msg = MarkerArray()
+
+    # 逐个将PredictResponse中的位姿转换为Marker消息
+    for i, grasp_pose in enumerate(predict_response.predicted_grasp_poses):
+        marker_msg = Marker()
+        marker_msg.header.frame_id = grasp_pose.header.frame_id or "base_link"
+        marker_msg.header.stamp = rospy.Time.now()
+        marker_msg.ns = "grasp_poses"
+        marker_msg.id = i
+        marker_msg.type = Marker.ARROW
+        marker_msg.action = Marker.ADD
+        marker_msg.pose = grasp_pose.pose
+        
+        # 设置箭头尺寸：(length, width, height)
+        marker_msg.scale = Vector3(0.1, 0.02, 0.02)  # 小一点的箭头
+        
+        # 设置箭头颜色：(r, g, b, a)
+        marker_msg.color = ColorRGBA(0.0, 1.0, 0.0, 1.0)  # 绿色箭头
+        
+        # 设置箭头的生命周期，0表示永久
+        marker_msg.lifetime = rospy.Duration(0)
+        
+        marker_array_msg.markers.append(marker_msg)
+    
+    # 发布MarkerArray消息
+    marker_array_publisher.publish(marker_array_msg)
+    rospy.loginfo("Published grasp markers to /grasp_markers")
+
+should_continue = True
+
+def filter_point_cloud_by_color(point_cloud_data, color, point_step):
+    filtered_points = []
+    for p in pc2.read_points(point_cloud_data, field_names=("x", "y", "z", "rgb"), skip_nans=True):
+        _, _, _, rgb = p
+        int_rgb = struct.unpack('I', struct.pack('f', rgb))[0]
+        r = (int_rgb >> 16) & 0xFF
+        g = (int_rgb >> 8) & 0xFF
+        b = int_rgb & 0xFF
+
+        if (r, g, b) == color or (r == g == b == 0):
+            filtered_points.append(p)
+
+    header = point_cloud_data.header
+    filtered_pc2 = msgify(PointCloud2, np.array(filtered_points, dtype=[
+        ('x', np.float32),
+        ('y', np.float32),
+        ('z', np.float32),
+        ('rgb', np.float32)
+    ]), stamp=header.stamp, frame_id=header.frame_id)
+
+    return filtered_pc2
+
+def get_color_from_point(point, is_bigendian):
+    color_data = int(point[-1][-1])
+
+    if is_bigendian:
+        # Big endian
+        r = (color_data >> 24) & 0xFF
+        g = (color_data >> 16) & 0xFF
+        b = (color_data >> 8) & 0xFF
+    else:
+        # Little endian
+        r = color_data & 0xFF
+        g = (color_data >> 8) & 0xFF
+        b = (color_data >> 16) & 0xFF
+
+    return (r, g, b)
+
+def parse_points(data, point_step):
+    points = []
+    for i in range(0, len(data), point_step):
+        point_data = data[i:i+point_step]
+        x, y, z = struct.unpack_from('fff', point_data, 0)
+
+        rgba = struct.unpack_from('I', point_data, 16)[0]
+        r = (rgba >> 16) & 0xFF
+        g = (rgba >> 8) & 0xFF
+        b = rgba & 0xFF
+        a = (rgba >> 24) & 0xFF 
+        points.append((x, y, z, r, g, b, a))  
+    return points
+
+def callback(point_cloud_data):
+    global should_continue
+    pc_arr = numpify(point_cloud_data)
+    is_bigendian = point_cloud_data.is_bigendian
+    point_step = point_cloud_data.point_step
+    row_step = point_cloud_data.row_step
+    id_dense = point_cloud_data.is_dense
+    print("is_bigendian", is_bigendian, "point_step", point_step, "row_step", row_step, "id_dense", id_dense)
+    data = point_cloud_data.data
+    points = parse_points(data, point_step)
+    manager.reset()
+
+    color_to_filtered_points = {}
+
+    color_to_filtered_points[(0, 0, 0)] = []
+
+    for point in points:
+        x, y, z, r, g, b, a = point
+        color_key = (r, g, b)
+
+        if color_key not in color_to_filtered_points:
+            color_to_filtered_points[color_key] = []
+        color_to_filtered_points[color_key].append((x, y, z, r, g, b, a))
+
+
+    for color, color_points in color_to_filtered_points.items():
+
+        if color != (0, 0, 0):
+            filtered_pc2 = filter_point_cloud_by_color(point_cloud_data, color, point_step)
+        else:
+            filtered_pc2 = point_cloud_data
+
+        for p in color_points:
+            x, y, z, r, g, b, a = p
+            manager.add_item(r, g, b, (x, y, z), filtered_pc2)
+
+    should_continue = False
+    subscriber.unregister()
+
+def listener():
+    global subscriber
+    global should_continue
+    print("Listening...")
+    rospy.init_node('point_cloud_listener', anonymous=True)
+    subscriber = rospy.Subscriber('/head_camera/depth_seg/points', PointCloud2, callback)
+    rate = rospy.Rate(1)
+    while should_continue:
+        break;
+        rate.sleep()

@@ -16,7 +16,7 @@ if __name__ == "__main__":
     rospy.init_node('main_pipeline_node', anonymous=True)
 
     rospack = rospkg.RosPack()
-    
+
     # Get the path of the desired package
     package_path = rospack.get_path('task_planner')
 
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     # initialize the foliated planning framework
     foliated_planning_framework = FoliatedPlanningFramework(task_planner=task_planner, motion_planner=motion_planner)
 
-    foliated_planning_framework.setMaxAttemptTime(30)
+    foliated_planning_framework.setMaxAttemptTime(60)
     
     # set the visualizer
     foliated_planning_framework.setVisualizer(visualizer)
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     foliated_planning_framework.setStartAndGoal(
         0, 0,
         ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints()),
-        0, 1,
+        0, 4,
         ManipulationIntersection(action='goal', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints())
     )
 
@@ -67,7 +67,6 @@ if __name__ == "__main__":
     #     0, 11,
     #     ManipulationIntersection(action='goal', motion=[[ 0.38, -1.28, 1.51, 0.35, 1.81, 1.47, 0.0]], active_joints=motion_planner.move_group.get_active_joints())
     # )
-
 
     # solve the problem
     found_solution, solution_trajectory = foliated_planning_framework.solve()

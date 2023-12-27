@@ -21,7 +21,7 @@
 
   <group if="$(arg launch_map_server)">
     <!-- serve up a map -->
-    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+    <node name="map_server" pkg="map_server" type="map_server" args="/root/catkin_ws/src/jiaming_manipulation/fetch_coppeliasim/map/narrow_space.yaml" />
 
     <!-- serve up a map with keepout zones -->
     <group if="$(arg use_keepout)" >

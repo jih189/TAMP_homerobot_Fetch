@@ -94,15 +94,15 @@ if __name__ == "__main__":
 
     env_pose = PoseStamped()
     env_pose.header.frame_id = "base_link"
-    env_pose.pose.position.x = 0.51
-    env_pose.pose.position.y = 0.05
-    env_pose.pose.position.z = -0.02
+    env_pose.pose.position.x = 1.5
+    env_pose.pose.position.y = 0
+    env_pose.pose.position.z = 0
     env_pose.pose.orientation.x = 0
     env_pose.pose.orientation.y = 0
-    env_pose.pose.orientation.z = 0.707
-    env_pose.pose.orientation.w = 0.707
+    env_pose.pose.orientation.z = -0.923879532511  # sin(-135/2)
+    env_pose.pose.orientation.w = 0.382683432365   # cos(-135/2)
 
-    env_mesh_path = package_path + "/mesh_dir/maze.stl"
+    env_mesh_path = package_path + "/mesh_dir/tablewithbottle.stl"
     manipulated_object_mesh_path = package_path + '/mesh_dir/cup.stl'
 
     env_mesh = trimesh.load_mesh(env_mesh_path)
@@ -144,12 +144,17 @@ if __name__ == "__main__":
     # find all feasible grasps as the co-parameter for sliding foliation
     feasible_grasps = []
 
-    loaded_array = np.load(package_path + "/mesh_dir/cup.npz")
+    loaded_array = np.load(package_path + "/mesh_dir/cup.npz") # where does npz come from?
     rotated_matrix = np.array([[1, 0, 0, -0.17],
                                [0, 1, 0, 0],
                                [0, 0, 1, 0],
                                [0, 0, 0, 1]])
+    
 
+    for file_name in loaded_array.files:
+        print("Array name" + file_name)
+        print(loaded_array[file_name])
+    
     for ind in random.sample(list(range(len(loaded_array.files))), 40):
         feasible_grasps.append(np.dot(loaded_array[loaded_array.files[ind]], rotated_matrix)) # add the grasp poses in object frame
 
