@@ -3,7 +3,8 @@ from foliated_base_class import FoliatedProblem, FoliatedIntersection
 from manipulation_foliations_and_intersections import ManipulationFoliation, ManipulationIntersection
 from foliated_planning_framework import FoliatedPlanningFramework
 from jiaming_GMM import GMM
-from jiaming_task_planner import MTGTaskPlanner, MTGTaskPlannerWithGMM, MTGTaskPlannerWithAtlas
+from jiaming_task_planner import MTGTaskPlanner, MTGTaskPlannerWithGMM
+from jiaming_task_planner import MTGTaskPlanner, MTGTaskPlannerWithGMM, MTGTaskPlannerWithAtlas, DynamicMTGTaskPlannerWithGMM
 from jiaming_motion_planner import MoveitMotionPlanner
 from jiaming_visualizer import MoveitVisualizer
 
