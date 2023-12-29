@@ -42,8 +42,8 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     # task_planner = MTGTaskPlanner()
-    # task_planner = MTGTaskPlannerWithGMM(gmm)
-    task_planner = MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()) # need to provide the current robot state as the default robot state.
+    task_planner = MTGTaskPlannerWithGMM(gmm)
+    # task_planner = MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()) # need to provide the current robot state as the default robot state.
 
     # initialize the visualizer
     visualizer = MoveitVisualizer()
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     # initialize the foliated planning framework
     foliated_planning_framework = FoliatedPlanningFramework(task_planner=task_planner, motion_planner=motion_planner)
 
-    foliated_planning_framework.setMaxAttemptTime(10)
+    foliated_planning_framework.setMaxAttemptTime(5)
     
     # set the visualizer
     foliated_planning_framework.setVisualizer(visualizer)

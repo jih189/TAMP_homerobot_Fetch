@@ -102,7 +102,8 @@ if __name__ == "__main__":
     env_pose.pose.orientation.z = 0.707
     env_pose.pose.orientation.w = 0.707
 
-    env_mesh_path = package_path + "/mesh_dir/maze.stl"
+    # env_mesh_path = package_path + "/mesh_dir/maze.stl"
+    env_mesh_path = package_path + "/mesh_dir/desk.stl"
     manipulated_object_mesh_path = package_path + '/mesh_dir/cup.stl'
 
     env_mesh = trimesh.load_mesh(env_mesh_path)
@@ -222,8 +223,8 @@ if __name__ == "__main__":
                                                 "obstacle_mesh": env_mesh_path,
                                                 "obstacle_pose": convert_pose_stamped_to_matrix(env_pose),
                                                 "reference_pose": table_top_pose,
-                                                "orientation_tolerance": np.array([0.1, 0.1, 2*3.14]),
-                                                "position_tolerance": np.array([2000, 2000, 0.0001])
+                                                "orientation_tolerance": np.array([0.05, 0.05, 2*3.14]),
+                                                "position_tolerance": np.array([2000, 2000, 0.0008])
                                             }, 
                                             co_parameters=feasible_grasps,
                                             similarity_matrix=sliding_similarity_matrix)
@@ -309,7 +310,8 @@ if __name__ == "__main__":
         
     foliated_intersection = FoliatedIntersection(foliation_slide, foliation_regrasp, slide_regrasp_sampling_function, prepare_sampling_function, sampling_done_function)
 
-    foliated_problem = FoliatedProblem("maze_task")
+    # foliated_problem = FoliatedProblem("maze_task")
+    foliated_problem = FoliatedProblem("desk_task")
     foliated_problem.set_foliation_n_foliated_intersection([foliation_regrasp, foliation_slide], [foliated_intersection])
     foliated_problem.sample_intersections(3000)
 
