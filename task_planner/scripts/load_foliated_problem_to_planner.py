@@ -55,7 +55,7 @@ if __name__ == "__main__":
     # initialize the foliated planning framework
     foliated_planning_framework = FoliatedPlanningFramework(task_planner=task_planner, motion_planner=motion_planner)
 
-    foliated_planning_framework.setMaxAttemptTime(10)
+    foliated_planning_framework.setMaxAttemptTime(5)
     
     # set the visualizer
     foliated_planning_framework.setVisualizer(visualizer)
