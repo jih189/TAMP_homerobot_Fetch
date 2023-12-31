@@ -4,7 +4,7 @@ from manipulation_foliations_and_intersections import ManipulationFoliation, Man
 from foliated_planning_framework import FoliatedPlanningFramework
 from jiaming_GMM import GMM
 from jiaming_task_planner import MTGTaskPlanner, MTGTaskPlannerWithGMM
-from jiaming_task_planner import MTGTaskPlanner, MTGTaskPlannerWithGMM, MTGTaskPlannerWithAtlas, DynamicMTGTaskPlannerWithGMM
+from jiaming_task_planner import MTGTaskPlanner, MTGTaskPlannerWithGMM, MTGTaskPlannerWithAtlas, DynamicMTGTaskPlannerWithAtlas
 from jiaming_motion_planner import MoveitMotionPlanner
 from jiaming_visualizer import MoveitVisualizer
 
@@ -43,8 +43,9 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     # task_planner = MTGTaskPlanner()
-    # task_planner = MTGTaskPlannerWithGMM(gmm)
-    task_planner = MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()) # need to provide the current robot state as the default robot state.
+    task_planner = MTGTaskPlannerWithGMM(gmm)
+    # task_planner = MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()) # need to provide the current robot state as the default robot state.
+    # task_planner = DynamicMTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()) # need to provide the current robot state as the default robot state.
 
     # initialize the visualizer
     visualizer = MoveitVisualizer()
