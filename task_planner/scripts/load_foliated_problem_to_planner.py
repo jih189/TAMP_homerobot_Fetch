@@ -3,7 +3,7 @@ from foliated_base_class import FoliatedProblem, FoliatedIntersection
 from manipulation_foliations_and_intersections import ManipulationFoliation, ManipulationIntersection
 from foliated_planning_framework import FoliatedPlanningFramework
 from jiaming_GMM import GMM
-from jiaming_task_planner import MTGTaskPlanner, MTGTaskPlannerWithGMM, MTGTaskPlannerWithAtlas
+from jiaming_task_planner import MTGTaskPlanner, MTGTaskPlannerWithGMM, MTGTaskPlannerWithAtlas, DynamicMTGTaskPlannerWithAtlas, DynamicMTGTaskPlannerWithGMM
 from jiaming_motion_planner import MoveitMotionPlanner
 from jiaming_visualizer import MoveitVisualizer
 
@@ -42,8 +42,10 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     # task_planner = MTGTaskPlanner()
-    task_planner = MTGTaskPlannerWithGMM(gmm)
+    # task_planner = MTGTaskPlannerWithGMM(gmm)
+    # task_planner = DynamicMTGTaskPlannerWithGMM(gmm)
     # task_planner = MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()) # need to provide the current robot state as the default robot state.
+    task_planner = DynamicMTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()) # need to provide the current robot state as the default robot state.
 
     # initialize the visualizer
     visualizer = MoveitVisualizer()
@@ -53,7 +55,7 @@ if __name__ == "__main__":
     # initialize the foliated planning framework
     foliated_planning_framework = FoliatedPlanningFramework(task_planner=task_planner, motion_planner=motion_planner)
 
-    foliated_planning_framework.setMaxAttemptTime(5)
+    foliated_planning_framework.setMaxAttemptTime(15)
     
     # set the visualizer
     foliated_planning_framework.setVisualizer(visualizer)
@@ -63,7 +65,7 @@ if __name__ == "__main__":
 
     # set the start and goal
     foliated_planning_framework.setStartAndGoal(
-        0, 1,
+        0, 8,
         ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints()),
         0, 2,
         ManipulationIntersection(action='goal', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints())
