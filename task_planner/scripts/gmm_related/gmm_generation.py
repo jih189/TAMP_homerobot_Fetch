@@ -163,7 +163,7 @@ def main():
 
     print(all_configurations.shape)
     
-    gmm = fit_distribution(all_configurations[::10], int(num_components * 10), use_dirichlet)
+    gmm = fit_distribution(all_configurations, int(num_components * 10), use_dirichlet)
     edge_information = compute_distribution_edge_information(motions, gmm)
     save_distribution_to_file(gmm, edge_information, "/root/catkin_ws/src/jiaming_manipulation/task_planner/gmm_related/computed_gmm_directory/")
     
