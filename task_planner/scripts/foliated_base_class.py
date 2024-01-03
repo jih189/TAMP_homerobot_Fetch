@@ -242,10 +242,17 @@ class FoliatedProblem:
             raise Exception("start or goal manifold candidates of the problem is empty!!!")
         
         start_manifold_index = np.random.randint(0, self.start_manifold_candidates.__len__())
+        start_manifold = self.start_manifold_candidates[start_manifold_index]
         goal_manifold_index = np.random.randint(0, self.goal_manifold_candidates.__len__())
+        goal_manifold = self.goal_manifold_candidates[goal_manifold_index]
 
-        return (self.start_manifold_candidates[start_manifold_index], self.goal_manifold_candidates[goal_manifold_index])
+        while(start_manifold == goal_manifold): # we should not sample the same manifold for start and goal
+            start_manifold_index = np.random.randint(0, self.start_manifold_candidates.__len__())
+            start_manifold = self.start_manifold_candidates[start_manifold_index]
+            goal_manifold_index = np.random.randint(0, self.goal_manifold_candidates.__len__())
+            goal_manifold = self.goal_manifold_candidates[goal_manifold_index]
 
+        return (start_manifold, goal_manifold)
 
     def save(self, dir_name):
         '''Save the foliated problem'''
