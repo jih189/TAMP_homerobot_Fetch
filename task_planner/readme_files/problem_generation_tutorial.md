@@ -5,7 +5,7 @@ The problem builder aims to create motion planning problems related to manipulat
 
 ## Problem Modeling
 
-The Problem Builder categorizes problems into three types based on their complexity and constraints: `simple`, `sequential`, and `crossing`. Additionally, the modeling approach can be divided into three placement strategies: `rectangular placement`, `linear placement`, and `circular placement`. Each problem type requires specific `grasp_parameters` for proper modeling.
+The Problem Builder categorizes problems into three types based on their complexity and constraints type `simple`, `sequential`, and `crossing`. Moreover, the modeling approach can be divided into three placement strategies `rectangular placement`, `linear placement`, and `circular placement`. Each problem type requires specific `placement_parameters` for proper modeling.
 
 ### Rectangular Placement
 Applicable for arranging multiple objects on a plane, such as moving cups on a surface or items on a shelf.
