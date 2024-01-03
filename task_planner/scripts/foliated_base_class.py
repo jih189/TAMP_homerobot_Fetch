@@ -151,6 +151,8 @@ class FoliatedProblem:
         self.foliations = []
         self.intersections = [] # list of intersections.
         self.foliated_intersections = []
+        self.start_manifold_candidates = []
+        self.goal_manifold_candidates = []
 
     def get_foliation_index(self, foliation_name):
         """Return the index of the foliation"""
@@ -205,6 +207,57 @@ class FoliatedProblem:
             foliated_intersection.sample_done()
             print "sampled " + str(self.intersections.__len__()) + " intersections bewteen foliations ", foliated_intersection.foliation1.foliation_name, " and ", foliated_intersection.foliation2.foliation_name
 
+    def set_start_manifold_candidates(self, start_manifold_candidates):
+        """Set start manifold candidates"""
+        if not isinstance(start_manifold_candidates, list):
+            raise Exception("start_manifold_candidates is not a list")
+        if start_manifold_candidates.__len__() == 0:
+            raise Exception("start_manifold_candidates is empty")
+        # check if each element in start_manifold_candidates is a tuple with two integers
+        for manifold in start_manifold_candidates:
+            # check if manifold is a tuple with two integers
+            if not isinstance(manifold, tuple) or manifold.__len__() != 2 or not isinstance(manifold[0], int) or not isinstance(manifold[1], int):
+                raise Exception("Each element in start_manifold_candidates should be a tuple with two integers!!")
+
+        self.start_manifold_candidates = start_manifold_candidates
+
+    def set_goal_manifold_candidates(self, goal_manifold_candidates):
+        """Set goal manifold candidates"""
+        if not isinstance(goal_manifold_candidates, list):
+            raise Exception("goal_manifold_candidates is not a list")
+        if goal_manifold_candidates.__len__() == 0:
+            raise Exception("goal_manifold_candidates is empty")
+        # check if each element in goal_manifold_candidates is a tuple with two integers
+        for manifold in goal_manifold_candidates:
+            # check if manifold is a tuple with two integers
+            if not isinstance(manifold, tuple) or manifold.__len__() != 2 or not isinstance(manifold[0], int) or not isinstance(manifold[1], int):
+                raise Exception("Each element in goal_manifold_candidates should be a tuple with two integers!!")
+
+        self.goal_manifold_candidates = goal_manifold_candidates
+
+    def sampleStartAndGoal(self):
+        """randomly sample one start and goal manifold candidates"""
+
+        if self.start_manifold_candidates.__len__() == 0 or self.goal_manifold_candidates.__len__() == 0:
+            raise Exception("start or goal manifold candidates of the problem is empty!!!")
+        
+        start_manifold_index = np.random.randint(0, self.start_manifold_candidates.__len__())
+        start_manifold = self.start_manifold_candidates[start_manifold_index]
+        goal_manifold_index = np.random.randint(0, self.goal_manifold_candidates.__len__())
+        goal_manifold = self.goal_manifold_candidates[goal_manifold_index]
+
+        attempt_time = 0
+
+        while(start_manifold == goal_manifold): # we should not sample the same manifold for start and goal
+            start_manifold_index = np.random.randint(0, self.start_manifold_candidates.__len__())
+            start_manifold = self.start_manifold_candidates[start_manifold_index]
+            goal_manifold_index = np.random.randint(0, self.goal_manifold_candidates.__len__())
+            goal_manifold = self.goal_manifold_candidates[goal_manifold_index]
+            attempt_time += 1
+            if attempt_time > 100:
+                raise Exception("The start and goal manifold candidates are not enough!!!")
+
+        return (start_manifold, goal_manifold)
 
     def save(self, dir_name):
         '''Save the foliated problem'''
@@ -241,6 +294,15 @@ class FoliatedProblem:
         with open(dir_name + "/problem_data.json", "w") as f:
             json.dump(problem_data, f, indent=4)
 
+        # save start and goal manifold candidates
+        with open(dir_name + "/start_manifold_candidates.json", "w") as f:
+            for manifold in self.start_manifold_candidates:
+                f.write(str(manifold) + "\n")
+        
+        with open(dir_name + "/goal_manifold_candidates.json", "w") as f:
+            for manifold in self.goal_manifold_candidates:
+                f.write(str(manifold) + "\n")
+
     @staticmethod
     def load(foliation_class, intersection_class, dir_name):
         '''Load the foliated problem'''
@@ -268,6 +330,14 @@ class FoliatedProblem:
         if not os.path.exists(dir_name + "/foliations"):
             raise Exception("The foliations directory does not exist!!!")
 
+        # check if start_manifold_candidates.json exists
+        if not os.path.exists(dir_name + "/start_manifold_candidates.json"):
+            raise Exception("The start_manifold_candidates.json does not exist!!!")
+
+        # check if goal_manifold_candidates.json exists
+        if not os.path.exists(dir_name + "/goal_manifold_candidates.json"):
+            raise Exception("The goal_manifold_candidates.json does not exist!!!")
+
         # load the problem data
         with open(dir_name + "/problem_data.json", "r") as f:
             problem_data = json.load(f)
@@ -276,6 +346,15 @@ class FoliatedProblem:
 
         loaded_problem.foliations = [foliation_class.load(dir_name + "/foliations/" + foliation_name + ".json") for foliation_name in problem_data["foliations"]]
         loaded_problem.intersections = [intersection_class.load(dir_name + "/intersections/" + intersection_name + ".json") for intersection_name in problem_data["intersections"]]
+
+        # load start and goal manifold candidates
+        with open(dir_name + "/start_manifold_candidates.json", "r") as f:
+            for line in f:
+                loaded_problem.start_manifold_candidates.append(eval(line))
+
+        with open(dir_name + "/goal_manifold_candidates.json", "r") as f:
+            for line in f:
+                loaded_problem.goal_manifold_candidates.append(eval(line))
 
         return loaded_problem
         
@@ -326,6 +405,12 @@ class BaseTaskMotion:
     def get(self):
         # user has to implement this function properly based on how they use
         # the visualizer to visualize the motion plan.
+        raise NotImplementedError("Please Implement this method")
+
+    @abstractmethod
+    def cost(self):
+        # user has to implement this function properly based on how they use
+        # define the cost of the motion plan.
         raise NotImplementedError("Please Implement this method")
 
 class BaseVisualizer(object):

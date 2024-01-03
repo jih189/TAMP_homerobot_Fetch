@@ -134,6 +134,14 @@ foliated_problem.sample_intersections(3000)
 ```
 The **sample_intersections** function will sample the intersection by calling the sampling_function in foliated_intersection. The input of this function is the number of sampling attempts. The more sampling attempts, the more intersections will be sampled.
 
+## Set Start and Goal Manifold Candidates
+For the evaluation later, you may need to sample random start and goal manifold candidates, so you can time the planning time and success rate. Therefore, for a foliated problem, you need to set the start and goal manifold candidates as follows:
+```
+foliated_problem.set_start_manifold_candidates(start_candidates)
+foliated_problem.set_goal_manifold_candidates(goal_candidates)
+```
+where both **start_candidates** and **goal_candidates** are the list of manifold candidates. Each manifold candidate is a tuple of foliation index and co_parameter index. For example, (0, 0) means the first manifold of the first foliation.
+
 ## Save and Load Foliated Problem
 To save the foliated problem, you can call the following function:
 ```
@@ -173,7 +181,9 @@ visualizer = ...
 
 ## Create foliated planning framework
 ```
-foliated_planning_framework = FoliatedPlanningFramework(task_planner=task_planner, motion_planner=motion_planner)
+foliated_planning_framework = FoliatedPlanningFramework()
+foliated_planning_framework.setTaskPlanner(task_planner)
+foliated_planning_framework.setMotionPlanner(motion_planner)
 
 # set the visualizer, this is optional
 foliated_planning_framework.setVisualizer(visualizer)
@@ -198,6 +208,11 @@ foliated_planning_framework.setStartAndGoal(
   0, 14,
   ManipulationIntersection(action='goal', ...)
 )
+```
+
+During the evaluation, you can sample random start and goal manifolds by calling the following function( This function will set both start and goal manifold candidates, and is used in the evaluation):
+```
+foliated_planning_framework.sampleStartAndGoal()
 ```
 
 ## Plan and visualize

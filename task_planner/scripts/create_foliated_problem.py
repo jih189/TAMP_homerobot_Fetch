@@ -315,6 +315,16 @@ if __name__ == "__main__":
     foliated_problem.set_foliation_n_foliated_intersection([foliation_regrasp, foliation_slide], [foliated_intersection])
     foliated_problem.sample_intersections(3000)
 
+    # set the start and goal candidates
+    start_candidates = []
+    goal_candidates = []
+    for p in range(len(feasible_placements)):
+        start_candidates.append((0, p))
+        goal_candidates.append((0, p))
+
+    foliated_problem.set_start_manifold_candidates(start_candidates)
+    foliated_problem.set_goal_manifold_candidates(goal_candidates)
+
     ###############################################################################################################
     # visualize both intermedaite placements and obstacles
     marker_array = MarkerArray()
