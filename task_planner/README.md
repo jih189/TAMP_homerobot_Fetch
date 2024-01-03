@@ -178,6 +178,12 @@ task_planners = [
 ]
 ```
 
+There are also two parameters you can change to change the evaluation setting.
+```
+number_of_tasks = 5 # number of tasks to be sampled
+max_attempt_time = 5 # maximum attempt time for each task
+```
+
 <!-- We also provide the code to evaluate different task planner. 
 ```
 rosrun task_planner evaluation.py

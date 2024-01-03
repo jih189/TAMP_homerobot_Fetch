@@ -37,6 +37,11 @@ for planner in planner_list:
 
 if __name__ == "__main__":
 
+    number_of_tasks = 5 # number of tasks to be sampled
+    max_attempt_time = 5 # maximum attempt time for each task
+
+    ########################################
+
     rospy.init_node('evaluation_node', anonymous=True)
 
     rospack = rospkg.RosPack()
@@ -51,7 +56,7 @@ if __name__ == "__main__":
     result_file_path = package_path + "/result.json"
 
     # sampled random start and goal
-    sampled_start_and_goal_list = [loaded_foliated_problem.sampleStartAndGoal() for _ in range(2)]
+    sampled_start_and_goal_list = [loaded_foliated_problem.sampleStartAndGoal() for _ in range(number_of_tasks)]
 
     # load the gmm
     gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm/'
@@ -66,7 +71,7 @@ if __name__ == "__main__":
     # initialize the foliated planning framework
     foliated_planning_framework = FoliatedPlanningFramework()
     foliated_planning_framework.setMotionPlanner(motion_planner)
-    foliated_planning_framework.setMaxAttemptTime(5)
+    foliated_planning_framework.setMaxAttemptTime(max_attempt_time)
     # set the foliated problem
     foliated_planning_framework.setFoliatedProblem(loaded_foliated_problem)
 
