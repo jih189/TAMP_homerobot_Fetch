@@ -149,7 +149,7 @@ In case you want to visualize the task and sampling data, you can add two Marker
 ![](readme_files/experience_example.png)
 
 ## GMM generation tutorial
-TODO
+Link to the tutorial [GMM generation tutorial](scripts/gmm_related/README.md)
 
 ## Experience task generation tutorial
 TODO
