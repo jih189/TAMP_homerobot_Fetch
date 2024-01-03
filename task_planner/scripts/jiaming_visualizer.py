@@ -28,6 +28,15 @@ class ManipulationTaskMotion(BaseTaskMotion):
     def get(self):
         return self.planned_motion, self.has_object_in_hand, self.object_pose, self.object_mesh_path, self.obstacle_pose, self.obstacle_mesh_path
 
+    def cost(self):
+        solution_trajectory = []
+        for p in self.planned_motion.joint_trajectory.points:
+            solution_trajectory.append(p.positions)
+        solution_trajectory = np.array(solution_trajectory)
+        differences = np.diff(solution_trajectory, axis=0)
+        distances = np.linalg.norm(differences, axis=1)
+        return np.sum(distances)
+
 
 class MoveitVisualizer(BaseVisualizer):
 

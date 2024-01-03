@@ -149,13 +149,41 @@ In case you want to visualize the task and sampling data, you can add two Marker
 ![](readme_files/experience_example.png)
 
 ## GMM generation tutorial
-TODO
+Link to the tutorial [GMM generation tutorial](scripts/gmm_related/README.md)
 
 ## Experience task generation tutorial
 TODO
 
 ## Evaluation tutorial
-TODO
+To evaluation the performance of our planning framework, we need to run the following code to generate the result. 
+```
+rosrun task_planner planner_evaluation.py
+```
+This command will generate a json file saving the result.
+You may need to change the following code to load the problem and save the result.
+```
+# load the foliated problem
+loaded_foliated_problem = FoliatedProblem.load(ManipulationFoliation, ManipulationIntersection, package_path + "/check")
+
+# set the result file path
+result_file_path = package_path + "/result.json"
+```
+
+You can add your task planner into the list so that the evaluation code will evaluate your task planner. That is, you can comment out the task planner you do not want to evaluate.
+```
+task_planners = [
+    MTGTaskPlanner(),
+    MTGTaskPlannerWithGMM(gmm),
+    MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state())
+]
+```
+
+There are also two parameters you can change to change the evaluation setting.
+```
+number_of_tasks = 5 # number of tasks to be sampled
+max_attempt_time = 5 # maximum attempt time for each task
+```
+
 <!-- We also provide the code to evaluate different task planner. 
 ```
 rosrun task_planner evaluation.py
