@@ -1,0 +1,129 @@
+#!/usr/bin/env python
+from foliated_base_class import FoliatedProblem, FoliatedIntersection
+from manipulation_foliations_and_intersections import ManipulationFoliation, ManipulationIntersection
+from foliated_planning_framework import FoliatedPlanningFramework
+from jiaming_GMM import GMM
+from jiaming_task_planner import MTGTaskPlanner, MTGTaskPlannerWithGMM, MTGTaskPlannerWithAtlas
+from jiaming_motion_planner import MoveitMotionPlanner
+
+import rospy
+import rospkg
+from tqdm import tqdm
+import json
+
+'''
+On the side, for each foliation problem, we need to provide the possible start and goal manifolds.
+The pipeline for the evaluation of the foliated planning framework.
+
+Add a new function to the foliated planning framework:
+    evaluation(): this function will solve the problem and return the success flag and planning time of task sequence generation, motion planning, and updating time.
+
+folaition_problem = load the foliated problem.
+start_and_goal_list = generate different a list of start and goal for the foliation problem.
+for planner in planner_list:
+    planning_time = 0
+    success_count = 0
+    For start, goal in start_and_goal_list:
+        foliated_planning_framework.setStartAndGoal(start, goal)
+        found_solution, solution_trajectory = foliated_planning_framework.solve()
+        if found_solution:
+            success_count += 1
+            planning_time += foliated_planning_framework.planning_time()
+
+    print "planner: ", planner, " success rate: ", success_count / len(start_and_goal_list), " average planning time: ", planning_time / len(start_and_goal_list)
+    save the result to a file.
+'''
+
+
+if __name__ == "__main__":
+
+    rospy.init_node('evaluation_node', anonymous=True)
+
+    rospack = rospkg.RosPack()
+    
+    # Get the path of the desired package
+    package_path = rospack.get_path('task_planner')
+
+    # load the foliated problem
+    loaded_foliated_problem = FoliatedProblem.load(ManipulationFoliation, ManipulationIntersection, package_path + "/check")
+
+    # set the result file path
+    result_file_path = package_path + "/result.json"
+
+    # start_and_goal_list = loaded_foliated_problem.generateStartAndGoal()
+    start_and_goal_list = [((0,1), (0,2)), ((0,1), (0,2))]
+
+    # load the gmm
+    gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm/'
+    # gmm_dir_path = package_path + '/computed_gmms_dir/gmm/'
+    gmm = GMM()
+    gmm.load_distributions(gmm_dir_path)
+
+    # initialize the motion planner
+    motion_planner = MoveitMotionPlanner()
+    motion_planner.prepare_planner()
+
+    # initialize the foliated planning framework
+    foliated_planning_framework = FoliatedPlanningFramework()
+    foliated_planning_framework.setMotionPlanner(motion_planner)
+    foliated_planning_framework.setMaxAttemptTime(5)
+    # set the foliated problem
+    foliated_planning_framework.setFoliatedProblem(loaded_foliated_problem)
+
+    # load it into the task planner.
+    task_planners = [
+        MTGTaskPlanner(),
+        MTGTaskPlannerWithGMM(gmm),
+        MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state())
+    ]
+
+    with open(result_file_path, 'w') as result_file:
+        for task_planner in task_planners:
+            print "=== Evaluate task planner " , task_planner.planner_name, " ==="
+
+            foliated_planning_framework.setTaskPlanner(task_planner)
+        
+            for task_info in tqdm(start_and_goal_list):
+
+                start, goal = task_info
+
+                # set the start and goal
+                foliated_planning_framework.setStartAndGoal(
+                    start[0], start[1],
+                    ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints()),
+                    goal[0], goal[1],
+                    ManipulationIntersection(action='goal', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints())
+                )
+
+                # solve the problem
+                success_flag, task_planning_time, motion_planning_time, updating_time, solution_length = foliated_planning_framework.evaluation()
+
+                if success_flag:
+                    result_data = {
+                        'planner_name': task_planner.planner_name,
+                        'start': start,
+                        'goal': goal,
+                        'success': 'true',
+                        'task_planning_time': task_planning_time,
+                        'motion_planning_time': motion_planning_time,
+                        'updating_time': updating_time,
+                        'solution_length': solution_length
+                    }
+                    json.dump(result_data, result_file)
+                    result_file.write('\n')
+                else:
+                    result_data = {
+                        'planner_name': task_planner.planner_name,
+                        'start': start,
+                        'goal': goal,
+                        'success': 'false',
+                        'task_planning_time': -1,
+                        'motion_planning_time': -1,
+                        'updating_time': -1,
+                        'solution_length': -1
+                    }
+                    json.dump(result_data, result_file)
+                    result_file.write('\n')
+
+    # shutdown the planning framework
+    foliated_planning_framework.shutdown()
