@@ -246,11 +246,16 @@ class FoliatedProblem:
         goal_manifold_index = np.random.randint(0, self.goal_manifold_candidates.__len__())
         goal_manifold = self.goal_manifold_candidates[goal_manifold_index]
 
+        attempt_time = 0
+
         while(start_manifold == goal_manifold): # we should not sample the same manifold for start and goal
             start_manifold_index = np.random.randint(0, self.start_manifold_candidates.__len__())
             start_manifold = self.start_manifold_candidates[start_manifold_index]
             goal_manifold_index = np.random.randint(0, self.goal_manifold_candidates.__len__())
             goal_manifold = self.goal_manifold_candidates[goal_manifold_index]
+            attempt_time += 1
+            if attempt_time > 100:
+                raise Exception("The start and goal manifold candidates are not enough!!!")
 
         return (start_manifold, goal_manifold)
 
