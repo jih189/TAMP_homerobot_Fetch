@@ -11,7 +11,6 @@ import moveit_commander
 import geometry_msgs.msg
 
 from sensor_msgs.msg import JointState
-from foliated_base_class import FoliatedProblem, FoliatedIntersection
 from manipulation_foliations_and_intersections import ManipulationFoliation
 from utils import create_pose_stamped, get_position_difference_between_poses, gaussian_similarity
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
@@ -22,6 +21,7 @@ from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
+from foliated_base_class import FoliatedProblem, FoliatedIntersection
 
 
 class Config(object):
@@ -66,7 +66,8 @@ class FoliatedBuilder(object):
     def __init__(self, config):
         self.package_path = config.package_path
         self.env_mesh_path = self.package_path + config.get('environment', 'env_mesh_path')
-        self.manipulated_object_mesh_path = self.package_path + config.get('environment', 'manipulated_object_mesh_path')
+        self.manipulated_object_mesh_path = self.package_path + config.get('environment',
+                                                                           'manipulated_object_mesh_path')
         self.grasp_poses_file = self.package_path + config.get('environment', 'grasp_poses_file')
         self.env_pose = create_pose_stamped(config.get('environment', 'env_pose'))
         self.table_top_pose = np.array(config.get('environment', 'table_top_pose'))
@@ -87,7 +88,7 @@ class FoliatedBuilder(object):
 
     def initialize(self):
         self._load_environment()
-        self._find_feasible_placements(**self.placement_parameters)
+        self._find_feasible_placements(self.placement_parameters)
         self._find_feasible_grasps(**self.grasp_parameters)
         self._create_foliations(**self.foliation_parameters)
 
@@ -97,29 +98,123 @@ class FoliatedBuilder(object):
         self.collision_manager = trimesh.collision.CollisionManager()
         self.collision_manager.add_object('env', self.env_mesh)
 
-    def _find_feasible_placements(self, num_of_row, num_of_col, x_shift, y_shift, z_shift):
-        for i in range(num_of_row):
-            for j in range(num_of_col):
-                obj_mesh = trimesh.load_mesh(self.manipulated_object_mesh_path)
+    def _placement_rectangular(self, params):
+        layers = params["layers"]
+        for layer in layers:
+            print(layer)
+            num_of_row = layer["num_of_row"]
+            num_of_col = layer["num_of_col"]
+            x_shift = layer["x_shift"]
+            y_shift = layer["y_shift"]
+            z_shift = layer["z_shift"]
 
-                obj_pose = PoseStamped()
-                obj_pose.header.frame_id = "base_link"
-                obj_pose.pose.position.x = i * 0.1 - num_of_row * 0.1 / 2 + x_shift
-                obj_pose.pose.position.y = j * 0.1 - num_of_col * 0.1 / 2 + y_shift
-                obj_pose.pose.position.z = z_shift
-                obj_pose.pose.orientation.x = 0
-                obj_pose.pose.orientation.y = 0
-                obj_pose.pose.orientation.z = 0
-                obj_pose.pose.orientation.w = 1
+            for i in range(num_of_row):
+                for j in range(num_of_col):
+                    obj_mesh = trimesh.load_mesh(self.manipulated_object_mesh_path)
 
-                obj_mesh.apply_transform(convert_pose_stamped_to_matrix(obj_pose))
+                    obj_pose = PoseStamped()
+                    obj_pose.header.frame_id = "base_link"
+                    obj_pose.pose.position.x = i * 0.1 - num_of_row * 0.1 / 2 + x_shift
+                    obj_pose.pose.position.y = j * 0.1 - num_of_col * 0.1 / 2 + y_shift
+                    obj_pose.pose.position.z = z_shift
+                    obj_pose.pose.orientation.x = 0
+                    obj_pose.pose.orientation.y = 0
+                    obj_pose.pose.orientation.z = 0
+                    obj_pose.pose.orientation.w = 1
 
-                self.collision_manager.add_object('obj', obj_mesh)
+                    obj_mesh.apply_transform(convert_pose_stamped_to_matrix(obj_pose))
 
-                if not self.collision_manager.in_collision_internal():
-                    self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+                    self.collision_manager.add_object('obj', obj_mesh)
 
-                self.collision_manager.remove_object('obj')
+                    if not self.collision_manager.in_collision_internal():
+                        self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+
+                    self.collision_manager.remove_object('obj')
+
+    def _placement_linear(self, params):
+        start_position = np.array(params["start_position"])
+        end_position = np.array(params["end_position"])
+        step_size = params["step_size"]
+        orientation = params["orientation"]
+
+        # total dist and steps
+        total_distance = np.linalg.norm(end_position - start_position)
+        num_steps = int(total_distance / step_size)
+
+        # load mesh
+        drawer_mesh = trimesh.load_mesh(self.manipulated_object_mesh_path)
+
+        positions_to_place = [start_position]
+        for step in range(1, num_steps):
+            current_position = start_position + (end_position - start_position) * (step / num_steps)
+            positions_to_place.append(current_position)
+        positions_to_place.append(end_position)
+
+        for position in positions_to_place:
+            drawer_pose = PoseStamped()
+            drawer_pose.header.frame_id = "base_link"
+            drawer_pose.pose.position.x = position[0]
+            drawer_pose.pose.position.y = position[1]
+            drawer_pose.pose.position.z = position[2]
+            drawer_pose.pose.orientation.x = orientation[0]
+            drawer_pose.pose.orientation.y = orientation[1]
+            drawer_pose.pose.orientation.z = orientation[2]
+            drawer_pose.pose.orientation.w = orientation[3]
+
+            drawer_mesh.apply_transform(convert_pose_stamped_to_matrix(drawer_pose))
+            self.collision_manager.add_object('obj', drawer_mesh)
+
+            # check collision
+            if not self.collision_manager.in_collision_internal():
+                self.feasible_placements.append(convert_pose_stamped_to_matrix(drawer_pose))
+
+            self.collision_manager.remove_object('obj')
+
+    def _placement_circular(self, params):
+        center_position = np.array(params["center_position"])
+        radius = params["radius"]
+        start_angle = params["start_angle"]
+        end_angle = params["end_angle"]
+        angle_increment = params["angle_increment"]
+        orientation = params["orientation"]
+
+        object_mesh = trimesh.load_mesh(self.manipulated_object_mesh_path)
+
+        angles = np.arange(start_angle, end_angle, angle_increment)
+
+        for angle in angles:
+            x = center_position[0] + radius * np.cos(angle)
+            y = center_position[1] + radius * np.sin(angle)
+            z = center_position[2]
+
+            object_pose = PoseStamped()
+            object_pose.header.frame_id = "base_link"
+            object_pose.pose.position.x = x
+            object_pose.pose.position.y = y
+            object_pose.pose.position.z = z
+            object_pose.pose.orientation.x = orientation[0]
+            object_pose.pose.orientation.y = orientation[1]
+            object_pose.pose.orientation.z = orientation[2]
+            object_pose.pose.orientation.w = orientation[3]
+
+            object_mesh.apply_transform(convert_pose_stamped_to_matrix(object_pose))
+            self.collision_manager.add_object('obj', object_mesh)
+
+            if not self.collision_manager.in_collision_internal():
+                self.feasible_placements.append(convert_pose_stamped_to_matrix(object_pose))
+
+            self.collision_manager.remove_object('obj')
+
+    def _find_feasible_placements(self, params):
+        placement_type = params["type"]
+        if placement_type == "rectangular":
+            self._placement_rectangular(params)
+        elif placement_type == "linear":
+            self._placement_linear(params)
+        elif placement_type == "circular":
+            self._placement_circular(params)
+        else:
+            raise Exception("Invalid placement type, check config")
 
     def _find_feasible_grasps(self, num_samples, rotated_matrix):
         loaded_array = np.load(self.grasp_poses_file)
@@ -215,7 +310,8 @@ class Sampler:
         self.robot = robot_scene.robot
         self.move_group = robot_scene.move_group
         self.compute_ik_srv = robot_scene.compute_ik_srv
-        self.manipulated_object_mesh_path = config.package_path + config.get('environment', 'manipulated_object_mesh_path')
+        self.manipulated_object_mesh_path = config.package_path + config.get('environment',
+                                                                             'manipulated_object_mesh_path')
         self.env_pose = create_pose_stamped(config.get('environment', 'env_pose'))
         self.env_mesh_path = config.package_path + config.get('environment', 'env_mesh_path')
         self.scene = robot_scene.scene
@@ -297,7 +393,8 @@ class Sampler:
 class ProblemVisualizer:
     def __init__(self, config, foliated_builder):
         self.env_mesh_path = config.package_path + config.get('environment', 'env_mesh_path')
-        self.manipulated_object_mesh_path = config.package_path + config.get("environment", "manipulated_object_mesh_path")
+        self.manipulated_object_mesh_path = config.package_path + config.get("environment",
+                                                                             "manipulated_object_mesh_path")
         self.env_pose = create_pose_stamped(config.get('environment', 'env_pose'))
         self.feasible_placements = foliated_builder.feasible_placements
         self.visualize_problem()
@@ -314,6 +411,7 @@ class ProblemVisualizer:
 
         # visualize feasible placements
         for i, placement in enumerate(self.feasible_placements):
+            placement = msgify(geometry_msgs.msg.Pose, placement)
             object_marker = self.create_marker(placement, self.manipulated_object_mesh_path, "placement", i + 1)
             marker_array.markers.append(object_marker)
 
@@ -331,7 +429,7 @@ class ProblemVisualizer:
         marker.pose = pose
         marker.scale = Point(1, 1, 1)
         marker.color = ColorRGBA(0.5, 0.5, 0.5, 1)
-        marker.mesh_resource = mesh_path
+        marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(mesh_path)
         return marker
 
 

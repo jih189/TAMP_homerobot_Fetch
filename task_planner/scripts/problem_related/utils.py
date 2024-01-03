@@ -2,11 +2,6 @@ import sys
 
 from trimesh import transformations
 import numpy as np
-import rospy
-import moveit_commander
-
-from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
-from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 
 def convert_pose_stamped_to_matrix(pose_stamped):
