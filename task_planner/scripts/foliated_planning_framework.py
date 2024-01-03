@@ -137,7 +137,7 @@ class FoliatedPlanningFramework():
                 continue
             else:
                 # get the length of the motion plan
-                path_length = [motion_plan.cost() for motion_plan in list_of_motion_plan]
+                path_length = sum([motion_plan.cost() for motion_plan in list_of_motion_plan])
                 return True, task_node_sequence_generation_time, motion_planning_time, updating_time, path_length
 
         return False, None, None, None, None

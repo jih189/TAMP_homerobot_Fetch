@@ -50,8 +50,8 @@ if __name__ == "__main__":
     # set the result file path
     result_file_path = package_path + "/result.json"
 
-    # start_and_goal_list = loaded_foliated_problem.generateStartAndGoal()
-    start_and_goal_list = [((0,1), (0,2)), ((0,1), (0,2))]
+    # sampled random start and goal
+    sampled_start_and_goal_list = [loaded_foliated_problem.sampleStartAndGoal() for _ in range(2)]
 
     # load the gmm
     gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm/'
@@ -83,7 +83,7 @@ if __name__ == "__main__":
 
             foliated_planning_framework.setTaskPlanner(task_planner)
         
-            for task_info in tqdm(start_and_goal_list):
+            for task_info in tqdm(sampled_start_and_goal_list):
 
                 start, goal = task_info
 
