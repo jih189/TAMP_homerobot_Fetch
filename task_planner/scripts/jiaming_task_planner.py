@@ -580,7 +580,6 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
         print("Path length : ", path_length)
         if path_length > self.exceed_threshold:
             self.current_graph_distance_radius *= 1.25
-            self.expand_current_task_graph(self.current_graph_distance_radius)
 
         task_sequence = []
 
@@ -688,7 +687,9 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][3] += 1
 
         # only update the weight of nodes in the same manifold with the current task.
-        for n in self.task_graph.nodes():
+        tx = time.time()
+        print(len(self.current_task_graph.nodes()), len(self.task_graph.nodes()))
+        for n in self.current_task_graph.nodes():
             if n == 'start' or n == 'goal':
                 continue
             
@@ -709,9 +710,12 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
 
             self.task_graph.nodes[n]['weight'] += arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
 
-        for u, v in self.task_graph.edges():
+        t2 = time.time()
+        print("Update node weight time : ", t2 - tx)
+        for u, v in self.current_task_graph.edges():
             self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
-
+        print("Update edge weight time : ", time.time() - t2)
+        self.expand_current_task_graph(self.current_graph_distance_radius)
 
 class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
     def __init__(self, gmm, default_robot_state, planner_name_="MTGTaskPlannerWithAtlas", parameter_dict_={}):
