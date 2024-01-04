@@ -6,3 +6,4 @@ mpt_general/
 acronym/
 task_planner/empty_world_trajectory_data
 task_planner/gmm_related
+result*.json

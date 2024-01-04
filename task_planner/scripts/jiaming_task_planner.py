@@ -429,16 +429,18 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
 
 class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
-    def __init__(self, gmm, planner_name_="MTGTaskPlannerWithGMM", parameter_dict_={}):
+    def __init__(self, gmm, planner_name_="DynamicMTGTaskPlannerWithGMM", threshold = 75.0, parameter_dict_={}):
         # Constructor
         super(BaseTaskPlanner, self).__init__()
         # super().__init__() # python 3
 
         self.gmm_ = gmm
 
-        self.planner_name = planner_name_
+        self.planner_name = planner_name_ + "_" + str(threshold)
 
         self.parameter_dict = parameter_dict_
+
+        self.exceed_threshold = threshold
 
     # MTGTaskPlannerWithGMM
     def reset_task_planner(self):
@@ -576,7 +578,7 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         path_length = np.sum([self.current_task_graph.get_edge_data(node1, node2)['weight'] for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])])
         print("Path length : ", path_length)
-        if path_length > 100.0:
+        if path_length > self.exceed_threshold:
             self.current_graph_distance_radius *= 1.25
             self.expand_current_task_graph(self.current_graph_distance_radius)
 
@@ -1041,7 +1043,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
 
 class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
-    def __init__(self, gmm, default_robot_state, planner_name_="MTGTaskPlannerWithAtlas", parameter_dict_={}):
+    def __init__(self, gmm, default_robot_state, planner_name_="DynamicMTGTaskPlannerWithAtlas", threshold = 75.0, parameter_dict_={}):
         # Constructor
         super(BaseTaskPlanner, self).__init__()
         # super().__init__() # python 3
@@ -1049,7 +1051,9 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
         self.gmm_ = gmm
         self.default_robot_state_ = default_robot_state
 
-        self.planner_name = planner_name_
+        self.planner_name = planner_name_ + "_" + str(threshold)
+
+        self.exceed_threshold = threshold
 
         self.parameter_dict = parameter_dict_
 
@@ -1200,7 +1204,7 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
         path_length = np.sum([self.current_task_graph.get_edge_data(node1, node2)['weight'] for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])])
         print("Path length : ", path_length)
-        if path_length > 100.0:
+        if path_length > self.exceed_threshold:
             self.current_graph_distance_radius *= 1.25
             self.expand_current_task_graph(self.current_graph_distance_radius)
 
