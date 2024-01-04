@@ -133,11 +133,6 @@ class MoveitMotionPlanner(BaseMotionPlanner):
 
         motion_plan_result = self.move_group.plan()
 
-        # need to process the result for update the task graph
-        if len(motion_plan_result[4].verified_motions) > 0:
-            # print "need to process the result for update the task graph"
-            for motion in motion_plan_result[4].verified_motions:
-                motion.sampled_state = [motion.sampled_state.joint_state.position[motion.sampled_state.joint_state.name.index(jn)] for jn in self.move_group.get_active_joints()]
 
         # the section returned value should be a BaseTaskMotion
         return motion_plan_result[0], ManipulationTaskMotion(
