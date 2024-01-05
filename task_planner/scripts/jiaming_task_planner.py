@@ -608,7 +608,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
     # MTGTaskPlannerWithAtlas
     def get_related_task_nodes(self, current_node):
         '''
-        Return a list of co_parameter with beta value times similarity score.
+        Return a list of co_parameter with beta value and similarity score.
         '''
         result = []
         for co_parameter_index in self.foliation_with_co_parameter_id[current_node[0]]:
@@ -619,12 +619,14 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 if num_of_configuration_before_project == 0:
                     result.append((
                         co_parameter_index, 
-                        1.0 * similarity_score # if no configuration before project, then we assume the volume of this region is very thin.
+                        1.0,
+                        similarity_score # if no configuration before project, then we assume the volume of this region is very thin.
                     )) # related task nodes contains all the nodes in the same foliation with the same distribution id.
                 else:
                     result.append((
                         co_parameter_index, 
-                        num_of_invalid_configuration_before_project / (num_of_configuration_before_project * 1.0) * similarity_score
+                        (num_of_invalid_configuration_before_project * 1.0) / num_of_configuration_before_project,
+                        similarity_score
                     )) # related task nodes contains all the nodes in the same foliation with the same distribution id.
         return result
 
