@@ -186,6 +186,8 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         self.parameter_dict = parameter_dict_
 
+        self.graph_edges = [] 
+
     # MTGTaskPlannerWithGMM
     def reset_task_planner(self):
 
@@ -194,6 +196,8 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         # self.reset_manifold_similarity_table()
         self.total_similiarity_table = {}
+
+        self.graph_edges = []
 
     # MTGTaskPlannerWithGMM
     def add_manifold(self, manifold_info_, manifold_id_):
@@ -212,12 +216,28 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 intersection=None
             )
 
+            self.graph_edges.append(
+                (
+                    self.task_graph.edges[(manifold_id_[0], manifold_id_[1], edge[0]), (manifold_id_[0], manifold_id_[1], edge[1])], 
+                    self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])], 
+                    self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])]
+                )
+            )
+
             # need to add the inverse edge
             self.task_graph.add_edge(
                 (manifold_id_[0], manifold_id_[1], edge[1]), 
                 (manifold_id_[0], manifold_id_[1], edge[0]),
                 has_intersection=False,
                 intersection=None
+            )
+
+            self.graph_edges.append(
+                (
+                    self.task_graph.edges[(manifold_id_[0], manifold_id_[1], edge[1]), (manifold_id_[0], manifold_id_[1], edge[0])], 
+                    self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])], 
+                    self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])]
+                )
             )
 
     # MTGTaskPlannerWithGMM
@@ -428,8 +448,30 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
             self.task_graph.nodes[n]['weight'] += arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
 
-        for u, v in self.task_graph.edges():
-            self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
+        # for u, v in self.task_graph.edges():
+        #     self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
+
+        # split the graph edges into to cpu_count() parts and update the edge weight in parallel.
+        graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
+        Parallel(n_jobs=cpu_count(), prefer="threads")(delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists)
+
+    @staticmethod
+    def update_edge_weight(edge):
+        for e, u, v in edge:
+            e['weight'] = u['weight'] + v['weight']
+
+    def split_list(self, lst, n):
+        """
+        Splits the list lst into n parts as evenly as possible.
+        """
+        # Length of each part
+        part_length, remainder = divmod(len(lst), n)
+
+        # Generator expression to yield n parts
+        return (
+            lst[i * part_length + min(i, remainder): (i + 1) * part_length + min(i + 1, remainder)]
+            for i in range(n)
+        )
 
 class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
     def __init__(self, gmm, default_robot_state, planner_name_="MTGTaskPlannerWithAtlas", parameter_dict_={}):
@@ -783,6 +825,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         # for u, v in self.task_graph.edges():
         #     self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
 
+        # split the graph edges into to cpu_count() parts and update the edge weight in parallel.
         graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
         Parallel(n_jobs=cpu_count(), prefer="threads")(delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists)
 
