@@ -443,6 +443,9 @@ if __name__ == "__main__":
     # build foliation
     foliated_builder = FoliatedBuilder(config)
 
+    print foliated_builder.foliation_slide
+    print foliated_builder.foliation_regrasp
+
     # build sampler
     sampler = Sampler(config, robot_scene)
 
@@ -454,7 +457,7 @@ if __name__ == "__main__":
     # build problem
     foliated_problem = FoliatedProblem(config.get("task_parameters", 'task_name'))
     foliated_problem.set_foliation_n_foliated_intersection(
-        [foliated_builder.foliation_slide, foliated_builder.foliation_regrasp],
+        [foliated_builder.foliation_regrasp, foliated_builder.foliation_slide],
         [foliated_intersection])
     foliated_problem.sample_intersections(config.get('task_parameters', 'num_samples'))
 

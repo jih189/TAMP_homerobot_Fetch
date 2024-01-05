@@ -75,10 +75,12 @@ class MoveitMotionPlanner(BaseMotionPlanner):
             distribution.co_parameter_id = node_id[1]
             distribution.distribution_id = node_id[2]
             distribution.related_co_parameter_index = []
-            distribution.related_beta_time_similarity_ratio = []
-            for related_co_parameter_index, related_beta_time_similarity_ratio in related_node_data:
+            distribution.related_beta = []
+            distribution.related_similarity = []
+            for related_co_parameter_index, related_beta, related_similarity in related_node_data:
                 distribution.related_co_parameter_index.append(related_co_parameter_index)
-                distribution.related_beta_time_similarity_ratio.append(related_beta_time_similarity_ratio)
+                distribution.related_beta.append(related_beta)
+                distribution.related_similarity.append(related_similarity)
 
             distribution_sequence.append(distribution)
 
@@ -91,8 +93,8 @@ class MoveitMotionPlanner(BaseMotionPlanner):
             current_object_pose_stamped.header.frame_id = "wrist_roll_link"
             current_object_pose_stamped.pose = Pose()
             manipulated_object = make_mesh(
-                "object", 
-                current_object_pose_stamped, 
+                "object",
+                current_object_pose_stamped,
                 foliation_constraints['object_mesh_path'],
             )
 
@@ -133,11 +135,6 @@ class MoveitMotionPlanner(BaseMotionPlanner):
 
         motion_plan_result = self.move_group.plan()
 
-        # need to process the result for update the task graph
-        if len(motion_plan_result[4].verified_motions) > 0:
-            # print "need to process the result for update the task graph"
-            for motion in motion_plan_result[4].verified_motions:
-                motion.sampled_state = [motion.sampled_state.joint_state.position[motion.sampled_state.joint_state.name.index(jn)] for jn in self.move_group.get_active_joints()]
 
         # the section returned value should be a BaseTaskMotion
         return motion_plan_result[0], ManipulationTaskMotion(

@@ -18,12 +18,13 @@ if __name__ == "__main__":
     rospy.init_node('main_pipeline_node', anonymous=True)
 
     rospack = rospkg.RosPack()
-    
+
     # Get the path of the desired package
     package_path = rospack.get_path('task_planner')
 
     # load the foliated problem
-    loaded_foliated_problem = FoliatedProblem.load(ManipulationFoliation, ManipulationIntersection, package_path + "/check")
+    loaded_foliated_problem = FoliatedProblem.load(ManipulationFoliation, ManipulationIntersection,
+                                                   package_path + "/check")
 
     # load the gmm
     gmm_dir_path = package_path + '/computed_gmms_dir/dpgmm/'
@@ -39,21 +40,22 @@ if __name__ == "__main__":
     # robot_state.joint_state.name = ['torso_lift_joint', 'shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'wrist_flex_joint', 'l_gripper_finger_joint', 'r_gripper_finger_joint']
     # robot_state.joint_state.position = [0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
 
-    # load it into the task planner.
-    # task_planner = MTGTaskPlanner()
-    task_planner = MTGTaskPlannerWithGMM(gmm)
-    # task_planner = MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()) # need to provide the current robot state as the default robot state.
-
     # initialize the foliated planning framework, and set the task planner and motion planner
     foliated_planning_framework = FoliatedPlanningFramework()
-    foliated_planning_framework.setTaskPlanner(task_planner)
     foliated_planning_framework.setMotionPlanner(motion_planner)
-    foliated_planning_framework.setMaxAttemptTime(5)
+
+    # load it into the task planner.
+    # task_planner = MTGTaskPlanner()
+    # task_planner = MTGTaskPlannerWithGMM(gmm)
+    task_planner = MTGTaskPlannerWithAtlas(gmm,
+                                           motion_planner.move_group.get_current_state())  # need to provide the current robot state as the default robot state.
+    foliated_planning_framework.setTaskPlanner(task_planner)
+    foliated_planning_framework.setMaxAttemptTime(15)
 
     # initialize the visualizer
     visualizer = MoveitVisualizer()
     visualizer.prepare_visualizer(motion_planner.move_group.get_active_joints(), motion_planner.robot)
-    
+
     # set the visualizer
     foliated_planning_framework.setVisualizer(visualizer)
 
@@ -62,11 +64,12 @@ if __name__ == "__main__":
 
     # set the start and goal
     foliated_planning_framework.setStartAndGoal(
-        0, 6,
-        ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints()),
-
-        0, 5,
-        ManipulationIntersection(action='goal', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], active_joints=motion_planner.move_group.get_active_joints())
+        0, 1,
+        ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
+                                 active_joints=motion_planner.move_group.get_active_joints()),
+        0, 3,
+        ManipulationIntersection(action='goal', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
+                                 active_joints=motion_planner.move_group.get_active_joints())
     )
 
     # foliated_planning_framework.setStartAndGoal(
@@ -75,7 +78,6 @@ if __name__ == "__main__":
     #     0, 11,
     #     ManipulationIntersection(action='goal', motion=[[ 0.38, -1.28, 1.51, 0.35, 1.81, 1.47, 0.0]], active_joints=motion_planner.move_group.get_active_joints())
     # )
-
 
     # solve the problem
     found_solution, solution_trajectory = foliated_planning_framework.solve()
