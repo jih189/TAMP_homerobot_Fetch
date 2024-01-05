@@ -12,21 +12,32 @@ import numpy as np
 from moveit_msgs.srv import GetPositionFK, GetPositionFKRequest
 import random
 
+
 class ManipulationTaskMotion(BaseTaskMotion):
-    def __init__(self, planned_motion, has_object_in_hand, object_pose, object_mesh_path, obstacle_pose, obstacle_mesh_path):
+    def __init__(self, planned_motion, has_object_in_hand, object_pose, object_mesh_path, obstacle_pose,
+                 obstacle_mesh_path):
         # if planned_motion must be trajectory_msgs/JointTrajectory.
         if not isinstance(planned_motion, moveit_msgs.msg.RobotTrajectory):
             raise TypeError("planned_motion must be trajectory_msgs/JointTrajectory.")
 
         self.planned_motion = planned_motion
-        self.has_object_in_hand = has_object_in_hand # if the object is in hand.
-        self.object_pose = object_pose # if the object is in hand, then this is the object pose in the hand frame. if not, this is the object pose in the base_link frame.
+        self.has_object_in_hand = has_object_in_hand  # if the object is in hand.
+        self.object_pose = object_pose  # if the object is in hand, then this is the object pose in the hand frame. if not, this is the object pose in the base_link frame.
         self.object_mesh_path = object_mesh_path
         self.obstacle_pose = obstacle_pose
         self.obstacle_mesh_path = obstacle_mesh_path
 
     def get(self):
         return self.planned_motion, self.has_object_in_hand, self.object_pose, self.object_mesh_path, self.obstacle_pose, self.obstacle_mesh_path
+
+    def cost(self):
+        solution_trajectory = []
+        for p in self.planned_motion.joint_trajectory.points:
+            solution_trajectory.append(p.positions)
+        solution_trajectory = np.array(solution_trajectory)
+        differences = np.diff(solution_trajectory, axis=0)
+        distances = np.linalg.norm(differences, axis=1)
+        return np.sum(distances)
 
 
 class MoveitVisualizer(BaseVisualizer):
@@ -69,18 +80,18 @@ class MoveitVisualizer(BaseVisualizer):
         self.manipulated_object_marker.header.frame_id = "base_link"
         self.manipulated_object_marker.id = 0
         self.manipulated_object_marker.type = Marker.MESH_RESOURCE
-        self.manipulated_object_marker.scale = Point(1,1,1)
-        self.manipulated_object_marker.color = ColorRGBA(0,1,0,1)
+        self.manipulated_object_marker.scale = Point(1, 1, 1)
+        self.manipulated_object_marker.color = ColorRGBA(0, 1, 0, 1)
         self.whole_scene_marker_array.markers.append(self.manipulated_object_marker)
 
         self.obstacle_marker = Marker()
         self.obstacle_marker.header.frame_id = "base_link"
         self.obstacle_marker.id = 1
         self.obstacle_marker.type = Marker.MESH_RESOURCE
-        self.obstacle_marker.scale = Point(1,1,1)
-        self.obstacle_marker.color = ColorRGBA(1,1,1,1)
+        self.obstacle_marker.scale = Point(1, 1, 1)
+        self.obstacle_marker.color = ColorRGBA(1, 1, 1, 1)
         self.whole_scene_marker_array.markers.append(self.obstacle_marker)
-        
+
         self.current_object_pose_stamped = PoseStamped()
         self.current_object_pose_stamped.header.frame_id = "wrist_roll_link"
         self.current_object_pose_stamped.pose = Pose()
@@ -89,11 +100,13 @@ class MoveitVisualizer(BaseVisualizer):
         self.attached_object.link_name = "wrist_roll_link"
         self.attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
 
-    def visualize_for_debug(self, sampled_configurations, task_constraint_parameters, start_configuration, goal_configuration, action_name, co_parameter):
+    def visualize_for_debug(self, sampled_configurations, task_constraint_parameters, start_configuration,
+                            goal_configuration, action_name, co_parameter):
 
         self.visualize_sampled_configurations(sampled_configurations)
 
-        self.visualize_task_information(task_constraint_parameters, start_configuration, goal_configuration, action_name, co_parameter)
+        self.visualize_task_information(task_constraint_parameters, start_configuration, goal_configuration,
+                                        action_name, co_parameter)
 
     def get_end_effector_pose(self, configuration):
         '''
@@ -112,7 +125,8 @@ class MoveitVisualizer(BaseVisualizer):
 
         return numpify(fk_response.pose_stamped[0].pose)
 
-    def generate_configuration_marker(self, configuration, id, arm_color=ColorRGBA(1,0,0,0.3), finger_color=ColorRGBA(0,1,0,0.3)):
+    def generate_configuration_marker(self, configuration, id, arm_color=ColorRGBA(1, 0, 0, 0.3),
+                                      finger_color=ColorRGBA(0, 1, 0, 0.3)):
         '''
         '''
         # convert the sampled configuration into RobotState
@@ -132,15 +146,17 @@ class MoveitVisualizer(BaseVisualizer):
         arm_marker.type = Marker.LINE_STRIP
         arm_marker.scale = Point(0.02, 0.02, 0.02)
         arm_marker.color = arm_color
-        arm_marker.points = [Point(p.pose.position.x,p.pose.position.y,p.pose.position.z) for p in fk_response.pose_stamped]
-        
+        arm_marker.points = [Point(p.pose.position.x, p.pose.position.y, p.pose.position.z) for p in
+                             fk_response.pose_stamped]
+
         l_finger_marker = Marker()
         l_finger_marker.header.frame_id = "base_link"
         l_finger_marker.id = id + 1
         l_finger_marker.type = Marker.CUBE
         l_finger_marker.scale = Point(0.1, 0.02, 0.02)
         l_finger_marker.color = finger_color
-        l_finger_marker.pose = msgify(Pose, np.dot(numpify(fk_response.pose_stamped[-1].pose), np.array([[1,0,0,0.15],[0,1,0,0.045],[0,0,1,0],[0,0,0,1]])))
+        l_finger_marker.pose = msgify(Pose, np.dot(numpify(fk_response.pose_stamped[-1].pose), np.array(
+            [[1, 0, 0, 0.15], [0, 1, 0, 0.045], [0, 0, 1, 0], [0, 0, 0, 1]])))
 
         r_finger_marker = Marker()
         r_finger_marker.header.frame_id = "base_link"
@@ -148,11 +164,13 @@ class MoveitVisualizer(BaseVisualizer):
         r_finger_marker.type = Marker.CUBE
         r_finger_marker.scale = Point(0.1, 0.02, 0.02)
         r_finger_marker.color = finger_color
-        r_finger_marker.pose = msgify(Pose, np.dot(numpify(fk_response.pose_stamped[-1].pose), np.array([[1,0,0,0.15],[0,1,0,-0.045],[0,0,1,0],[0,0,0,1]])))
+        r_finger_marker.pose = msgify(Pose, np.dot(numpify(fk_response.pose_stamped[-1].pose), np.array(
+            [[1, 0, 0, 0.15], [0, 1, 0, -0.045], [0, 0, 1, 0], [0, 0, 0, 1]])))
 
         return arm_marker, l_finger_marker, r_finger_marker
 
-    def visualize_task_information(self, task_constraint_parameters, start_configuration, goal_configuration, action_name, co_parameter):
+    def visualize_task_information(self, task_constraint_parameters, start_configuration, goal_configuration,
+                                   action_name, co_parameter):
         # visualize the task information
 
         # clean previous marker
@@ -168,7 +186,8 @@ class MoveitVisualizer(BaseVisualizer):
         marker_array = MarkerArray()
 
         # visualize the start configuration
-        start_arm_marker, start_l_finger_marker, start_r_finger_marker = self.generate_configuration_marker(start_configuration, 0, arm_color=ColorRGBA(0,0,1,1), finger_color=ColorRGBA(0,0,1,1))
+        start_arm_marker, start_l_finger_marker, start_r_finger_marker = self.generate_configuration_marker(
+            start_configuration, 0, arm_color=ColorRGBA(0, 0, 1, 1), finger_color=ColorRGBA(0, 0, 1, 1))
         marker_array.markers.append(start_arm_marker)
         marker_array.markers.append(start_l_finger_marker)
         marker_array.markers.append(start_r_finger_marker)
@@ -178,7 +197,8 @@ class MoveitVisualizer(BaseVisualizer):
         self.task_info_marker_ids.append(start_r_finger_marker.id)
 
         # visualize the goal configuration
-        goal_arm_marker, goal_l_finger_marker, goal_r_finger_marker = self.generate_configuration_marker(goal_configuration, 3, arm_color=ColorRGBA(0,0,1,1), finger_color=ColorRGBA(0,0,1,1))
+        goal_arm_marker, goal_l_finger_marker, goal_r_finger_marker = self.generate_configuration_marker(
+            goal_configuration, 3, arm_color=ColorRGBA(0, 0, 1, 1), finger_color=ColorRGBA(0, 0, 1, 1))
         marker_array.markers.append(goal_arm_marker)
         marker_array.markers.append(goal_l_finger_marker)
         marker_array.markers.append(goal_r_finger_marker)
@@ -193,9 +213,9 @@ class MoveitVisualizer(BaseVisualizer):
         action_name_marker.id = 6
         action_name_marker.type = Marker.TEXT_VIEW_FACING
         action_name_marker.scale = Point(0.15, 0.15, 0.15)
-        action_name_marker.color = ColorRGBA(1,1,1,1)
+        action_name_marker.color = ColorRGBA(1, 1, 1, 1)
         action_name_marker.text = action_name
-        action_name_marker.pose.position = Point(0,0,2.0)
+        action_name_marker.pose.position = Point(0, 0, 2.0)
         marker_array.markers.append(action_name_marker)
         self.task_info_marker_ids.append(action_name_marker.id)
 
@@ -208,9 +228,10 @@ class MoveitVisualizer(BaseVisualizer):
             start_object_marker.header.frame_id = "base_link"
             start_object_marker.id = 7
             start_object_marker.type = Marker.MESH_RESOURCE
-            start_object_marker.scale = Point(1,1,1)
-            start_object_marker.color = ColorRGBA(0,1,1,1)
-            start_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_constraint_parameters['object_mesh_path'])
+            start_object_marker.scale = Point(1, 1, 1)
+            start_object_marker.color = ColorRGBA(0, 1, 1, 1)
+            start_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(
+                task_constraint_parameters['object_mesh_path'])
             start_object_marker.pose = msgify(Pose, np.dot(start_end_effector_pose, np.linalg.inv(co_parameter)))
             marker_array.markers.append(start_object_marker)
 
@@ -223,9 +244,10 @@ class MoveitVisualizer(BaseVisualizer):
             goal_object_marker.header.frame_id = "base_link"
             goal_object_marker.id = 8
             goal_object_marker.type = Marker.MESH_RESOURCE
-            goal_object_marker.scale = Point(1,1,1)
-            goal_object_marker.color = ColorRGBA(0,1,1,1)
-            goal_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_constraint_parameters['object_mesh_path'])
+            goal_object_marker.scale = Point(1, 1, 1)
+            goal_object_marker.color = ColorRGBA(0, 1, 1, 1)
+            goal_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(
+                task_constraint_parameters['object_mesh_path'])
             goal_object_marker.pose = msgify(Pose, np.dot(goal_end_effector_pose, np.linalg.inv(co_parameter)))
             marker_array.markers.append(goal_object_marker)
 
@@ -237,9 +259,10 @@ class MoveitVisualizer(BaseVisualizer):
             object_marker.header.frame_id = "base_link"
             object_marker.id = 7
             object_marker.type = Marker.MESH_RESOURCE
-            object_marker.scale = Point(1,1,1)
-            object_marker.color = ColorRGBA(0,1,1,1)
-            object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_constraint_parameters['object_mesh_path'])
+            object_marker.scale = Point(1, 1, 1)
+            object_marker.color = ColorRGBA(0, 1, 1, 1)
+            object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(
+                task_constraint_parameters['object_mesh_path'])
             object_marker.pose = msgify(Pose, co_parameter)
             marker_array.markers.append(object_marker)
 
@@ -250,9 +273,10 @@ class MoveitVisualizer(BaseVisualizer):
         obstacle_marker.header.frame_id = "base_link"
         obstacle_marker.id = 9
         obstacle_marker.type = Marker.MESH_RESOURCE
-        obstacle_marker.scale = Point(1,1,1)
-        obstacle_marker.color = ColorRGBA(1,1,1,1)
-        obstacle_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(task_constraint_parameters['obstacle_mesh'])
+        obstacle_marker.scale = Point(1, 1, 1)
+        obstacle_marker.color = ColorRGBA(1, 1, 1, 1)
+        obstacle_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(
+            task_constraint_parameters['obstacle_mesh'])
         obstacle_marker.pose = msgify(Pose, task_constraint_parameters['obstacle_pose'])
         marker_array.markers.append(obstacle_marker)
 
@@ -282,13 +306,37 @@ class MoveitVisualizer(BaseVisualizer):
 
         for t, (c, s) in enumerate(sampled_configurations):
             if s == 5:
-                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t, arm_color=ColorRGBA(1,1,1,0.3), finger_color=ColorRGBA(1,1,1,0.3))
+                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3 * t,
+                                                                                                  arm_color=ColorRGBA(1,
+                                                                                                                      1,
+                                                                                                                      1,
+                                                                                                                      0.3),
+                                                                                                  finger_color=ColorRGBA(
+                                                                                                      1, 1, 1, 0.3))
             elif s > 5:
-                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t, arm_color=ColorRGBA(0,0,0,0.3), finger_color=ColorRGBA(0,0,0,0.3))
+                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3 * t,
+                                                                                                  arm_color=ColorRGBA(0,
+                                                                                                                      0,
+                                                                                                                      0,
+                                                                                                                      0.3),
+                                                                                                  finger_color=ColorRGBA(
+                                                                                                      0, 0, 0, 0.3))
             elif s == 0:
-                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t, arm_color=ColorRGBA(0,1,0,0.3), finger_color=ColorRGBA(0,1,0,0.3))
+                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3 * t,
+                                                                                                  arm_color=ColorRGBA(0,
+                                                                                                                      1,
+                                                                                                                      0,
+                                                                                                                      0.3),
+                                                                                                  finger_color=ColorRGBA(
+                                                                                                      0, 1, 0, 0.3))
             else:
-                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t, arm_color=ColorRGBA(1,0,0,0.3), finger_color=ColorRGBA(1,0,0,0.3))
+                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3 * t,
+                                                                                                  arm_color=ColorRGBA(1,
+                                                                                                                      0,
+                                                                                                                      0,
+                                                                                                                      0.3),
+                                                                                                  finger_color=ColorRGBA(
+                                                                                                      1, 0, 0, 0.3))
             # arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t)
             marker_array.markers.append(arm_marker)
             marker_array.markers.append(l_finger_marker)
@@ -307,7 +355,7 @@ class MoveitVisualizer(BaseVisualizer):
         '''
         print "visualize the plan"
         print "press ctrl+c to exit"
-        
+
         need_to_break = False
 
         while not rospy.is_shutdown():
@@ -315,27 +363,30 @@ class MoveitVisualizer(BaseVisualizer):
                 motion_trajectory, has_object_in_hand, object_pose, object_mesh_path, obstacle_pose, obstacle_mesh_path = motion_plan.get()
 
                 if obstacle_pose is not None:
-                    self.obstacle_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(obstacle_mesh_path)
+                    self.obstacle_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(
+                        obstacle_mesh_path)
                     self.obstacle_marker.action = Marker.ADD
                     self.obstacle_marker.pose = msgify(Pose, obstacle_pose)
 
                 for p in motion_trajectory.joint_trajectory.points:
                     current_robot_state_msg = moveit_msgs.msg.DisplayRobotState()
-                    current_robot_state_msg.state = convert_joint_values_to_robot_state(p.positions, self.active_joints, self.robot)
+                    current_robot_state_msg.state = convert_joint_values_to_robot_state(p.positions, self.active_joints,
+                                                                                        self.robot)
 
                     # if not manipulated object, then does not need to publish the object
                     if object_pose is not None:
                         if has_object_in_hand:
                             self.attached_object.object = make_mesh(
-                                "object", 
-                                self.current_object_pose_stamped, 
+                                "object",
+                                self.current_object_pose_stamped,
                                 object_mesh_path
                             )
                             self.attached_object.object.pose = msgify(Pose, np.linalg.inv(object_pose))
                             current_robot_state_msg.state.attached_collision_objects.append(self.attached_object)
                             self.manipulated_object_marker.action = Marker.DELETE
                         else:
-                            self.manipulated_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(object_mesh_path)
+                            self.manipulated_object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(
+                                object_mesh_path)
                             self.manipulated_object_marker.action = Marker.ADD
                             self.manipulated_object_marker.pose = msgify(Pose, object_pose)
 

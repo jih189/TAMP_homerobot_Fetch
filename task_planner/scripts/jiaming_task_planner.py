@@ -104,7 +104,7 @@ class MTGTaskPlanner(BaseTaskPlanner):
     def generate_task_sequence(self):
         # check the connectivity of the task graph from start to goal
         if not nx.has_path(self.task_graph, 'start', 'goal'):
-            print "no connection between start and goal!"
+            print "no connection between start and goal! 1"
             return []
 
         # find the shortest path from start to goal
@@ -288,11 +288,20 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
     # MTGTaskPlannerWithGMM
     def generate_task_sequence(self):
         # print the number of nodes can achieve the goal
-        # print "number of nodes can achieve the goal: ", len([node for node in self.task_graph.nodes if nx.has_path(self.task_graph, node, 'goal')])
+
+        # for node in self.task_graph.nodes:
+        #    if nx.has_path(self.task_graph, node, 'goal'):
+        #         print node
 
         # check the connectivity of the task graph from start to goal
+        #for start_node, end_node, attrs in self.task_graph.edges(data=True):
+        #    print '({}, {}): {}'.format(start_node, end_node, attrs)
         if not nx.has_path(self.task_graph, 'start', 'goal'):
-            print "no connection between start and goal!"
+            start_info = self.task_graph.nodes['start']
+            goal_info = self.task_graph.nodes['goal']
+            print "no connection between start and goal! 2"
+            print start_info
+            print goal_info
             return []
 
         # find the shortest path from start to goal
@@ -562,7 +571,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
         # check the connectivity of the task graph from start to goal
         if not nx.has_path(self.task_graph, 'start', 'goal'):
-            print "no connection between start and goal!"
+            print "no connection between start and goal! 3"
             return []
 
         # find the shortest path from start to goal

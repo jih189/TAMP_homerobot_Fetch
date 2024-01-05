@@ -37,11 +37,12 @@ environment:
 
 placement_parameters:
   type: "rectangular"
-  num_of_row: 5
-  num_of_col: 9
-  x_shift: 0.665
-  y_shift: 0
-  z_shift: 0.78
+  layers:
+    - num_of_row: 5
+      num_of_col: 9
+      x_shift: 0.665
+      y_shift: 0
+      z_shift: 0.78
 
 grasp_parameters:
   num_samples: 40

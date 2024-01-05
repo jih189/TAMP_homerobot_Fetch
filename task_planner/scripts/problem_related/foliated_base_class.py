@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 
 import networkx as nx
 
+
 # user needs to implement this function
 class BaseIntersection:
     __metaclass__ = ABCMeta
@@ -15,7 +16,9 @@ class BaseIntersection:
         It is an abstract class. It is used to represent the intersection of two manifolds.
         User needs to implement both get and inverse functions.
     """
-    def set_foliation_names_and_co_parameter_indexes(self, foliation1_name, co_parameter1_index, foliation2_name, co_parameter2_index):
+
+    def set_foliation_names_and_co_parameter_indexes(self, foliation1_name, co_parameter1_index, foliation2_name,
+                                                     co_parameter2_index):
         """Set the foliation and co-parameter index"""
         self.foliation1_name = foliation1_name
         self.co_parameter1_index = co_parameter1_index
@@ -54,9 +57,11 @@ class BaseIntersection:
         """Load the intersection"""
         raise NotImplementedError("Please Implement this method")
 
+
 class BaseFoliation:
     __metaclass__ = ABCMeta
-    def __init__(self, foliation_name, constraint_parameters, co_parameters = [], similarity_matrix = None):
+
+    def __init__(self, foliation_name, constraint_parameters, co_parameters=[], similarity_matrix=None):
         if not isinstance(co_parameters, list):
             raise Exception("co_parameters is not a list")
         if co_parameters.__len__() == 0:
@@ -71,13 +76,14 @@ class BaseFoliation:
         if similarity_matrix is not None and not isinstance(similarity_matrix, np.ndarray):
             raise Exception("similarity_matrix is not a numpy array")
         # check if size of similarity_matrix is correct
-        if similarity_matrix is not None and  similarity_matrix.shape != (co_parameters.__len__(), co_parameters.__len__()):
+        if similarity_matrix is not None and similarity_matrix.shape != (
+        co_parameters.__len__(), co_parameters.__len__()):
             raise Exception("similarity_matrix has incorrect size")
 
         self.foliation_name = foliation_name
-        self.constraint_parameters = constraint_parameters # constraint_parameters is a set of constraint parameters in directory.
-        self.co_parameters = co_parameters # list of co-parameters
-        self.similarity_matrix = similarity_matrix # similarity matrix between co-parameters
+        self.constraint_parameters = constraint_parameters  # constraint_parameters is a set of constraint parameters in directory.
+        self.co_parameters = co_parameters  # list of co-parameters
+        self.similarity_matrix = similarity_matrix  # similarity matrix between co-parameters
 
     @abstractmethod
     def save(self, file_path):
@@ -90,9 +96,12 @@ class BaseFoliation:
         """Load the foliation and return a foliation object"""
         raise NotImplementedError("Please Implement this method")
 
+
 class FoliatedIntersection:
     """This class represents a foliated intersection"""
-    def __init__(self, foliation1, foliation2, sampling_function, prepare_sample_function=None, sample_done_function=None):
+
+    def __init__(self, foliation1, foliation2, sampling_function, prepare_sample_function=None,
+                 sample_done_function=None):
         # check if the input is BaseFoliation class
         if not isinstance(foliation1, BaseFoliation):
             raise Exception("foliation1 is not a BaseFoliation class")
@@ -124,18 +133,21 @@ class FoliatedIntersection:
             The sampling function will receive two list of co_parameters from each foliation, then return a success flag, co_parameter_index from first foliation, co_paramter_index from second foliation, and BaseIntersection class.
         """
 
-        success_flag, co_parameter1_index, co_parameter2_index, sampled_intersection = self.sampling_function(self.foliation1.co_parameters, self.foliation2.co_parameters)
+        success_flag, co_parameter1_index, co_parameter2_index, sampled_intersection = self.sampling_function(
+            self.foliation1.co_parameters, self.foliation2.co_parameters)
 
         if not isinstance(success_flag, bool):
             raise Exception("The first return value of sampling function is not a boolean value!!!")
-        
+
         if not isinstance(co_parameter1_index, int):
-            raise Exception("The second return value(the index of sampled co-parameter1) of sampling function is not an integer value!!!")
+            raise Exception(
+                "The second return value(the index of sampled co-parameter1) of sampling function is not an integer value!!!")
 
         if not isinstance(co_parameter2_index, int):
-            raise Exception("The third return value(the index of sampled co-parameter2) of sampling function is not an integer value!!!")
+            raise Exception(
+                "The third return value(the index of sampled co-parameter2) of sampling function is not an integer value!!!")
 
-        if not success_flag: # if the success flag is false, then return false and whatever.
+        if not success_flag:  # if the success flag is false, then return false and whatever.
             return success_flag, co_parameter1_index, co_parameter2_index, sampled_intersection
 
         if not isinstance(sampled_intersection, BaseIntersection):
@@ -143,14 +155,17 @@ class FoliatedIntersection:
 
         return success_flag, co_parameter1_index, co_parameter2_index, sampled_intersection
 
+
 class FoliatedProblem:
     def __init__(self, problem_name):
         """Constructor for FoliatedProblem class"""
         self.problem_name = problem_name
         self.has_setup = False
         self.foliations = []
-        self.intersections = [] # list of intersections.
+        self.intersections = []  # list of intersections.
         self.foliated_intersections = []
+        self.start_manifold_candidates = []
+        self.goal_manifold_candidates = []
 
     def get_foliation_index(self, foliation_name):
         """Return the index of the foliation"""
@@ -201,23 +216,79 @@ class FoliatedProblem:
 
                     # append the inverse intersection
                     self.intersections.append(inversed_sampled_intersection)
-                
-            foliated_intersection.sample_done()
-            print "sampled " + str(self.intersections.__len__()) + " intersections bewteen foliations ", foliated_intersection.foliation1.foliation_name, " and ", foliated_intersection.foliation2.foliation_name
 
+            foliated_intersection.sample_done()
+            print "sampled " + str(
+                self.intersections.__len__()) + " intersections bewteen foliations ", foliated_intersection.foliation1.foliation_name, " and ", foliated_intersection.foliation2.foliation_name
+
+    def set_start_manifold_candidates(self, start_manifold_candidates):
+        """Set start manifold candidates"""
+        if not isinstance(start_manifold_candidates, list):
+            raise Exception("start_manifold_candidates is not a list")
+        if start_manifold_candidates.__len__() == 0:
+            raise Exception("start_manifold_candidates is empty")
+        # check if each element in start_manifold_candidates is a tuple with two integers
+        for manifold in start_manifold_candidates:
+            # check if manifold is a tuple with two integers
+            if not isinstance(manifold, tuple) or manifold.__len__() != 2 or not isinstance(manifold[0],
+                                                                                            int) or not isinstance(
+                    manifold[1], int):
+                raise Exception("Each element in start_manifold_candidates should be a tuple with two integers!!")
+
+        self.start_manifold_candidates = start_manifold_candidates
+
+    def set_goal_manifold_candidates(self, goal_manifold_candidates):
+        """Set goal manifold candidates"""
+        if not isinstance(goal_manifold_candidates, list):
+            raise Exception("goal_manifold_candidates is not a list")
+        if goal_manifold_candidates.__len__() == 0:
+            raise Exception("goal_manifold_candidates is empty")
+        # check if each element in goal_manifold_candidates is a tuple with two integers
+        for manifold in goal_manifold_candidates:
+            # check if manifold is a tuple with two integers
+            if not isinstance(manifold, tuple) or manifold.__len__() != 2 or not isinstance(manifold[0],
+                                                                                            int) or not isinstance(
+                    manifold[1], int):
+                raise Exception("Each element in goal_manifold_candidates should be a tuple with two integers!!")
+
+        self.goal_manifold_candidates = goal_manifold_candidates
+
+    def sampleStartAndGoal(self):
+        """randomly sample one start and goal manifold candidates"""
+
+        if self.start_manifold_candidates.__len__() == 0 or self.goal_manifold_candidates.__len__() == 0:
+            raise Exception("start or goal manifold candidates of the problem is empty!!!")
+
+        start_manifold_index = np.random.randint(0, self.start_manifold_candidates.__len__())
+        start_manifold = self.start_manifold_candidates[start_manifold_index]
+        goal_manifold_index = np.random.randint(0, self.goal_manifold_candidates.__len__())
+        goal_manifold = self.goal_manifold_candidates[goal_manifold_index]
+
+        attempt_time = 0
+
+        while (start_manifold == goal_manifold):  # we should not sample the same manifold for start and goal
+            start_manifold_index = np.random.randint(0, self.start_manifold_candidates.__len__())
+            start_manifold = self.start_manifold_candidates[start_manifold_index]
+            goal_manifold_index = np.random.randint(0, self.goal_manifold_candidates.__len__())
+            goal_manifold = self.goal_manifold_candidates[goal_manifold_index]
+            attempt_time += 1
+            if attempt_time > 100:
+                raise Exception("The start and goal manifold candidates are not enough!!!")
+
+        return (start_manifold, goal_manifold)
 
     def save(self, dir_name):
         '''Save the foliated problem'''
-        
+
         if not self.has_setup:
             raise Exception("The foliated problem has not been setup!!!")
-        
+
         if os.path.exists(dir_name):
             # delete the directory
             os.system("rm -rf " + dir_name)
-        
+
         os.makedirs(dir_name)
-        problem_data ={
+        problem_data = {
             "problem_name": self.problem_name,
             "foliations": [],
             "intersections": []
@@ -241,6 +312,15 @@ class FoliatedProblem:
         with open(dir_name + "/problem_data.json", "w") as f:
             json.dump(problem_data, f, indent=4)
 
+        # save start and goal manifold candidates
+        with open(dir_name + "/start_manifold_candidates.json", "w") as f:
+            for manifold in self.start_manifold_candidates:
+                f.write(str(manifold) + "\n")
+
+        with open(dir_name + "/goal_manifold_candidates.json", "w") as f:
+            for manifold in self.goal_manifold_candidates:
+                f.write(str(manifold) + "\n")
+
     @staticmethod
     def load(foliation_class, intersection_class, dir_name):
         '''Load the foliated problem'''
@@ -251,7 +331,7 @@ class FoliatedProblem:
         # check if foliation_class is a subclass of BaseFoliation
         if not issubclass(foliation_class, BaseFoliation):
             raise Exception("foliation_class is not a subclass of BaseFoliation!!!")
-        
+
         # check if intersection_class is a subclass of BaseIntersection
         if not issubclass(intersection_class, BaseIntersection):
             raise Exception("intersection_class is not a subclass of BaseIntersection!!!")
@@ -268,17 +348,38 @@ class FoliatedProblem:
         if not os.path.exists(dir_name + "/foliations"):
             raise Exception("The foliations directory does not exist!!!")
 
+        # check if start_manifold_candidates.json exists
+        if not os.path.exists(dir_name + "/start_manifold_candidates.json"):
+            raise Exception("The start_manifold_candidates.json does not exist!!!")
+
+        # check if goal_manifold_candidates.json exists
+        if not os.path.exists(dir_name + "/goal_manifold_candidates.json"):
+            raise Exception("The goal_manifold_candidates.json does not exist!!!")
+
         # load the problem data
         with open(dir_name + "/problem_data.json", "r") as f:
             problem_data = json.load(f)
 
         loaded_problem = FoliatedProblem(problem_data["problem_name"])
 
-        loaded_problem.foliations = [foliation_class.load(dir_name + "/foliations/" + foliation_name + ".json") for foliation_name in problem_data["foliations"]]
-        loaded_problem.intersections = [intersection_class.load(dir_name + "/intersections/" + intersection_name + ".json") for intersection_name in problem_data["intersections"]]
+        loaded_problem.foliations = [foliation_class.load(dir_name + "/foliations/" + foliation_name + ".json") for
+                                     foliation_name in problem_data["foliations"]]
+        loaded_problem.intersections = [
+            intersection_class.load(dir_name + "/intersections/" + intersection_name + ".json") for intersection_name in
+            problem_data["intersections"]]
+
+        # load start and goal manifold candidates
+        with open(dir_name + "/start_manifold_candidates.json", "r") as f:
+            for line in f:
+                loaded_problem.start_manifold_candidates.append(eval(line))
+
+        with open(dir_name + "/goal_manifold_candidates.json", "r") as f:
+            for line in f:
+                loaded_problem.goal_manifold_candidates.append(eval(line))
 
         return loaded_problem
-        
+
+
 class BaseMotionPlanner:
     __metaclass__ = ABCMeta
 
@@ -296,18 +397,21 @@ class BaseMotionPlanner:
         '''
             This function must return a success flag, a motion plan, and an experience.
         '''
-        success_flag, task_motion_result, experience, manifold_constraint = self.plan(start_configuration, goal_configuration, foliation_constraints, co_parameter, planning_hint)
+        success_flag, task_motion_result, experience, manifold_constraint = self.plan(start_configuration,
+                                                                                      goal_configuration,
+                                                                                      foliation_constraints,
+                                                                                      co_parameter, planning_hint)
         if not isinstance(success_flag, bool):
             raise Exception("The first return value of plan function is not a boolean value!!!")
         if not isinstance(task_motion_result, BaseTaskMotion):
             raise Exception("The second return value of plan function is not a BaseTaskMotion class!!!")
         return success_flag, task_motion_result, experience, manifold_constraint
 
-
     @abstractmethod
     def shutdown_planner(self):
         # Deletes the planner
         raise NotImplementedError("Please Implement this method")
+
 
 class BaseTaskMotion:
     __metaclass__ = ABCMeta
@@ -316,6 +420,7 @@ class BaseTaskMotion:
         For BaseIntersection and motion planner's result, they should provide a function to convert them to this class.
         So, the visualizer can use this class to visualize the motion plan.
     '''
+
     # def __init__(self, motion_plan):
     #     # check it motion plan is a dictionary
     #     if not isinstance(motion_plan, dict):
@@ -327,6 +432,13 @@ class BaseTaskMotion:
         # user has to implement this function properly based on how they use
         # the visualizer to visualize the motion plan.
         raise NotImplementedError("Please Implement this method")
+
+    @abstractmethod
+    def cost(self):
+        # user has to implement this function properly based on how they use
+        # define the cost of the motion plan.
+        raise NotImplementedError("Please Implement this method")
+
 
 class BaseVisualizer(object):
     __metaclass__ = ABCMeta
@@ -342,18 +454,19 @@ class BaseVisualizer(object):
                 raise TypeError("Each element in list_of_motion_plan must be a BaseTaskMotion class")
         self.visualize_plan(list_of_motion_plan)
 
+
 class Task:
-    def __init__(self, 
-                manifold_detail_, 
-                start_configuration_,
-                goal_configuration_,
-                next_motion_
-                ):
+    def __init__(self,
+                 manifold_detail_,
+                 start_configuration_,
+                 goal_configuration_,
+                 next_motion_
+                 ):
         # Constructor
         self.manifold_detail = manifold_detail_
         self.start_configuration = start_configuration_
         self.goal_configuration = goal_configuration_
-        self.next_motion = next_motion_ # the robot motion after the task is completed
+        self.next_motion = next_motion_  # the robot motion after the task is completed
         self.related_experience = []
 
     # set which edge of the task graph this task is.
@@ -361,25 +474,30 @@ class Task:
     def set_task_graph_info(self, task_graph_info_):
         self.task_graph_info = task_graph_info_
 
+
 class ManifoldDetail:
     '''
     ManifoldDetail contains the detail of a manifold. A manifold is defined by a foliation and a co-parameter.
     '''
+
     def __init__(self, foliation, co_parameter_index):
         # Constructor
         self.foliation = foliation
         self.co_parameter_index = co_parameter_index
 
+
 class IntersectionDetail:
     '''
     IntersectionDetail contains the detail of an intersection. ALl information is stored in a dictionary.
     '''
+
     def __init__(self, intersection_data, configuration_in_manifold1, configuration_in_manifold2, is_goal=False):
         # Constructor
         self.intersection_data = intersection_data
         self.configuration_in_manifold1 = configuration_in_manifold1
         self.configuration_in_manifold2 = configuration_in_manifold2
         self.is_goal = is_goal
+
 
 class BaseTaskPlanner:
     __metaclass__ = ABCMeta
@@ -404,7 +522,9 @@ class BaseTaskPlanner:
             # get index of each foliation in the foliation list
             foliation1_index = folaited_problem.get_foliation_index(foliation1_name)
             foliation2_index = folaited_problem.get_foliation_index(foliation2_name)
-            self.add_intersection((foliation1_index, co_parameter1_index), (foliation2_index, co_parameter2_index), IntersectionDetail(intersection, configuration_in_manifold1, configuration_in_manifold2, False))
+            self.add_intersection((foliation1_index, co_parameter1_index), (foliation2_index, co_parameter2_index),
+                                  IntersectionDetail(intersection, configuration_in_manifold1,
+                                                     configuration_in_manifold2, False))
 
     @abstractmethod
     def reset_task_planner(self):
@@ -428,10 +548,10 @@ class BaseTaskPlanner:
 
     @abstractmethod
     def set_start_and_goal(self,
-                            start_manifold_id_,
-                            start_intersection_, 
-                            goal_manifold_id_,
-                            goal_intersection_):
+                           start_manifold_id_,
+                           start_intersection_,
+                           goal_manifold_id_,
+                           goal_intersection_):
         """
         set start and goal configurations
         both start and goal configurations are intersection here.
@@ -457,7 +577,7 @@ class BaseTaskPlanner:
         set similarity matrix for a foliation
         """
         self.total_similiarity_table[foliation_id_] = similarity_matrix_
-    
+
     #########################################################################################
     # task solution graph is a graph used to save the solution. Later, the task planner can 
     # use this graph to check if the solution exists, then return the solution trajectory.
