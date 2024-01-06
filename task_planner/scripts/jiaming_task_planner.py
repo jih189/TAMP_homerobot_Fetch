@@ -13,6 +13,16 @@ import matplotlib.pyplot as plt
 # import multiprocessing as mp
 from joblib import Parallel, delayed, cpu_count
 
+def compare_dicts(dict1, dict2):
+    """
+    compare two dicts with the same keys.
+    """
+    diffkeys = [k for k in dict1 if abs(dict1[k] - dict2[k]) > 1e-6]
+    for k in diffkeys:
+        print( k, ':', dict1[k], '->', dict2[k])
+    if len(diffkeys) != 0:
+        done
+
 class MTGTaskPlanner(BaseTaskPlanner):
     def __init__(self, planner_name_="MTGTaskPlanner", parameter_dict_={}):
         # Constructor
@@ -305,6 +315,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             )
         )
 
+        nx.set_edge_attributes(self.task_graph, 0.0, 'weight')
         self.current_start_configuration = configuration_of_start
 
     # MTGTaskPlannerWithGMM
@@ -445,14 +456,17 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             path_constraint_violation_score = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][2] * 1.0
             obj_env_collision_score = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][3] * 1.0
 
-            self.task_graph.nodes[n]['weight'] += arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+            weight_value = arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+            self.task_graph.nodes[n]['weight'] += weight_value
+            if weight_value > 0.0:
+                for u, _, edge_attr in self.task_graph.in_edges(n, data=True):
+                    if u!= 'start' and u!= 'goal':
+                        edge_attr['weight'] += weight_value
 
-        # for u, v in self.task_graph.edges():
-        #     self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
+                for _, v, edge_attr in self.task_graph.out_edges(n, data=True):
+                    if v!= 'start' and v!= 'goal':
+                        edge_attr['weight'] += weight_value
 
-        # split the graph edges into to cpu_count() parts and update the edge weight in parallel.
-        graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
-        Parallel(n_jobs=cpu_count(), prefer="threads")(delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists)
 
     @staticmethod
     def update_edge_weight(edge):
@@ -594,19 +608,12 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
             edge_dist = 0.0,
         )
 
-
-        for u, v in self.task_graph.edges():
-            self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
-        # graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
-        # Parallel(n_jobs=cpu_count(), prefer="threads")(delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists)
-
+        nx.set_edge_attributes(self.task_graph, 0.0, 'weight')
         self.current_start_configuration = configuration_of_start
 
         self.compute_distance_to_start_and_goal()
         self.current_graph_distance_radius = nx.shortest_path_length(self.task_graph, 'start', 'goal', weight='edge_dist') + 1e-8
         self.expand_current_task_graph(self.current_graph_distance_radius)
-
-
 
     # MTGTaskPlannerWithGMM
     def generate_task_sequence(self):
@@ -619,11 +626,9 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
             return []
 
         # find the shortest path from start to goal
-        print("Trying to find a solution in a graph with %d nodes"%(len(self.current_task_graph.nodes())))
         shortest_path = nx.shortest_path(self.current_task_graph, 'start', 'goal', weight='weight')
-
         path_length = np.sum([self.current_task_graph.get_edge_data(node1, node2)['weight'] for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])])
-        print("Path length : ", path_length)
+        print("Trying to find a solution in a graph with %d nodes and path length %f"%(len(self.current_task_graph.nodes()), path_length))
         if path_length > self.exceed_threshold:
             self.current_graph_distance_radius *= 1.25
 
@@ -733,8 +738,6 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][3] += 1
 
         # only update the weight of nodes in the same manifold with the current task.
-        tx = time.time()
-        print(len(self.current_task_graph.nodes()), len(self.task_graph.nodes()))
         for n in self.current_task_graph.nodes():
             if n == 'start' or n == 'goal':
                 continue
@@ -754,23 +757,17 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
             path_constraint_violation_score = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][2] * 1.0
             obj_env_collision_score = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][3] * 1.0
 
-            self.task_graph.nodes[n]['weight'] += arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+            weight_value = arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+            self.task_graph.nodes[n]['weight'] += weight_value
+            if weight_value > 0.0:
+                for u, _, edge_attr in self.current_task_graph.in_edges(n, data=True):
+                    if u!= 'start' and u!= 'goal':
+                        edge_attr['weight'] += weight_value
 
-        t2 = time.time()
-        print("Update node weight time : ", t2 - tx)
-
-        # graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
-        # Parallel(n_jobs=cpu_count(), prefer="threads")(delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists)
-        for u, v in self.current_task_graph.edges():
-            self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
-
-        print("Update edge weight time : ", time.time() - t2)
+                for _, v, edge_attr in self.current_task_graph.out_edges(n, data=True):
+                    if v!= 'start' and v!= 'goal':
+                        edge_attr['weight'] += weight_value
         self.expand_current_task_graph(self.current_graph_distance_radius)
-
-    @staticmethod
-    def update_edge_weight(edge):
-        for e, u, v in edge:
-            e['weight'] = u['weight'] + v['weight']
 
 class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
     def __init__(self, gmm, default_robot_state, planner_name_="MTGTaskPlannerWithAtlas", parameter_dict_={}):
@@ -915,6 +912,8 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 True
             )
         )
+
+        nx.set_edge_attributes(self.task_graph, 0.0, 'weight')
 
         self.current_start_configuration = configuration_of_start
 
@@ -1119,14 +1118,17 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             path_constraint_violation_score = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][2] * 1.0
             obj_env_collision_score = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][3] * 1.0
 
-            self.task_graph.nodes[n]['weight'] += arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+            weight_value = arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+            self.task_graph.nodes[n]['weight'] += weight_value
+            if weight_value > 0.0:
+                for u, _, edge_attr in self.task_graph.in_edges(n, data=True):
+                    if u!= 'start' and u!= 'goal':
+                        edge_attr['weight'] += weight_value
 
-        # for u, v in self.task_graph.edges():
-        #     self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
+                for _, v, edge_attr in self.task_graph.out_edges(n, data=True):
+                    if v!= 'start' and v!= 'goal':
+                        edge_attr['weight'] += weight_value
 
-        # split the graph edges into to cpu_count() parts and update the edge weight in parallel.
-        graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
-        Parallel(n_jobs=cpu_count(), prefer="threads")(delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists)
 
         # update the valid configuration before project and invalid configuration before project
         for distribution_index in range(len(self.gmm_.distributions)):
@@ -1277,8 +1279,8 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
             edge_dist = 0.0,
         )
 
-        for u, v in self.task_graph.edges():
-            self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
+        nx.set_edge_attributes(self.task_graph, 0.0, 'weight')
+
 
         self.current_start_configuration = configuration_of_start
 
@@ -1298,11 +1300,9 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
             return []
 
         # find the shortest path from start to goal
-        print("Trying to find a solution in a graph with %d nodes"%(len(self.current_task_graph.nodes())))
         shortest_path = nx.shortest_path(self.current_task_graph, 'start', 'goal', weight='weight')
-
         path_length = np.sum([self.current_task_graph.get_edge_data(node1, node2)['weight'] for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])])
-        print("Path length : ", path_length)
+        print("Trying to find a solution in a graph with %d nodes and path length %f"%(len(self.current_task_graph.nodes()), path_length))
         if path_length > self.exceed_threshold:
             self.current_graph_distance_radius *= 1.25
             self.expand_current_task_graph(self.current_graph_distance_radius)
@@ -1481,11 +1481,18 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
             path_constraint_violation_score = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][2] * 1.0
             obj_env_collision_score = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][3] * 1.0
 
-            self.task_graph.nodes[n]['weight'] += arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+            weight_value = arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+            self.task_graph.nodes[n]['weight'] += weight_value
+            if weight_value > 0.0:
+                for u, _, edge_attr in self.current_task_graph.in_edges(n, data=True):
+                    if u!= 'start' and u!= 'goal':
+                        edge_attr['weight'] += weight_value
 
-        for u, v in self.current_task_graph.edges():
-            self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
-        
+                for _, v, edge_attr in self.current_task_graph.out_edges(n, data=True):
+                    if v!= 'start' and v!= 'goal':
+                        edge_attr['weight'] += weight_value
+
+
         # update the valid configuration before project and invalid configuration before project
         for distribution_index in range(len(self.gmm_.distributions)):
             self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['valid_configuration_before_project'] += sampled_data_distribution_tag_table[distribution_index][4]
@@ -1494,7 +1501,4 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
             if sampled_data_distribution_tag_table[distribution_index][0] > 0 or sampled_data_distribution_tag_table[distribution_index][4] > 0:
                 self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['has_atlas'] = True
 
-    @staticmethod
-    def update_edge_weight(edge):
-        for e, u, v in edge:
-            e['weight'] = u['weight'] + v['weight']
+        self.expand_current_task_graph(self.current_graph_distance_radius)
