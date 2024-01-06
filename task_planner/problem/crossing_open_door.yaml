@@ -21,8 +21,8 @@ environment:
   env_pose:
     frame_id: "base_link"
     position:
-      x: 0.6
-      y: -0.2
+      x: 1.08
+      y: 0.1
       z: -0.02
     orientation:
       x: 0.0
@@ -37,12 +37,12 @@ environment:
 
 placement_parameters:
   type: "circular"
-  center_position: [0.4725, -0.024, 0.855] # x, y, z 0.4725, -0.027, 0.86
-  radius: 0
-  start_angle: 0.0 # rad
-  end_angle: 6.28319 # rad
-  steps: 8 # rad
-  orientation: [0.0, 0.0, 0.0, 1.0] # x, y, z, w
+  center_position: [1.45, 0.7, 0.91]
+  radius: 0.8
+  start_angle: 4.0
+  end_angle: 3.5
+  steps: 5
+  orientation: [0.0, 0.0, 0.707, -0.707]
 
 grasp_parameters:
   num_samples: 2

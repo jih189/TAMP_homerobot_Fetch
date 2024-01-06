@@ -133,14 +133,9 @@ class FoliatedBuilder(object):
             x = center_position[0] + radius * np.cos(angle)
             y = center_position[1] + radius * np.sin(angle)
             z = center_position[2]
+            orientation = quaternion_from_euler(orientation[0], orientation[1],
+                                                orientation[2] + angle)
 
-            if radius == 0:
-                orientation = quaternion_from_euler(orientation[0], orientation[1],
-                                                    orientation[2] + angle)
-            else:
-                orientation = orientation
-
-            print orientation
 
             obj_pose = create_pose_stamped_from_raw("base_link", x, y, z,
                                                     orientation[0], orientation[1], orientation[2], orientation[3])
