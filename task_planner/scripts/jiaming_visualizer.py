@@ -294,6 +294,8 @@ class MoveitVisualizer(BaseVisualizer):
                 arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t, arm_color=ColorRGBA(1,1,1,0.3), finger_color=ColorRGBA(1,1,1,0.3))
             elif s > 5:
                 arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t, arm_color=ColorRGBA(0,0,0,0.3), finger_color=ColorRGBA(0,0,0,0.3))
+            elif s == 2:
+                arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t, arm_color=ColorRGBA(0.5,0.5,0,0.3), finger_color=ColorRGBA(0.5,0.5,0,0.3))
             elif s == 0:
                 arm_marker, l_finger_marker, r_finger_marker = self.generate_configuration_marker(c, 3*t, arm_color=ColorRGBA(0,1,0,0.3), finger_color=ColorRGBA(0,1,0,0.3))
             else:
