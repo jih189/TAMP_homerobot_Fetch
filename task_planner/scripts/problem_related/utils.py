@@ -75,6 +75,8 @@ def collision_check(collision_manager, obj_mesh, obj_pose):
     collision_manager.add_object('obj', obj_mesh)
 
     if not collision_manager.in_collision_internal():
+        collision_manager.remove_object('obj')
         return True
 
+    collision_manager.remove_object('obj')
     return False

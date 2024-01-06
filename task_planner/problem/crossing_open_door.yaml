@@ -1,5 +1,5 @@
 task_parameters:
-  task_name: "slide_cup"
+  task_name: "open_door"
   task_type: "simple"
   num_samples: 30
   save_path: "/check"
@@ -15,9 +15,9 @@ initial_joint_state:
   r_gripper_finger_joint: 0.04
 
 environment:
-  env_mesh_path: "/mesh_dir/desk_with_bottle_frame.stl"
-  manipulated_object_mesh_path: "/mesh_dir/lid_scaled.stl"
-  grasp_poses_file: "/mesh_dir/cup.npz" # replace
+  env_mesh_path: "/mesh_dir/door_frame_with_roof.stl"
+  manipulated_object_mesh_path: "/mesh_dir/door_simple_v2.stl"
+  grasp_poses_file: "/mesh_dir/door_simple.npz"
   env_pose:
     frame_id: "base_link"
     position:
@@ -41,11 +41,11 @@ placement_parameters:
   radius: 0
   start_angle: 0.0 # rad
   end_angle: 6.28319 # rad
-  angle_increment: 0.1 # rad
+  steps: 8 # rad
   orientation: [0.0, 0.0, 0.0, 1.0] # x, y, z, w
 
 grasp_parameters:
-  num_samples: 40
+  num_samples: 2
   rotated_matrix:
     - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]

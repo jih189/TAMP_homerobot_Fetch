@@ -12,6 +12,7 @@ import geometry_msgs.msg
 
 from sensor_msgs.msg import JointState
 from manipulation_foliations_and_intersections import ManipulationFoliation
+from foliated_base_class import FoliatedIntersection, FoliatedProblem
 from utils import create_pose_stamped, get_position_difference_between_poses, gaussian_similarity, \
     create_pose_stamped_from_raw, collision_check
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
@@ -22,6 +23,8 @@ from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
+from tf.transformations import quaternion_from_euler
+
 
 class Config(object):
     def __init__(self, package_name):
@@ -121,15 +124,23 @@ class FoliatedBuilder(object):
         radius = params["radius"]
         start_angle = params["start_angle"]
         end_angle = params["end_angle"]
-        angle_increment = params["angle_increment"]
-        orientation = params["orientation"]
+        steps = params["steps"]
 
-        angles = np.arange(start_angle, end_angle, angle_increment)
+        angles = np.linspace(start_angle, end_angle, steps)
 
         for angle in angles:
+            orientation = params["orientation"]
             x = center_position[0] + radius * np.cos(angle)
             y = center_position[1] + radius * np.sin(angle)
             z = center_position[2]
+
+            if radius == 0:
+                orientation = quaternion_from_euler(orientation[0], orientation[1],
+                                                    orientation[2] + angle)
+            else:
+                orientation = orientation
+
+            print orientation
 
             obj_pose = create_pose_stamped_from_raw("base_link", x, y, z,
                                                     orientation[0], orientation[1], orientation[2], orientation[3])
@@ -397,13 +408,9 @@ if __name__ == "__main__":
     # build foliation
     foliated_builder = FoliatedBuilder(config)
 
-    rospy.sleep(2)
-
     # visualize problem
     visualize_problem = ProblemVisualizer(config, foliated_builder)
 
-    rospy.sleep(2)
-    '''
     # build sampler
     sampler = Sampler(config, robot_scene)
 
@@ -433,7 +440,7 @@ if __name__ == "__main__":
     foliated_problem.save(config.package_path + config.get('task_parameters', 'save_path'))
     loaded_foliated_problem = FoliatedProblem.load(ManipulationFoliation, ManipulationIntersection,
                                                    config.package_path + config.get('task_parameters', 'save_path'))
-    '''
+
     # warp up
     moveit_commander.roscpp_shutdown()
     moveit_commander.os._exit(0)
