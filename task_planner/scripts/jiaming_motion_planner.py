@@ -56,6 +56,7 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         obstacle_pose_stamped.header.frame_id = "base_link"
         obstacle_pose_stamped.pose = msgify(Pose, foliation_constraints['obstacle_pose'])
 
+
         # add the obstacle into the planning scene.
         self.scene.add_mesh("obstacle", obstacle_pose_stamped, foliation_constraints['obstacle_mesh'], size=(1,1,1))
 

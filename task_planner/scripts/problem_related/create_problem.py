@@ -181,7 +181,7 @@ class FoliatedBuilder(object):
         for ind in random.sample(list(range(len(loaded_array.files))), num_samples):
             self.feasible_grasps.append(np.dot(loaded_array[loaded_array.files[ind]], rotated_matrix))
 
-    def _create_foliations(self, sliding_sigma, orientation_tolerance, position_tolerance):
+    def _create_foliations(self, similarity_sigma, orientation_tolerance, position_tolerance):
         # calculate sliding similarity matrix
         different_matrix = np.zeros((len(self.feasible_grasps), len(self.feasible_grasps)))
         for i, grasp in enumerate(self.feasible_grasps):
@@ -196,7 +196,7 @@ class FoliatedBuilder(object):
         for i, grasp in enumerate(self.feasible_grasps):
             for j, grasp in enumerate(self.feasible_grasps):
                 sliding_similarity_matrix[i, j] = gaussian_similarity(different_matrix[i, j], max_distance,
-                                                                      sigma=sliding_sigma)
+                                                                      sigma=similarity_sigma)
 
         foliation_regrasp = ManipulationFoliation(foliation_name='regrasp',
                                                   constraint_parameters={

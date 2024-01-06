@@ -30,8 +30,8 @@ environment:
       z: 0.7071
       w: -0.7071
   top_pose:
-    - [1, 0, 0, 0.5]
-    - [0, 1, 0, 0.0]
+    - [1, 0, 0, 0.4725]
+    - [0, 1, 0, -0.024]
     - [0, 0, 1, 0.855]
     - [0, 0, 0, 1]
 
@@ -53,6 +53,6 @@ grasp_parameters:
     - [0, 0, 0, 1]
 
 foliation_parameters:
-  sliding_sigma: 0.1
-  orientation_tolerance: [0.1, 0.1, 6.28318530718]
-  position_tolerance: [2000, 2000, 0.0008]
+  similarity_sigma: 0.1
+  orientation_tolerance: [6.28318530718, 6.28318530718, 6.28318530718]
+  position_tolerance: [0.0001, 0.0001, 0.0001]
