@@ -1,7 +1,15 @@
 import rospy
 from moveit_msgs.msg import RobotTrajectory
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from moveit_msgs.msg import CollisionObject, RobotState, Constraints, OrientationConstraint, PositionConstraint, BoundingVolume, MoveItErrorCodes
+from moveit_msgs.msg import (
+    CollisionObject,
+    RobotState,
+    Constraints,
+    OrientationConstraint,
+    PositionConstraint,
+    BoundingVolume,
+    MoveItErrorCodes,
+)
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 import tf.transformations as tf_trans
 from shape_msgs.msg import SolidPrimitive, Mesh, MeshTriangle
@@ -18,6 +26,7 @@ except:
             "Failed to import pyassimp, see https://github.com/ros-planning/moveit/issues/86 for more info"
         )
 
+
 # convert a list of joint values to robotTrajectory
 def convert_joint_values_to_robot_trajectory(joint_values_list_, joint_names_):
     robot_trajectory = RobotTrajectory()
@@ -27,25 +36,35 @@ def convert_joint_values_to_robot_trajectory(joint_values_list_, joint_names_):
     for i in range(len(joint_values_list_)):
         robot_trajectory.joint_trajectory.points.append(JointTrajectoryPoint())
         robot_trajectory.joint_trajectory.points[i].positions = joint_values_list_[i]
-        robot_trajectory.joint_trajectory.points[i].velocities = [0.0] * len(joint_values_list_[i])
-        robot_trajectory.joint_trajectory.points[i].accelerations = [0.0] * len(joint_values_list_[i])
-        robot_trajectory.joint_trajectory.points[i].time_from_start = rospy.Duration(0.1 * i)
+        robot_trajectory.joint_trajectory.points[i].velocities = [0.0] * len(
+            joint_values_list_[i]
+        )
+        robot_trajectory.joint_trajectory.points[i].accelerations = [0.0] * len(
+            joint_values_list_[i]
+        )
+        robot_trajectory.joint_trajectory.points[i].time_from_start = rospy.Duration(
+            0.1 * i
+        )
 
     return robot_trajectory
 
+
 def convert_joint_values_to_robot_state(joint_values_list_, joint_names_, robot_):
-    '''
+    """
     convert a list of joint values to robotState
     joint_values_list_: a list of joint values
     joint_names_: a list of joint names
     robot_: a robotCommander
-    '''
+    """
     moveit_robot_state = robot_.get_current_state()
     position_list = list(moveit_robot_state.joint_state.position)
     for joint_name, joint_value in zip(joint_names_, joint_values_list_):
-        position_list[moveit_robot_state.joint_state.name.index(joint_name)] = joint_value
+        position_list[
+            moveit_robot_state.joint_state.name.index(joint_name)
+        ] = joint_value
     moveit_robot_state.joint_state.position = tuple(position_list)
     return moveit_robot_state
+
 
 def get_no_constraint():
     no_constraint = Constraints()
@@ -82,10 +101,16 @@ def get_no_constraint():
     no_constraint.in_hand_pose = in_hand_pose
     return no_constraint
 
-def construct_moveit_constraint(in_hand_pose_, constraint_pose_, orientation_constraint_, position_constraint_):
 
-    moveit_quaternion = tf_trans.quaternion_from_matrix(constraint_pose_) # return x, y z, w
-    moveit_translation = tf_trans.translation_from_matrix(constraint_pose_) # return x, y, z
+def construct_moveit_constraint(
+    in_hand_pose_, constraint_pose_, orientation_constraint_, position_constraint_
+):
+    moveit_quaternion = tf_trans.quaternion_from_matrix(
+        constraint_pose_
+    )  # return x, y z, w
+    moveit_translation = tf_trans.translation_from_matrix(
+        constraint_pose_
+    )  # return x, y, z
 
     moveit_constraint = Constraints()
     moveit_constraint.name = "use_equality_constraints"
@@ -126,7 +151,11 @@ def construct_moveit_constraint(in_hand_pose_, constraint_pose_, orientation_con
 
     solid_primitive = SolidPrimitive()
     solid_primitive.type = SolidPrimitive.BOX
-    solid_primitive.dimensions = [position_constraint_[0], position_constraint_[1], position_constraint_[2]]
+    solid_primitive.dimensions = [
+        position_constraint_[0],
+        position_constraint_[1],
+        position_constraint_[2],
+    ]
 
     bounding_volume = BoundingVolume()
     bounding_volume.primitives.append(solid_primitive)
@@ -148,8 +177,12 @@ def construct_moveit_constraint(in_hand_pose_, constraint_pose_, orientation_con
     moveit_constraint.position_constraints.append(pc)
 
     # convert in_hand_pose_ from matrix to Pose
-    in_hand_quaternion = tf_trans.quaternion_from_matrix(in_hand_pose_) # return x, y z, w
-    in_hand_translation = tf_trans.translation_from_matrix(in_hand_pose_) # return x, y, z
+    in_hand_quaternion = tf_trans.quaternion_from_matrix(
+        in_hand_pose_
+    )  # return x, y z, w
+    in_hand_translation = tf_trans.translation_from_matrix(
+        in_hand_pose_
+    )  # return x, y, z
 
     in_hand_pose = Pose()
     in_hand_pose.position.x = in_hand_translation[0]
@@ -165,7 +198,8 @@ def construct_moveit_constraint(in_hand_pose_, constraint_pose_, orientation_con
 
     return moveit_constraint
 
-def make_mesh(name, pose, filename, scale=(1,1,1)):
+
+def make_mesh(name, pose, filename, scale=(1, 1, 1)):
     co = CollisionObject()
     if pyassimp is False:
         raise MoveItCommanderException(

@@ -8,7 +8,9 @@ from tqdm import tqdm
 # import matplotlib.pyplot as plt
 
 # edit the following
-generated_configs_dir_path = "/root/catkin_ws/src/jiaming_manipulation/task_planner/empty_world_trajectory_data/"
+generated_configs_dir_path = (
+    "/root/catkin_ws/src/jiaming_manipulation/task_planner/empty_world_trajectory_data/"
+)
 use_dirichlet = False
 
 
@@ -21,7 +23,8 @@ def _get_all_paths_from_environment(directory):
     Returns:
         list of paths List[str]
     """
-    return sorted(glob.glob("%s/*.p"%directory))
+    return sorted(glob.glob("%s/*.p" % directory))
+
 
 def _get_paths_from_environments_dict(directory):
     """
@@ -34,7 +37,10 @@ def _get_paths_from_environments_dict(directory):
         dictionary of all paths flattened (Dict[str, List[str]])
     """
     env_names = sorted(glob.glob(os.path.join(directory, "env*")))
-    return {env_name: _get_all_paths_from_environment(env_name) for env_name in env_names}
+    return {
+        env_name: _get_all_paths_from_environment(env_name) for env_name in env_names
+    }
+
 
 def _get_all_paths_from_all_environments(directory):
     """
@@ -47,7 +53,12 @@ def _get_all_paths_from_all_environments(directory):
         list of all paths flattened (List[str])
     """
     env_names = sorted(glob.glob(os.path.join(directory, "env*")))
-    return [path for env_name in env_names for path in _get_all_paths_from_environment(env_name)]
+    return [
+        path
+        for env_name in env_names
+        for path in _get_all_paths_from_environment(env_name)
+    ]
+
 
 def _return_motion_from_path(path):
     """
@@ -58,7 +69,8 @@ def _return_motion_from_path(path):
         motion (List[float]) - a list of Nx7 elements, where N is the number of waypoints in the motion
     """
     with open(path, "rb") as f:
-        return pickle.load(f)['path']
+        return pickle.load(f)["path"]
+
 
 def read_all_motions_from_all_environments(directory):
     """
@@ -73,6 +85,7 @@ def read_all_motions_from_all_environments(directory):
     paths = _get_all_paths_from_all_environments(directory)
     return [_return_motion_from_path(path) for path in tqdm(paths)]
 
+
 def find_number_of_components(motions):
     """
     Returns the maximum number of components from all the paths
@@ -82,6 +95,7 @@ def find_number_of_components(motions):
         maximum number of components from all the paths (int)
     """
     return max([len(motion) for motion in motions])
+
 
 def convert_all_trajectories_to_numpy(motions):
     """
@@ -93,7 +107,8 @@ def convert_all_trajectories_to_numpy(motions):
     """
     return np.array([config for motion in motions for config in motion])
 
-def fit_distribution(X, num_components, use_dirichlet = False):
+
+def fit_distribution(X, num_components, use_dirichlet=False):
     """
     Returns a GMM or DPGMM fit to the given paths
     Args:
@@ -106,9 +121,14 @@ def fit_distribution(X, num_components, use_dirichlet = False):
         (Union[mixture.GaussianMixture, mixture.BayesianGaussianMixture])
     """
     if use_dirichlet:
-        return mixture.BayesianGaussianMixture(n_components=num_components * 10, random_state=1, verbose=2, n_init = 4).fit(X)
+        return mixture.BayesianGaussianMixture(
+            n_components=num_components * 10, random_state=1, verbose=2, n_init=4
+        ).fit(X)
     else:
-        return mixture.GaussianMixture(n_components=num_components * 10, random_state=0, n_init = 4, verbose = 2).fit(X)
+        return mixture.GaussianMixture(
+            n_components=num_components * 10, random_state=0, n_init=4, verbose=2
+        ).fit(X)
+
 
 def compute_distribution_edge_information(motions, gmm):
     """
@@ -126,12 +146,15 @@ def compute_distribution_edge_information(motions, gmm):
         path_len = len(trajectory)
         for idx1, idx2 in zip(range(path_len), range(1, path_len)):
             dist1, dist2 = predicted_distributions[idx1], predicted_distributions[idx2]
-            if dist1!=dist2:
+            if dist1 != dist2:
                 edges.append([dist1, dist2])
     edges = np.array(edges)
-    unique, counts = np.unique(edges, return_counts=True, axis = 0)
-    probabilities = counts / np.sum(counts) # the probability of the edge e_i occuring amongst all edges
+    unique, counts = np.unique(edges, return_counts=True, axis=0)
+    probabilities = counts / np.sum(
+        counts
+    )  # the probability of the edge e_i occuring amongst all edges
     return {"edges": unique, "probabilities": probabilities}
+
 
 def save_distribution_to_file(gmm, edge_information, directory):
     """
@@ -148,9 +171,20 @@ def save_distribution_to_file(gmm, edge_information, directory):
 
     np.save(os.path.join(directory, "weights.npy"), gmm.weights_, allow_pickle=False)
     np.save(os.path.join(directory, "means.npy"), gmm.means_, allow_pickle=False)
-    np.save(os.path.join(directory, "covariances.npy"), gmm.covariances_, allow_pickle=False)
-    np.save(os.path.join(directory, "edges.npy"), edge_information["edges"], allow_pickle=False)
-    np.save(os.path.join(directory, "probabilities.npy"), edge_information["probabilities"], allow_pickle=False)
+    np.save(
+        os.path.join(directory, "covariances.npy"), gmm.covariances_, allow_pickle=False
+    )
+    np.save(
+        os.path.join(directory, "edges.npy"),
+        edge_information["edges"],
+        allow_pickle=False,
+    )
+    np.save(
+        os.path.join(directory, "probabilities.npy"),
+        edge_information["probabilities"],
+        allow_pickle=False,
+    )
+
 
 def main():
     """
@@ -162,11 +196,15 @@ def main():
     all_configurations = convert_all_trajectories_to_numpy(motions)
 
     print(all_configurations.shape)
-    
+
     gmm = fit_distribution(all_configurations, int(num_components * 10), use_dirichlet)
     edge_information = compute_distribution_edge_information(motions, gmm)
-    save_distribution_to_file(gmm, edge_information, "/root/catkin_ws/src/jiaming_manipulation/task_planner/gmm_related/computed_gmm_directory/")
-    
+    save_distribution_to_file(
+        gmm,
+        edge_information,
+        "/root/catkin_ws/src/jiaming_manipulation/task_planner/gmm_related/computed_gmm_directory/",
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
