@@ -4,6 +4,7 @@ import json
 import numpy as np
 from tqdm import tqdm
 from abc import ABCMeta, abstractmethod
+import networkx as nx
 
 # user needs to implement this function
 class BaseIntersection:

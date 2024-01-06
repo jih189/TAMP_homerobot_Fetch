@@ -597,6 +597,8 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         for u, v in self.task_graph.edges():
             self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
+        # graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
+        # Parallel(n_jobs=cpu_count(), prefer="threads")(delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists)
 
         self.current_start_configuration = configuration_of_start
 
@@ -757,8 +759,10 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
         t2 = time.time()
         print("Update node weight time : ", t2 - tx)
 
-        graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
-        Parallel(n_jobs=cpu_count(), prefer="threads")(delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists)
+        # graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
+        # Parallel(n_jobs=cpu_count(), prefer="threads")(delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists)
+        for u, v in self.current_task_graph.edges():
+            self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
 
         print("Update edge weight time : ", time.time() - t2)
         self.expand_current_task_graph(self.current_graph_distance_radius)
@@ -1479,8 +1483,8 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
             self.task_graph.nodes[n]['weight'] += arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
 
-        graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
-        Parallel(n_jobs=cpu_count(), prefer="threads")(delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists)
+        for u, v in self.current_task_graph.edges():
+            self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
         
         # update the valid configuration before project and invalid configuration before project
         for distribution_index in range(len(self.gmm_.distributions)):

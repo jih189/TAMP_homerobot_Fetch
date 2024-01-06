@@ -78,7 +78,7 @@ if __name__ == "__main__":
     # load it into the task planner.
     task_planners = [
         # MTGTaskPlanner(),
-        MTGTaskPlannerWithGMM(gmm),
+        # MTGTaskPlannerWithGMM(gmm),
         DynamicMTGTaskPlannerWithGMM(gmm, threshold=25.0),
         DynamicMTGTaskPlannerWithGMM(gmm, threshold=50.0),
         DynamicMTGTaskPlannerWithGMM(gmm, threshold=75.0),
@@ -114,7 +114,7 @@ if __name__ == "__main__":
                 )
 
                 # solve the problem
-                success_flag, task_planning_time, motion_planning_time, updating_time, solution_length = foliated_planning_framework.evaluation()
+                success_flag, task_planning_time, motion_planning_time, updating_time, solution_length, num_attempts = foliated_planning_framework.evaluation()
 
                 if success_flag:
                     result_data = {
@@ -125,7 +125,8 @@ if __name__ == "__main__":
                         'task_planning_time': task_planning_time,
                         'motion_planning_time': motion_planning_time,
                         'updating_time': updating_time,
-                        'solution_length': solution_length
+                        'solution_length': solution_length,
+                        'num_attempts': num_attempts,
                     }
                     json.dump(result_data, result_file)
                     result_file.write('\n')
@@ -138,7 +139,8 @@ if __name__ == "__main__":
                         'task_planning_time': -1,
                         'motion_planning_time': -1,
                         'updating_time': -1,
-                        'solution_length': -1
+                        'solution_length': -1,
+                        'num_attempts': -1,
                     }
                     json.dump(result_data, result_file)
                     result_file.write('\n')

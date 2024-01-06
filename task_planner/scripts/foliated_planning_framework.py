@@ -138,9 +138,9 @@ class FoliatedPlanningFramework():
             else:
                 # get the length of the motion plan
                 path_length = sum([motion_plan.cost() for motion_plan in list_of_motion_plan])
-                return True, task_node_sequence_generation_time, motion_planning_time, updating_time, path_length
+                return True, task_node_sequence_generation_time, motion_planning_time, updating_time, path_length, attempt_time
 
-        return False, None, None, None, None
+        return False, None, None, None, None, None
 
     def solve(self):
         '''
