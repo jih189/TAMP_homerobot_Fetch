@@ -9,9 +9,7 @@ from jiaming_GMM import GMM
 from jiaming_task_planner import (
     MTGTaskPlanner,
     MTGTaskPlannerWithGMM,
-    DynamicMTGTaskPlannerWithGMM,
     MTGTaskPlannerWithAtlas,
-    DynamicMTGTaskPlannerWithAtlas,
 )
 from jiaming_motion_planner import MoveitMotionPlanner
 
@@ -45,8 +43,8 @@ for planner in planner_list:
 
 
 if __name__ == "__main__":
-    number_of_tasks = 50  # number of tasks to be sampled
-    max_attempt_time = 30  # maximum attempt time for each task
+    number_of_tasks = 5  # number of tasks to be sampled
+    max_attempt_time = 5  # maximum attempt time for each task
 
     ########################################
 
@@ -89,45 +87,9 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     task_planners = [
-        # MTGTaskPlanner(),
+        MTGTaskPlanner(),
         MTGTaskPlannerWithGMM(gmm),
-        DynamicMTGTaskPlannerWithGMM(gmm, threshold=25.0),
-        DynamicMTGTaskPlannerWithGMM(gmm, threshold=50.0),
-        DynamicMTGTaskPlannerWithGMM(gmm, threshold=75.0),
-        DynamicMTGTaskPlannerWithGMM(gmm, threshold=100.0),
-        DynamicMTGTaskPlannerWithGMM(gmm, threshold=125.0),
-        DynamicMTGTaskPlannerWithGMM(gmm, threshold=150.0),
         MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
-        DynamicMTGTaskPlannerWithAtlas(
-            gmm,
-            threshold=25.0,
-            default_robot_state=motion_planner.move_group.get_current_state(),
-        ),
-        DynamicMTGTaskPlannerWithAtlas(
-            gmm,
-            threshold=50.0,
-            default_robot_state=motion_planner.move_group.get_current_state(),
-        ),
-        DynamicMTGTaskPlannerWithAtlas(
-            gmm,
-            threshold=75.0,
-            default_robot_state=motion_planner.move_group.get_current_state(),
-        ),
-        DynamicMTGTaskPlannerWithAtlas(
-            gmm,
-            threshold=100.0,
-            default_robot_state=motion_planner.move_group.get_current_state(),
-        ),
-        DynamicMTGTaskPlannerWithAtlas(
-            gmm,
-            threshold=125.0,
-            default_robot_state=motion_planner.move_group.get_current_state(),
-        ),
-        DynamicMTGTaskPlannerWithAtlas(
-            gmm,
-            threshold=150.0,
-            default_robot_state=motion_planner.move_group.get_current_state(),
-        ),
     ]
 
     with open(result_file_path, "w") as result_file:
@@ -165,6 +127,7 @@ if __name__ == "__main__":
                     updating_time,
                     solution_length,
                     num_attempts,
+                    total_solve_time,
                 ) = foliated_planning_framework.evaluation()
 
                 if success_flag:
@@ -173,6 +136,7 @@ if __name__ == "__main__":
                         "start": start,
                         "goal": goal,
                         "success": "true",
+                        "total_planning_time": task_planning_time,
                         "task_planning_time": task_planning_time,
                         "motion_planning_time": motion_planning_time,
                         "updating_time": updating_time,
@@ -187,6 +151,7 @@ if __name__ == "__main__":
                         "start": start,
                         "goal": goal,
                         "success": "false",
+                        "total_planning_time": -1,
                         "task_planning_time": -1,
                         "motion_planning_time": -1,
                         "updating_time": -1,

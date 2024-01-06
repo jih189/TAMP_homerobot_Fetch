@@ -103,6 +103,7 @@ class FoliatedPlanningFramework:
             self.goal_configuration,
         )
 
+        total_solve_time = 0.0
         task_node_sequence_generation_time = 0
         motion_planning_time = 0
         updating_time = 0
@@ -168,10 +169,11 @@ class FoliatedPlanningFramework:
                     motion_planning_time,
                     updating_time,
                     path_length,
-                    attempt_time,
+                    attempt_time + 1,
+                    time.time() - total_solve_time,
                 )
 
-        return False, None, None, None, None, None
+        return False, None, None, None, None, None, None
 
     def solve(self):
         """
