@@ -72,7 +72,7 @@ class FoliatedBuilder(object):
                                                                            'manipulated_object_mesh_path')
         self.grasp_poses_file = self.package_path + config.get('environment', 'grasp_poses_file')
         self.env_pose = create_pose_stamped(config.get('environment', 'env_pose'))
-        self.table_top_pose = np.array(config.get('environment', 'table_top_pose'))
+        self.top_pose = np.array(config.get('environment', 'top_pose'))
 
         self.env_mesh = None
         self.collision_manager = None
@@ -216,7 +216,7 @@ class FoliatedBuilder(object):
                                                     'object_mesh_path': self.manipulated_object_mesh_path,
                                                     "obstacle_mesh": self.env_mesh_path,
                                                     "obstacle_pose": convert_pose_stamped_to_matrix(self.env_pose),
-                                                    "reference_pose": self.table_top_pose,
+                                                    "reference_pose": self.top_pose,
                                                     "orientation_tolerance": orientation_tolerance,
                                                     "position_tolerance": position_tolerance
                                                 },
