@@ -2,28 +2,33 @@ import trimesh
 import numpy as np
 import sys
 
+
 def write_ply(filename, points, colors=None):
-    with open(filename, 'w') as ply_file:
-        ply_file.write('ply\n')
-        ply_file.write('format ascii 1.0\n')
-        ply_file.write('element vertex %d\n' % len(points))
-        ply_file.write('property float x\n')
-        ply_file.write('property float y\n')
-        ply_file.write('property float z\n')
+    with open(filename, "w") as ply_file:
+        ply_file.write("ply\n")
+        ply_file.write("format ascii 1.0\n")
+        ply_file.write("element vertex %d\n" % len(points))
+        ply_file.write("property float x\n")
+        ply_file.write("property float y\n")
+        ply_file.write("property float z\n")
 
         if colors is not None:
-            ply_file.write('property uchar red\n')
-            ply_file.write('property uchar green\n')
-            ply_file.write('property uchar blue\n')
+            ply_file.write("property uchar red\n")
+            ply_file.write("property uchar green\n")
+            ply_file.write("property uchar blue\n")
 
-        ply_file.write('end_header\n')
+        ply_file.write("end_header\n")
 
         if colors is not None:
             for point, color in zip(points, colors):
-                ply_file.write('%f %f %f %d %d %d\n' % (point[0], point[1], point[2], color[0], color[1], color[2]))
+                ply_file.write(
+                    "%f %f %f %d %d %d\n"
+                    % (point[0], point[1], point[2], color[0], color[1], color[2])
+                )
         else:
             for point in points:
-                ply_file.write('%f %f %f\n' % (point[0], point[1], point[2]))
+                ply_file.write("%f %f %f\n" % (point[0], point[1], point[2]))
+
 
 def filter_points_inside_mesh(mesh, point_cloud):
     # Calculate the signed distance for each point in the point_cloud
@@ -34,12 +39,20 @@ def filter_points_inside_mesh(mesh, point_cloud):
 
     return filtered_points
 
-def create_axis_arrow(axis, shaft_radius=0.05, shaft_length=1.0, head_radius=0.1, head_length=0.2, color=None):
+
+def create_axis_arrow(
+    axis,
+    shaft_radius=0.05,
+    shaft_length=1.0,
+    head_radius=0.1,
+    head_length=0.2,
+    color=None,
+):
     # Create the shaft (cylinder) and head (cone) of the arrow
     shaft = trimesh.creation.cylinder(radius=shaft_radius, height=shaft_length)
     head = trimesh.creation.cone(radius=head_radius, height=head_length)
 
-    shaft.apply_translation([0,0,shaft_length/2.0])
+    shaft.apply_translation([0, 0, shaft_length / 2.0])
 
     # Move the head to the end of the shaft
     head.apply_translation([0, 0, shaft_length])
@@ -48,10 +61,14 @@ def create_axis_arrow(axis, shaft_radius=0.05, shaft_length=1.0, head_radius=0.1
     arrow = trimesh.util.concatenate(shaft, head)
 
     # Align the arrow with the specified axis
-    if axis == 'x':
-        arrow.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0]))
-    elif axis == 'y':
-        arrow.apply_transform(trimesh.transformations.rotation_matrix(-np.pi / 2, [1, 0, 0]))
+    if axis == "x":
+        arrow.apply_transform(
+            trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0])
+        )
+    elif axis == "y":
+        arrow.apply_transform(
+            trimesh.transformations.rotation_matrix(-np.pi / 2, [1, 0, 0])
+        )
 
     # Set the color of the arrow
     if color is not None:
@@ -59,15 +76,17 @@ def create_axis_arrow(axis, shaft_radius=0.05, shaft_length=1.0, head_radius=0.1
 
     return arrow
 
+
 def create_axis_arrows(x_length=1.0, y_length=1.0, z_length=1.0):
     axislist = []
-    x_arrow = create_axis_arrow('x', shaft_length=x_length, color=[255, 0, 0, 255])
-    y_arrow = create_axis_arrow('y', shaft_length=y_length, color=[0, 255, 0, 255])
-    z_arrow = create_axis_arrow('z', shaft_length=z_length, color=[0, 0, 255, 255])
+    x_arrow = create_axis_arrow("x", shaft_length=x_length, color=[255, 0, 0, 255])
+    y_arrow = create_axis_arrow("y", shaft_length=y_length, color=[0, 255, 0, 255])
+    z_arrow = create_axis_arrow("z", shaft_length=z_length, color=[0, 0, 255, 255])
     axislist.append(x_arrow)
     axislist.append(y_arrow)
     axislist.append(z_arrow)
     return axislist
+
 
 def sample_points_on_mesh(mesh, num_points):
     # Calculate the area of each face
@@ -77,7 +96,9 @@ def sample_points_on_mesh(mesh, num_points):
     face_probs = face_areas / face_areas.sum()
 
     # Sample face indices based on their probabilities
-    sampled_face_indices = np.random.choice(len(mesh.faces), size=num_points, p=face_probs)
+    sampled_face_indices = np.random.choice(
+        len(mesh.faces), size=num_points, p=face_probs
+    )
 
     # Sample barycentric coordinates for each point
     u = np.random.rand(num_points, 1)

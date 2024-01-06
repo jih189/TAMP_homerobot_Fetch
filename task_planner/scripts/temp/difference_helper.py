@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def gaussian_similarity(distance, max_distance, sigma=0.01):
     """
     Calculate the similarity score using Gaussian function.
@@ -9,7 +10,7 @@ def gaussian_similarity(distance, max_distance, sigma=0.01):
     The score is between 0 and 1. The larger the score, the more similar the two configurations are.
     If sigma is heigher, the scope of the Gaussian function is wider.
     """
-    if distance == 0: # when the distance is 0, the score should be 1
+    if distance == 0:  # when the distance is 0, the score should be 1
         return 1.0
 
     # Calculate the similarity score using Gaussian function
@@ -22,23 +23,25 @@ def gaussian_similarity(distance, max_distance, sigma=0.01):
 
     return score
 
+
 def get_difference_between_poses(pose_1_, pose_2_):
-    '''
+    """
     Get the difference score between two poses.
     pose_1_ and pose_2_ are both 4x4 numpy matrices.
-    '''
+    """
     position_difference = np.linalg.norm(pose_1_[:3, 3] - pose_2_[:3, 3])
 
-    R = np.dot(pose_1_[:3,:3], pose_2_[:3, :3].T)
-    
+    R = np.dot(pose_1_[:3, :3], pose_2_[:3, :3].T)
+
     # Calculate the angle of rotation (in radians)
     angle_difference = np.arccos((np.trace(R) - 1) / 2)
 
     return position_difference + angle_difference
 
+
 def get_position_difference_between_poses(pose_1_, pose_2_):
-    '''
+    """
     Get the position difference between two poses.
     pose_1_ and pose_2_ are both 4x4 numpy matrices.
-    '''
+    """
     return np.linalg.norm(pose_1_[:3, 3] - pose_2_[:3, 3])
