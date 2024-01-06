@@ -75,10 +75,12 @@ class MoveitMotionPlanner(BaseMotionPlanner):
             distribution.co_parameter_id = node_id[1]
             distribution.distribution_id = node_id[2]
             distribution.related_co_parameter_index = []
-            distribution.related_beta_time_similarity_ratio = []
-            for related_co_parameter_index, related_beta_time_similarity_ratio in related_node_data:
+            distribution.related_beta = []
+            distribution.related_similarity = []
+            for related_co_parameter_index, related_beta, related_similarity in related_node_data:
                 distribution.related_co_parameter_index.append(related_co_parameter_index)
-                distribution.related_beta_time_similarity_ratio.append(related_beta_time_similarity_ratio)
+                distribution.related_beta.append(related_beta)
+                distribution.related_similarity.append(related_similarity)
 
             distribution_sequence.append(distribution)
 

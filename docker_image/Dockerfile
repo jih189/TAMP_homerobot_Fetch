@@ -289,7 +289,7 @@ RUN git clone https://github.com/rst-tu-dortmund/control_box_rst.git && cd contr
 
 # install packages needed in task planner
 RUN apt-get install python-tk -y
-RUN python -m pip install networkx scikit-learn tqdm trimesh==3.21.0
+RUN python -m pip install networkx scikit-learn tqdm trimesh==3.21.0 joblib
 RUN python -m pip install python-fcl --upgrade
 
 # put the script to prepare the workspace
