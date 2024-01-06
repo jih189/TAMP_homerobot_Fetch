@@ -12,7 +12,8 @@ import geometry_msgs.msg
 
 from sensor_msgs.msg import JointState
 from manipulation_foliations_and_intersections import ManipulationFoliation
-from utils import create_pose_stamped, get_position_difference_between_poses, gaussian_similarity
+from utils import create_pose_stamped, get_position_difference_between_poses, gaussian_similarity, \
+    create_pose_stamped_from_raw, collision_check
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 from moveit_msgs.msg import MoveItErrorCodes
 from manipulation_foliations_and_intersections import ManipulationIntersection
@@ -21,8 +22,6 @@ from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
-from foliated_base_class import FoliatedProblem, FoliatedIntersection
-
 
 class Config(object):
     def __init__(self, package_name):
@@ -110,26 +109,33 @@ class FoliatedBuilder(object):
 
             for i in range(num_of_row):
                 for j in range(num_of_col):
-                    obj_mesh = trimesh.load_mesh(self.manipulated_object_mesh_path)
+                    obj_pose = create_pose_stamped_from_raw("base_link", i * 0.1 - num_of_row * 0.1 / 2 + x_shift,
+                                                            j * 0.1 - num_of_col * 0.1 / 2 + y_shift, z_shift,
+                                                            0, 0, 0, 1)
 
-                    obj_pose = PoseStamped()
-                    obj_pose.header.frame_id = "base_link"
-                    obj_pose.pose.position.x = i * 0.1 - num_of_row * 0.1 / 2 + x_shift
-                    obj_pose.pose.position.y = j * 0.1 - num_of_col * 0.1 / 2 + y_shift
-                    obj_pose.pose.position.z = z_shift
-                    obj_pose.pose.orientation.x = 0
-                    obj_pose.pose.orientation.y = 0
-                    obj_pose.pose.orientation.z = 0
-                    obj_pose.pose.orientation.w = 1
-
-                    obj_mesh.apply_transform(convert_pose_stamped_to_matrix(obj_pose))
-
-                    self.collision_manager.add_object('obj', obj_mesh)
-
-                    if not self.collision_manager.in_collision_internal():
+                    if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
                         self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
 
-                    self.collision_manager.remove_object('obj')
+    def _placement_circular(self, params):
+        center_position = np.array(params["center_position"])
+        radius = params["radius"]
+        start_angle = params["start_angle"]
+        end_angle = params["end_angle"]
+        angle_increment = params["angle_increment"]
+        orientation = params["orientation"]
+
+        angles = np.arange(start_angle, end_angle, angle_increment)
+
+        for angle in angles:
+            x = center_position[0] + radius * np.cos(angle)
+            y = center_position[1] + radius * np.sin(angle)
+            z = center_position[2]
+
+            obj_pose = create_pose_stamped_from_raw("base_link", x, y, z,
+                                                    orientation[0], orientation[1], orientation[2], orientation[3])
+
+            if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+                self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
 
     def _placement_linear(self, params):
         start_position = np.array(params["start_position"])
@@ -141,69 +147,17 @@ class FoliatedBuilder(object):
         total_distance = np.linalg.norm(end_position - start_position)
         num_steps = int(total_distance / step_size)
 
-        # load mesh
-        drawer_mesh = trimesh.load_mesh(self.manipulated_object_mesh_path)
-
         positions_to_place = [start_position]
         for step in range(1, num_steps):
-            current_position = start_position + (end_position - start_position) * (step / num_steps)
+            current_position = start_position + (end_position - start_position) * (float(step) / num_steps)
             positions_to_place.append(current_position)
         positions_to_place.append(end_position)
-
         for position in positions_to_place:
-            drawer_pose = PoseStamped()
-            drawer_pose.header.frame_id = "base_link"
-            drawer_pose.pose.position.x = position[0]
-            drawer_pose.pose.position.y = position[1]
-            drawer_pose.pose.position.z = position[2]
-            drawer_pose.pose.orientation.x = orientation[0]
-            drawer_pose.pose.orientation.y = orientation[1]
-            drawer_pose.pose.orientation.z = orientation[2]
-            drawer_pose.pose.orientation.w = orientation[3]
+            obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2],
+                                                    orientation[0], orientation[1], orientation[2], orientation[3])
 
-            drawer_mesh.apply_transform(convert_pose_stamped_to_matrix(drawer_pose))
-            self.collision_manager.add_object('obj', drawer_mesh)
-
-            # check collision
-            if not self.collision_manager.in_collision_internal():
-                self.feasible_placements.append(convert_pose_stamped_to_matrix(drawer_pose))
-
-            self.collision_manager.remove_object('obj')
-
-    def _placement_circular(self, params):
-        center_position = np.array(params["center_position"])
-        radius = params["radius"]
-        start_angle = params["start_angle"]
-        end_angle = params["end_angle"]
-        angle_increment = params["angle_increment"]
-        orientation = params["orientation"]
-
-        object_mesh = trimesh.load_mesh(self.manipulated_object_mesh_path)
-
-        angles = np.arange(start_angle, end_angle, angle_increment)
-
-        for angle in angles:
-            x = center_position[0] + radius * np.cos(angle)
-            y = center_position[1] + radius * np.sin(angle)
-            z = center_position[2]
-
-            object_pose = PoseStamped()
-            object_pose.header.frame_id = "base_link"
-            object_pose.pose.position.x = x
-            object_pose.pose.position.y = y
-            object_pose.pose.position.z = z
-            object_pose.pose.orientation.x = orientation[0]
-            object_pose.pose.orientation.y = orientation[1]
-            object_pose.pose.orientation.z = orientation[2]
-            object_pose.pose.orientation.w = orientation[3]
-
-            object_mesh.apply_transform(convert_pose_stamped_to_matrix(object_pose))
-            self.collision_manager.add_object('obj', object_mesh)
-
-            if not self.collision_manager.in_collision_internal():
-                self.feasible_placements.append(convert_pose_stamped_to_matrix(object_pose))
-
-            self.collision_manager.remove_object('obj')
+            if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+                self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
 
     def _find_feasible_placements(self, params):
         placement_type = params["type"]
@@ -443,6 +397,13 @@ if __name__ == "__main__":
     # build foliation
     foliated_builder = FoliatedBuilder(config)
 
+    rospy.sleep(2)
+
+    # visualize problem
+    visualize_problem = ProblemVisualizer(config, foliated_builder)
+
+    rospy.sleep(2)
+    '''
     # build sampler
     sampler = Sampler(config, robot_scene)
 
@@ -468,14 +429,11 @@ if __name__ == "__main__":
     foliated_problem.set_start_manifold_candidates(start_candidates)
     foliated_problem.set_goal_manifold_candidates(goal_candidates)
 
-    # visualize problem
-    visualize_problem = ProblemVisualizer(config, foliated_builder)
-
     # save problem
     foliated_problem.save(config.package_path + config.get('task_parameters', 'save_path'))
     loaded_foliated_problem = FoliatedProblem.load(ManipulationFoliation, ManipulationIntersection,
                                                    config.package_path + config.get('task_parameters', 'save_path'))
-
+    '''
     # warp up
     moveit_commander.roscpp_shutdown()
     moveit_commander.os._exit(0)

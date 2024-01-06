@@ -21,8 +21,8 @@ environment:
   env_pose:
     frame_id: "base_link"
     position:
-      x: 0.7
-      y: -0.1
+      x: 1.0
+      y: 0.35
       z: -0.02
     orientation:
       x: 0.0
@@ -37,9 +37,9 @@ environment:
 
 placement_parameters:
   type: "linear"
-  start_position: [0.42, -0.7, 0.53] # x, y, z
-  end_position: [-1, -0.7, 0.53] # x, y, z
-  step_size: 0.05
+  start_position: [0.72, -0.158, 0.53] # x, y, z
+  end_position: [0.6, -0.158, 0.53] # x, y, z
+  step_size: 1
   orientation: [0.0, 0.0, 0.707, -0.707] # x, y, z, w
 
 grasp_parameters:

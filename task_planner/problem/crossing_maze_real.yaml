@@ -1,5 +1,5 @@
 task_parameters:
-  task_name: "crossing_maze_real"
+  task_name: "open_drawer"
   task_type: "simple"
   num_samples: 300
   save_path: "/check"
