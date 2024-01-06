@@ -37,8 +37,8 @@ for planner in planner_list:
 
 if __name__ == "__main__":
 
-    number_of_tasks = 25 # number of tasks to be sampled
-    max_attempt_time = 25 # maximum attempt time for each task
+    number_of_tasks = 50 # number of tasks to be sampled
+    max_attempt_time = 30 # maximum attempt time for each task
 
     ########################################
 
@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     task_planners = [
-        MTGTaskPlanner(),
+        # MTGTaskPlanner(),
         MTGTaskPlannerWithGMM(gmm),
         DynamicMTGTaskPlannerWithGMM(gmm, threshold=25.0),
         DynamicMTGTaskPlannerWithGMM(gmm, threshold=50.0),
@@ -93,6 +93,7 @@ if __name__ == "__main__":
         DynamicMTGTaskPlannerWithAtlas(gmm, threshold=125.0,default_robot_state =  motion_planner.move_group.get_current_state()),
         DynamicMTGTaskPlannerWithAtlas(gmm, threshold=150.0,default_robot_state =  motion_planner.move_group.get_current_state()),
     ]
+
 
     with open(result_file_path, 'w') as result_file:
         for task_planner in task_planners:
