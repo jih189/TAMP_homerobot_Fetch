@@ -13,16 +13,6 @@ import matplotlib.pyplot as plt
 # import multiprocessing as mp
 from joblib import Parallel, delayed, cpu_count
 
-def compare_dicts(dict1, dict2):
-    """
-    compare two dicts with the same keys.
-    """
-    diffkeys = [k for k in dict1 if abs(dict1[k] - dict2[k]) > 1e-6]
-    for k in diffkeys:
-        print( k, ':', dict1[k], '->', dict2[k])
-    if len(diffkeys) != 0:
-        done
-
 class MTGTaskPlanner(BaseTaskPlanner):
     def __init__(self, planner_name_="MTGTaskPlanner", parameter_dict_={}):
         # Constructor
@@ -493,11 +483,8 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
         # super().__init__() # python 3
 
         self.gmm_ = gmm
-
         self.planner_name = planner_name_ + "_" + str(threshold)
-
         self.parameter_dict = parameter_dict_
-
         self.exceed_threshold = threshold
 
     # MTGTaskPlannerWithGMM
@@ -519,7 +506,7 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
             self.task_graph.add_node((manifold_id_[0], manifold_id_[1], i), weight = 0.0, dist_to_start = np.inf, dist_to_goal = np.inf)
 
         for edge in self.gmm_.edge_of_distribution:
-            dist_between_two_distributions = self.get_position_difference_between_poses(self.gmm_.distributions[edge[0]].mean, self.gmm_.distributions[edge[1]].mean)
+            dist_between_two_distributions = self.get_position_difference_between_distributions(self.gmm_.distributions[edge[0]].mean, self.gmm_.distributions[edge[1]].mean)
 
             self.task_graph.add_edge(
                 (manifold_id_[0], manifold_id_[1], edge[0]), 
@@ -545,7 +532,7 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
         # first, find the related distribution that the intersection's ends are in in different manifolds.
 
         distribution_id_in_manifold1, distribution_id_in_manifold2 = self.gmm_.get_distribution_indexs([intersection_detail_.configuration_in_manifold1, intersection_detail_.configuration_in_manifold2])
-        dist_between_edges = self.get_position_difference_between_poses(self.gmm_.distributions[distribution_id_in_manifold1].mean, self.gmm_.distributions[distribution_id_in_manifold2].mean)
+        dist_between_edges = self.get_position_difference_between_distributions(self.gmm_.distributions[distribution_id_in_manifold1].mean, self.gmm_.distributions[distribution_id_in_manifold2].mean)
 
         # intersection_from_1_to_2_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
 
@@ -1188,7 +1175,7 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
             self.task_graph.add_node((manifold_id_[0], manifold_id_[1], i), weight = 0.0, has_atlas=False, valid_configuration_before_project = 0, invalid_configuration_before_project = 0, dist_to_start = np.inf, dist_to_goal = np.inf)
 
         for edge in self.gmm_.edge_of_distribution:
-            dist_between_two_distributions = self.get_position_difference_between_poses(self.gmm_.distributions[edge[0]].mean, self.gmm_.distributions[edge[1]].mean)
+            dist_between_two_distributions = self.get_position_difference_between_distributions(self.gmm_.distributions[edge[0]].mean, self.gmm_.distributions[edge[1]].mean)
 
             self.task_graph.add_edge(
                 (manifold_id_[0], manifold_id_[1], edge[0]), 
@@ -1214,7 +1201,7 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
         # first, find the related distribution that the intersection's ends are in in different manifolds.
 
         distribution_id_in_manifold1, distribution_id_in_manifold2 = self.gmm_.get_distribution_indexs([intersection_detail_.configuration_in_manifold1, intersection_detail_.configuration_in_manifold2])
-        dist_between_edges = self.get_position_difference_between_poses(self.gmm_.distributions[distribution_id_in_manifold1].mean, self.gmm_.distributions[distribution_id_in_manifold2].mean)
+        dist_between_edges = self.get_position_difference_between_distributions(self.gmm_.distributions[distribution_id_in_manifold1].mean, self.gmm_.distributions[distribution_id_in_manifold2].mean)
 
         # intersection_from_1_to_2_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
 

@@ -543,12 +543,12 @@ class BaseTaskPlanner:
         self.total_similiarity_table[foliation_id_] = similarity_matrix_
 
 
-    def get_position_difference_between_poses(self, pose_1_, pose_2_):
+    def get_position_difference_between_distributions(self, dist_mean_1, dist_mean_2):
         '''
         Get the position difference between two poses.
         pose_1_ and pose_2_ are both 4x4 numpy matrices.
         '''
-        return np.linalg.norm(np.array(pose_1_[:3]) - np.array(pose_2_[:3]))
+        return np.linalg.norm(np.array(dist_mean_1) - np.array(dist_mean_2))
 
     def expand_current_task_graph(self, distance):
         '''

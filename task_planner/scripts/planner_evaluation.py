@@ -78,7 +78,7 @@ if __name__ == "__main__":
     # load it into the task planner.
     task_planners = [
         # MTGTaskPlanner(),
-        # MTGTaskPlannerWithGMM(gmm),
+        MTGTaskPlannerWithGMM(gmm),
         DynamicMTGTaskPlannerWithGMM(gmm, threshold=25.0),
         DynamicMTGTaskPlannerWithGMM(gmm, threshold=50.0),
         DynamicMTGTaskPlannerWithGMM(gmm, threshold=75.0),
