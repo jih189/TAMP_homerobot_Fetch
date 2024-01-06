@@ -718,41 +718,51 @@ class BaseTaskPlanner:
         """
         self.total_similiarity_table[foliation_id_] = similarity_matrix_
 
-
     def get_position_difference_between_distributions(self, dist_mean_1, dist_mean_2):
-        '''
+        """
         Get the distance between two distributions. It is simply the norm of them
-        '''
+        """
         return np.linalg.norm(np.array(dist_mean_1) - np.array(dist_mean_2))
 
     def expand_current_task_graph(self, distance):
-        '''
+        """
         Get the subset of nodes that are within the distance .
-        '''
+        """
         # self.current_task_graph = self.task_graph.subgraph([node for node in self.task_graph.nodes() if self.task_graph.nodes[node]['dist_to_start'] + self.task_graph.nodes[node]['dist_to_goal'] <= distance])
         subset_of_nodes = []
         for node in self.task_graph.nodes():
-            if self.task_graph.nodes[node]['dist_to_start'] + self.task_graph.nodes[node]['dist_to_goal'] <= distance:
+            if (
+                self.task_graph.nodes[node]["dist_to_start"]
+                + self.task_graph.nodes[node]["dist_to_goal"]
+                <= distance
+            ):
                 subset_of_nodes.append(node)
         self.current_task_graph = self.task_graph.subgraph(subset_of_nodes)
 
     def compute_distance_to_start_and_goal(self):
-        """
-        """
+        """ """
         # compute the distance to start and goal
         # lengths_to_start = nx.single_source_dijkstra_path_length(self.task_graph, 'start', weight='edge_dist')
-        lengths_to_goal = nx.shortest_path_length(self.task_graph, target = 'goal', weight='edge_dist')
-        lengths_to_start = nx.shortest_path_length(self.task_graph, source = 'start', weight='edge_dist')
+        lengths_to_goal = nx.shortest_path_length(
+            self.task_graph, target="goal", weight="edge_dist"
+        )
+        lengths_to_start = nx.shortest_path_length(
+            self.task_graph, source="start", weight="edge_dist"
+        )
 
         for node in self.task_graph.nodes():
             if node in lengths_to_start:
-                self.task_graph.nodes[node]['dist_to_start'] = lengths_to_start[node]
-                
+                self.task_graph.nodes[node]["dist_to_start"] = lengths_to_start[node]
+
             if node in lengths_to_goal:
-                self.task_graph.nodes[node]['dist_to_goal'] = lengths_to_goal[node]
-            if node == 'start' or node == 'goal':
-                print(node, self.task_graph.nodes[node]['dist_to_start'], self.task_graph.nodes[node]['dist_to_goal'])
-        
+                self.task_graph.nodes[node]["dist_to_goal"] = lengths_to_goal[node]
+            if node == "start" or node == "goal":
+                print(
+                    node,
+                    self.task_graph.nodes[node]["dist_to_start"],
+                    self.task_graph.nodes[node]["dist_to_goal"],
+                )
+
     #########################################################################################
     # task solution graph is a graph used to save the solution. Later, the task planner can
     # use this graph to check if the solution exists, then return the solution trajectory.

@@ -374,7 +374,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             ),
         )
 
-        nx.set_edge_attributes(self.task_graph, 0.0, 'weight')
+        nx.set_edge_attributes(self.task_graph, 0.0, "weight")
         self.current_start_configuration = configuration_of_start
 
     # MTGTaskPlannerWithGMM
@@ -553,19 +553,25 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 + obj_env_collision_score
             )
 
-            self.task_graph.nodes[n]['weight'] += weight_value
+            self.task_graph.nodes[n]["weight"] += weight_value
             if weight_value > 0.0:
                 for u, _, edge_attr in self.task_graph.in_edges(n, data=True):
-                    if u!= 'start' and u!= 'goal':
-                        edge_attr['weight'] += weight_value
+                    if u != "start" and u != "goal":
+                        edge_attr["weight"] += weight_value
 
                 for _, v, edge_attr in self.task_graph.out_edges(n, data=True):
-                    if v!= 'start' and v!= 'goal':
-                        edge_attr['weight'] += weight_value
+                    if v != "start" and v != "goal":
+                        edge_attr["weight"] += weight_value
 
 
 class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
-    def __init__(self, gmm, planner_name_="DynamicMTGTaskPlannerWithGMM", threshold = 75.0, parameter_dict_={}):
+    def __init__(
+        self,
+        gmm,
+        planner_name_="DynamicMTGTaskPlannerWithGMM",
+        threshold=75.0,
+        parameter_dict_={},
+    ):
         # Constructor
         super(BaseTaskPlanner, self).__init__()
         # super().__init__() # python 3
@@ -577,117 +583,142 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
 
     # MTGTaskPlannerWithGMM
     def reset_task_planner(self):
-
         self.task_graph = nx.DiGraph()
-        self.manifold_info = {} # the constraints of each manifold
+        self.manifold_info = {}  # the constraints of each manifold
 
         # self.reset_manifold_similarity_table()
         self.total_similiarity_table = {}
 
     # MTGTaskPlannerWithGMM
     def add_manifold(self, manifold_info_, manifold_id_):
-
         self.manifold_info[manifold_id_] = manifold_info_
 
         # construct a set of nodes represented by a tuple (foliation id, manifold id, GMM id)
         for i in range(len(self.gmm_.distributions)):
-            self.task_graph.add_node((manifold_id_[0], manifold_id_[1], i), weight = 0.0, dist_to_start = np.inf, dist_to_goal = np.inf)
+            self.task_graph.add_node(
+                (manifold_id_[0], manifold_id_[1], i),
+                weight=0.0,
+                dist_to_start=np.inf,
+                dist_to_goal=np.inf,
+            )
 
         for edge in self.gmm_.edge_of_distribution:
-            dist_between_two_distributions = self.get_position_difference_between_distributions(self.gmm_.distributions[edge[0]].mean, self.gmm_.distributions[edge[1]].mean)
+            dist_between_two_distributions = (
+                self.get_position_difference_between_distributions(
+                    self.gmm_.distributions[edge[0]].mean,
+                    self.gmm_.distributions[edge[1]].mean,
+                )
+            )
 
             self.task_graph.add_edge(
-                (manifold_id_[0], manifold_id_[1], edge[0]), 
+                (manifold_id_[0], manifold_id_[1], edge[0]),
                 (manifold_id_[0], manifold_id_[1], edge[1]),
                 has_intersection=False,
                 intersection=None,
-                edge_dist = dist_between_two_distributions,
+                edge_dist=dist_between_two_distributions,
             )
 
             # need to add the inverse edge
             self.task_graph.add_edge(
-                (manifold_id_[0], manifold_id_[1], edge[1]), 
+                (manifold_id_[0], manifold_id_[1], edge[1]),
                 (manifold_id_[0], manifold_id_[1], edge[0]),
                 has_intersection=False,
                 intersection=None,
-                edge_dist = dist_between_two_distributions,
+                edge_dist=dist_between_two_distributions,
             )
 
     # MTGTaskPlannerWithGMM
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
-
         # connect two distribution of this intersection_detail_ between two different manifolds(manifold1 and manifold2) if they have the same ditribution id in GMM.
         # first, find the related distribution that the intersection's ends are in in different manifolds.
 
-        distribution_id_in_manifold1, distribution_id_in_manifold2 = self.gmm_.get_distribution_indexs([intersection_detail_.configuration_in_manifold1, intersection_detail_.configuration_in_manifold2])
-        dist_between_edges = self.get_position_difference_between_distributions(self.gmm_.distributions[distribution_id_in_manifold1].mean, self.gmm_.distributions[distribution_id_in_manifold2].mean)
+        (
+            distribution_id_in_manifold1,
+            distribution_id_in_manifold2,
+        ) = self.gmm_.get_distribution_indexs(
+            [
+                intersection_detail_.configuration_in_manifold1,
+                intersection_detail_.configuration_in_manifold2,
+            ]
+        )
+        dist_between_edges = self.get_position_difference_between_distributions(
+            self.gmm_.distributions[distribution_id_in_manifold1].mean,
+            self.gmm_.distributions[distribution_id_in_manifold2].mean,
+        )
 
         # intersection_from_1_to_2_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
 
         self.task_graph.add_edge(
-            (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
+            (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1),
             (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2),
-            has_intersection=True, 
+            has_intersection=True,
             intersection=intersection_detail_,
-            edge_dist = dist_between_edges,
+            edge_dist=dist_between_edges,
         )
 
     # MTGTaskPlannerWithGMM
-    def set_start_and_goal(self,
-                            start_manifold_id_,
-                            start_intersection_, 
-                            goal_manifold_id_,
-                            goal_intersection_):
-
+    def set_start_and_goal(
+        self,
+        start_manifold_id_,
+        start_intersection_,
+        goal_manifold_id_,
+        goal_intersection_,
+    ):
         # self.set_start_and_goal_for_task_solution_graph(start_manifold_id_, goal_manifold_id_)
 
         # if start and goal are set, then remove them from the task graph
-        if self.task_graph.has_node('start'):
-            self.task_graph.remove_node('start')
+        if self.task_graph.has_node("start"):
+            self.task_graph.remove_node("start")
 
-        if self.task_graph.has_node('goal'):
-            self.task_graph.remove_node('goal')
+        if self.task_graph.has_node("goal"):
+            self.task_graph.remove_node("goal")
 
         # include start and goal configurations in the task graph
-        self.task_graph.add_node('start', weight = 0.0, dist_to_start = 0.0, dist_to_goal = np.inf)
-        self.task_graph.add_node('goal', weight = 0.0, dist_to_start = np.inf, dist_to_goal = 0.0)
+        self.task_graph.add_node(
+            "start", weight=0.0, dist_to_start=0.0, dist_to_goal=np.inf
+        )
+        self.task_graph.add_node(
+            "goal", weight=0.0, dist_to_start=np.inf, dist_to_goal=0.0
+        )
 
         configuration_of_start, _ = start_intersection_.get_edge_configurations()
         self.task_graph.add_edge(
-            'start', 
+            "start",
             (
-                start_manifold_id_[0], 
-                start_manifold_id_[1], 
-                self.gmm_.get_distribution_index(np.array(configuration_of_start))
-            ), 
-            has_intersection=False, 
+                start_manifold_id_[0],
+                start_manifold_id_[1],
+                self.gmm_.get_distribution_index(np.array(configuration_of_start)),
+            ),
+            has_intersection=False,
             intersection=None,
-            edge_dist = 0.0,
+            edge_dist=0.0,
         )
 
         configuration_of_goal, _ = goal_intersection_.get_edge_configurations()
         self.task_graph.add_edge(
             (
-                goal_manifold_id_[0], 
-                goal_manifold_id_[1], 
-                self.gmm_.get_distribution_index(np.array(configuration_of_goal))
-            ), 
-            'goal', 
-            has_intersection=True, 
-            intersection=IntersectionDetail(
-                goal_intersection_,
-                configuration_of_goal,
-                configuration_of_goal,
-                True
+                goal_manifold_id_[0],
+                goal_manifold_id_[1],
+                self.gmm_.get_distribution_index(np.array(configuration_of_goal)),
             ),
-            edge_dist = 0.0,
+            "goal",
+            has_intersection=True,
+            intersection=IntersectionDetail(
+                goal_intersection_, configuration_of_goal, configuration_of_goal, True
+            ),
+            edge_dist=0.0,
         )
 
-        nx.set_edge_attributes(self.task_graph, 0.0, 'weight')
+        nx.set_edge_attributes(self.task_graph, 0.0, "weight")
         self.current_start_configuration = configuration_of_start
 
         self.compute_distance_to_start_and_goal()
-        self.current_graph_distance_radius = nx.shortest_path_length(self.task_graph, 'start', 'goal', weight='edge_dist') + 1e-8
+        self.current_graph_distance_radius = (
+            nx.shortest_path_length(
+                self.task_graph, "start", "goal", weight="edge_dist"
+            )
+            + 1e-8
+        )
         self.expand_current_task_graph(self.current_graph_distance_radius)
 
     # MTGTaskPlannerWithGMM
@@ -696,34 +727,50 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
         # print "number of nodes can achieve the goal: ", len([node for node in self.task_graph.nodes if nx.has_path(self.task_graph, node, 'goal')])
 
         # check the connectivity of the task graph from start to goal
-        if not nx.has_path(self.task_graph, 'start', 'goal'):
-            print "no connection between start and goal!"
+        if not nx.has_path(self.task_graph, "start", "goal"):
+            print("no connection between start and goal!")
             return []
 
         # find the shortest path from start to goal
-        shortest_path = nx.shortest_path(self.current_task_graph, 'start', 'goal', weight='weight')
-        path_length = np.sum([self.current_task_graph.get_edge_data(node1, node2)['weight'] for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])])
-        print("Trying to find a solution in a graph with %d nodes and path length %f"%(len(self.current_task_graph.nodes()), path_length))
+        shortest_path = nx.shortest_path(
+            self.current_task_graph, "start", "goal", weight="weight"
+        )
+        path_length = np.sum(
+            [
+                self.current_task_graph.get_edge_data(node1, node2)["weight"]
+                for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])
+            ]
+        )
+        print(
+            "Trying to find a solution in a graph with %d nodes and path length %f"
+            % (len(self.current_task_graph.nodes()), path_length)
+        )
         if path_length > self.exceed_threshold:
             self.current_graph_distance_radius *= 1.25
 
         task_sequence = []
 
         task_start_configuration = self.current_start_configuration
-        task_node_experience = [] # each element is a tuple (node_id, distribution, list of related task nodes)
+        task_node_experience = (
+            []
+        )  # each element is a tuple (node_id, distribution, list of related task nodes)
         # in MTGGMM Task planner, we do not use the list of related task nodes here.
 
         # construct the task sequence.
         for node1, node2 in zip(shortest_path[:-1], shortest_path[1:]):
             current_edge = self.task_graph.get_edge_data(node1, node2)
 
-            if current_edge['has_intersection']:
+            if current_edge["has_intersection"]:
                 # current edge is a transition from one manifold to another manifold
                 task = Task(
                     manifold_detail_=self.manifold_info[node1[:2]],
-                    start_configuration_=task_start_configuration, # start configuration of the task
-                    goal_configuration_=current_edge['intersection'].configuration_in_manifold1, # target configuration of the task
-                    next_motion_=current_edge['intersection'].intersection_data # the motion after the task.
+                    start_configuration_=task_start_configuration,  # start configuration of the task
+                    goal_configuration_=current_edge[
+                        "intersection"
+                    ].configuration_in_manifold1,  # target configuration of the task
+                    next_motion_=current_edge[
+                        "intersection"
+                    ].intersection_data,  # the motion after the task.
                 )
 
                 task.related_experience = list(task_node_experience)
@@ -735,13 +782,21 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
                 task_sequence.append(task)
 
                 # ready for the next task.
-                if node2 != 'goal': # if the edge is to goal, then no need to prepare for the next task
-                    task_node_experience = [(node2, self.gmm_.distributions[node2[2]], [])]
+                if (
+                    node2 != "goal"
+                ):  # if the edge is to goal, then no need to prepare for the next task
+                    task_node_experience = [
+                        (node2, self.gmm_.distributions[node2[2]], [])
+                    ]
                     # consider the last state of the intersection motion as the start state of next task.
-                    task_start_configuration = current_edge['intersection'].configuration_in_manifold2
+                    task_start_configuration = current_edge[
+                        "intersection"
+                    ].configuration_in_manifold2
             else:
                 # edge in the same manifold except start and goal transition
-                task_node_experience.append((node2, self.gmm_.distributions[node2[2]], []))
+                task_node_experience.append(
+                    (node2, self.gmm_.distributions[node2[2]], [])
+                )
 
         return task_sequence
 
@@ -775,16 +830,19 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
         # 8: infeasble state, you should ignore this before project
         # 9: obj-env collision before project
 
-
         # if sampled data is empty, then skip it.
         if len(plan_[4].verified_motions) == 0:
-            print "sampled data is empty."
+            print("sampled data is empty.")
             return
 
-        sampled_data_numpy = np.array([sampled_data.sampled_state for sampled_data in plan_[4].verified_motions])
-        
+        sampled_data_numpy = np.array(
+            [sampled_data.sampled_state for sampled_data in plan_[4].verified_motions]
+        )
+
         # if sampled_data_numpy is empty, then skip it.
-        sampled_data_distribution_id = self.gmm_._sklearn_gmm.predict(sampled_data_numpy).tolist()
+        sampled_data_distribution_id = self.gmm_._sklearn_gmm.predict(
+            sampled_data_numpy
+        ).tolist()
 
         # the task graph info here is the manifold id(foliatino id and co-parameter id) of the current task.
         current_manifold_id = task_graph_info_
@@ -796,7 +854,9 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
         # tag in column 1: arm-env collision or out of joint limit
         # tag in column 2: path constraint violation
         # tag in column 3: obj-env collision
-        sampled_data_distribution_tag_table = np.zeros((len(self.gmm_.distributions), 4))
+        sampled_data_distribution_tag_table = np.zeros(
+            (len(self.gmm_.distributions), 4)
+        )
 
         # count the number of sampled data with the same distribution id and tag.
         for i in range(len(sampled_data_distribution_id)):
@@ -814,9 +874,9 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         # only update the weight of nodes in the same manifold with the current task.
         for n in self.current_task_graph.nodes():
-            if n == 'start' or n == 'goal':
+            if n == "start" or n == "goal":
                 continue
-            
+
             # if not in the same foliation, then continue
             if n[0] != current_manifold_id[0]:
                 continue
@@ -825,24 +885,40 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
             node_co_parameter_id = n[1]
             node_gmm_id = n[2]
 
-            current_similarity_score = self.total_similiarity_table[node_foliation_id][node_co_parameter_id, current_manifold_id[1]]
+            current_similarity_score = self.total_similiarity_table[node_foliation_id][
+                node_co_parameter_id, current_manifold_id[1]
+            ]
 
+            arm_env_collision_score = (
+                sampled_data_distribution_tag_table[node_gmm_id][1] * 1.0
+            )
+            path_constraint_violation_score = (
+                current_similarity_score
+                * sampled_data_distribution_tag_table[node_gmm_id][2]
+                * 1.0
+            )
+            obj_env_collision_score = (
+                current_similarity_score
+                * sampled_data_distribution_tag_table[node_gmm_id][3]
+                * 1.0
+            )
 
-            arm_env_collision_score = sampled_data_distribution_tag_table[node_gmm_id][1] * 1.0
-            path_constraint_violation_score = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][2] * 1.0
-            obj_env_collision_score = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][3] * 1.0
-
-            weight_value = arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
-            self.task_graph.nodes[n]['weight'] += weight_value
+            weight_value = (
+                arm_env_collision_score
+                + path_constraint_violation_score
+                + obj_env_collision_score
+            )
+            self.task_graph.nodes[n]["weight"] += weight_value
             if weight_value > 0.0:
                 for u, _, edge_attr in self.current_task_graph.in_edges(n, data=True):
-                    if u!= 'start' and u!= 'goal':
-                        edge_attr['weight'] += weight_value
+                    if u != "start" and u != "goal":
+                        edge_attr["weight"] += weight_value
 
                 for _, v, edge_attr in self.current_task_graph.out_edges(n, data=True):
-                    if v!= 'start' and v!= 'goal':
-                        edge_attr['weight'] += weight_value
+                    if v != "start" and v != "goal":
+                        edge_attr["weight"] += weight_value
         self.expand_current_task_graph(self.current_graph_distance_radius)
+
 
 class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
     def __init__(
@@ -1011,7 +1087,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             ),
         )
 
-        nx.set_edge_attributes(self.task_graph, 0.0, 'weight')
+        nx.set_edge_attributes(self.task_graph, 0.0, "weight")
 
         self.current_start_configuration = configuration_of_start
 
@@ -1290,16 +1366,15 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 + obj_env_collision_score
             )
 
-            self.task_graph.nodes[n]['weight'] += weight_value
+            self.task_graph.nodes[n]["weight"] += weight_value
             if weight_value > 0.0:
                 for u, _, edge_attr in self.task_graph.in_edges(n, data=True):
-                    if u!= 'start' and u!= 'goal':
-                        edge_attr['weight'] += weight_value
+                    if u != "start" and u != "goal":
+                        edge_attr["weight"] += weight_value
 
                 for _, v, edge_attr in self.task_graph.out_edges(n, data=True):
-                    if v!= 'start' and v!= 'goal':
-                        edge_attr['weight'] += weight_value
-
+                    if v != "start" and v != "goal":
+                        edge_attr["weight"] += weight_value
 
         # update the valid configuration before project and invalid configuration before project
         for distribution_index in range(len(self.gmm_.distributions)):
@@ -1330,8 +1405,16 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                     (current_manifold_id[0], current_manifold_id[1], distribution_index)
                 ]["has_atlas"] = True
 
+
 class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
-    def __init__(self, gmm, default_robot_state, planner_name_="DynamicMTGTaskPlannerWithAtlas", threshold = 75.0, parameter_dict_={}):
+    def __init__(
+        self,
+        gmm,
+        default_robot_state,
+        planner_name_="DynamicMTGTaskPlannerWithAtlas",
+        threshold=75.0,
+        parameter_dict_={},
+    ):
         # Constructor
         super(BaseTaskPlanner, self).__init__()
         # super().__init__() # python 3
@@ -1345,24 +1428,24 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
         self.parameter_dict = parameter_dict_
 
-        self.atlas_service = rospy.ServiceProxy('/construct_atlas', ConstructAtlas)
+        self.atlas_service = rospy.ServiceProxy("/construct_atlas", ConstructAtlas)
 
-        self.reset_atlas_service = rospy.ServiceProxy('/reset_atlas', ResetAtlas)
+        self.reset_atlas_service = rospy.ServiceProxy("/reset_atlas", ResetAtlas)
 
     # MTGTaskPlannerWithAtlas
     def reset_task_planner(self):
-
         self.task_graph = nx.DiGraph()
-        self.manifold_info = {} # the constraints of each manifold
-        
-        self.foliation_with_co_parameter_id = {} # the co-parameter id of each foliation
+        self.manifold_info = {}  # the constraints of each manifold
+
+        self.foliation_with_co_parameter_id = (
+            {}
+        )  # the co-parameter id of each foliation
 
         # self.reset_manifold_similarity_table()
         self.total_similiarity_table = {}
 
     # MTGTaskPlannerWithAtlas
     def add_manifold(self, manifold_info_, manifold_id_):
-
         self.manifold_info[manifold_id_] = manifold_info_
 
         if manifold_id_[0] not in self.foliation_with_co_parameter_id:
@@ -1372,109 +1455,136 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
         # construct a set of nodes represented by a tuple (foliation id, manifold id, GMM id)
         for i in range(len(self.gmm_.distributions)):
-            self.task_graph.add_node((manifold_id_[0], manifold_id_[1], i), weight = 0.0, has_atlas=False, valid_configuration_before_project = 0, invalid_configuration_before_project = 0, dist_to_start = np.inf, dist_to_goal = np.inf)
+            self.task_graph.add_node(
+                (manifold_id_[0], manifold_id_[1], i),
+                weight=0.0,
+                has_atlas=False,
+                valid_configuration_before_project=0,
+                invalid_configuration_before_project=0,
+                dist_to_start=np.inf,
+                dist_to_goal=np.inf,
+            )
 
         for edge in self.gmm_.edge_of_distribution:
-            dist_between_two_distributions = self.get_position_difference_between_distributions(self.gmm_.distributions[edge[0]].mean, self.gmm_.distributions[edge[1]].mean)
+            dist_between_two_distributions = (
+                self.get_position_difference_between_distributions(
+                    self.gmm_.distributions[edge[0]].mean,
+                    self.gmm_.distributions[edge[1]].mean,
+                )
+            )
 
             self.task_graph.add_edge(
-                (manifold_id_[0], manifold_id_[1], edge[0]), 
+                (manifold_id_[0], manifold_id_[1], edge[0]),
                 (manifold_id_[0], manifold_id_[1], edge[1]),
                 has_intersection=False,
                 intersection=None,
-                edge_dist = dist_between_two_distributions,
+                edge_dist=dist_between_two_distributions,
             )
 
             # need to add the inverse edge
             self.task_graph.add_edge(
-                (manifold_id_[0], manifold_id_[1], edge[1]), 
+                (manifold_id_[0], manifold_id_[1], edge[1]),
                 (manifold_id_[0], manifold_id_[1], edge[0]),
                 has_intersection=False,
                 intersection=None,
-                edge_dist = dist_between_two_distributions,
+                edge_dist=dist_between_two_distributions,
             )
 
     # MTGTaskPlannerWithAtlas
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
-
         # connect two distribution of this intersection_detail_ between two different manifolds(manifold1 and manifold2) if they have the same ditribution id in GMM.
         # first, find the related distribution that the intersection's ends are in in different manifolds.
 
-        distribution_id_in_manifold1, distribution_id_in_manifold2 = self.gmm_.get_distribution_indexs([intersection_detail_.configuration_in_manifold1, intersection_detail_.configuration_in_manifold2])
-        dist_between_edges = self.get_position_difference_between_distributions(self.gmm_.distributions[distribution_id_in_manifold1].mean, self.gmm_.distributions[distribution_id_in_manifold2].mean)
+        (
+            distribution_id_in_manifold1,
+            distribution_id_in_manifold2,
+        ) = self.gmm_.get_distribution_indexs(
+            [
+                intersection_detail_.configuration_in_manifold1,
+                intersection_detail_.configuration_in_manifold2,
+            ]
+        )
+        dist_between_edges = self.get_position_difference_between_distributions(
+            self.gmm_.distributions[distribution_id_in_manifold1].mean,
+            self.gmm_.distributions[distribution_id_in_manifold2].mean,
+        )
 
         # intersection_from_1_to_2_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
 
         self.task_graph.add_edge(
-            (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1), 
+            (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1),
             (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2),
-            has_intersection=True, 
+            has_intersection=True,
             intersection=intersection_detail_,
-            edge_dist = dist_between_edges,
+            edge_dist=dist_between_edges,
         )
 
     # MTGTaskPlannerWithAtlas
-    def set_start_and_goal(self,
-                            start_manifold_id_,
-                            start_intersection_, 
-                            goal_manifold_id_,
-                            goal_intersection_):
-
+    def set_start_and_goal(
+        self,
+        start_manifold_id_,
+        start_intersection_,
+        goal_manifold_id_,
+        goal_intersection_,
+    ):
         # reset the atlas
         self.reset_atlas_service.call(ResetAtlasRequest())
-        
-        # if start and goal are set, then remove them from the task graph
-        if self.task_graph.has_node('start'):
-            self.task_graph.remove_node('start')
 
-        if self.task_graph.has_node('goal'):
-            self.task_graph.remove_node('goal')
+        # if start and goal are set, then remove them from the task graph
+        if self.task_graph.has_node("start"):
+            self.task_graph.remove_node("start")
+
+        if self.task_graph.has_node("goal"):
+            self.task_graph.remove_node("goal")
 
         # include start and goal configurations in the task graph
-        self.task_graph.add_node('start', weight = 0.0, dist_to_start = 0.0, dist_to_goal = np.inf)
-        self.task_graph.add_node('goal', weight = 0.0, dist_to_start = np.inf, dist_to_goal = 0.0)
+        self.task_graph.add_node(
+            "start", weight=0.0, dist_to_start=0.0, dist_to_goal=np.inf
+        )
+        self.task_graph.add_node(
+            "goal", weight=0.0, dist_to_start=np.inf, dist_to_goal=0.0
+        )
 
         configuration_of_start, _ = start_intersection_.get_edge_configurations()
         self.task_graph.add_edge(
-            'start', 
+            "start",
             (
-                start_manifold_id_[0], 
-                start_manifold_id_[1], 
-                self.gmm_.get_distribution_index(np.array(configuration_of_start))
-            ), 
-            has_intersection=False, 
+                start_manifold_id_[0],
+                start_manifold_id_[1],
+                self.gmm_.get_distribution_index(np.array(configuration_of_start)),
+            ),
+            has_intersection=False,
             intersection=None,
-            edge_dist = 0.0,
+            edge_dist=0.0,
         )
-
 
         configuration_of_goal, _ = goal_intersection_.get_edge_configurations()
         self.task_graph.add_edge(
             (
-                goal_manifold_id_[0], 
-                goal_manifold_id_[1], 
-                self.gmm_.get_distribution_index(np.array(configuration_of_goal))
-            ), 
-            'goal', 
-            has_intersection=True, 
-            intersection=IntersectionDetail(
-                goal_intersection_,
-                configuration_of_goal,
-                configuration_of_goal,
-                True
+                goal_manifold_id_[0],
+                goal_manifold_id_[1],
+                self.gmm_.get_distribution_index(np.array(configuration_of_goal)),
             ),
-            edge_dist = 0.0,
+            "goal",
+            has_intersection=True,
+            intersection=IntersectionDetail(
+                goal_intersection_, configuration_of_goal, configuration_of_goal, True
+            ),
+            edge_dist=0.0,
         )
 
-        nx.set_edge_attributes(self.task_graph, 0.0, 'weight')
-
+        nx.set_edge_attributes(self.task_graph, 0.0, "weight")
 
         self.current_start_configuration = configuration_of_start
 
         self.compute_distance_to_start_and_goal()
-        self.current_graph_distance_radius = nx.shortest_path_length(self.task_graph, 'start', 'goal', weight='edge_dist') + 1e-8
+        self.current_graph_distance_radius = (
+            nx.shortest_path_length(
+                self.task_graph, "start", "goal", weight="edge_dist"
+            )
+            + 1e-8
+        )
         self.expand_current_task_graph(self.current_graph_distance_radius)
-
 
     # MTGTaskPlannerWithAtlas
     def generate_task_sequence(self):
@@ -1482,14 +1592,24 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
         # print "number of nodes can achieve the goal: ", len([node for node in self.task_graph.nodes if nx.has_path(self.task_graph, node, 'goal')])
 
         # check the connectivity of the task graph from start to goal
-        if not nx.has_path(self.task_graph, 'start', 'goal'):
-            print "no connection between start and goal!"
+        if not nx.has_path(self.task_graph, "start", "goal"):
+            print("no connection between start and goal!")
             return []
 
         # find the shortest path from start to goal
-        shortest_path = nx.shortest_path(self.current_task_graph, 'start', 'goal', weight='weight')
-        path_length = np.sum([self.current_task_graph.get_edge_data(node1, node2)['weight'] for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])])
-        print("Trying to find a solution in a graph with %d nodes and path length %f"%(len(self.current_task_graph.nodes()), path_length))
+        shortest_path = nx.shortest_path(
+            self.current_task_graph, "start", "goal", weight="weight"
+        )
+        path_length = np.sum(
+            [
+                self.current_task_graph.get_edge_data(node1, node2)["weight"]
+                for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])
+            ]
+        )
+        print(
+            "Trying to find a solution in a graph with %d nodes and path length %f"
+            % (len(self.current_task_graph.nodes()), path_length)
+        )
         if path_length > self.exceed_threshold:
             self.current_graph_distance_radius *= 1.25
             self.expand_current_task_graph(self.current_graph_distance_radius)
@@ -1497,19 +1617,25 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
         task_sequence = []
 
         task_start_configuration = self.current_start_configuration
-        task_node_experience = [] # each element contains a tuple (node, distribution, list of related task nodes)
+        task_node_experience = (
+            []
+        )  # each element contains a tuple (node, distribution, list of related task nodes)
 
         # construct the task sequence.
         for node1, node2 in zip(shortest_path[:-1], shortest_path[1:]):
             current_edge = self.task_graph.get_edge_data(node1, node2)
 
-            if current_edge['has_intersection']:
+            if current_edge["has_intersection"]:
                 # current edge is a transition from one manifold to another manifold
                 task = Task(
                     manifold_detail_=self.manifold_info[node1[:2]],
-                    start_configuration_=task_start_configuration, # start configuration of the task
-                    goal_configuration_=current_edge['intersection'].configuration_in_manifold1, # target configuration of the task
-                    next_motion_=current_edge['intersection'].intersection_data # the motion after the task.
+                    start_configuration_=task_start_configuration,  # start configuration of the task
+                    goal_configuration_=current_edge[
+                        "intersection"
+                    ].configuration_in_manifold1,  # target configuration of the task
+                    next_motion_=current_edge[
+                        "intersection"
+                    ].intersection_data,  # the motion after the task.
                 )
 
                 task.related_experience = list(task_node_experience)
@@ -1521,39 +1647,74 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 task_sequence.append(task)
 
                 # ready for the next task.
-                if node2 != 'goal': # if the edge is to goal, then no need to prepare for the next task
-                    task_node_experience = [(node2, self.gmm_.distributions[node2[2]], self.get_related_task_nodes(node2))]
+                if (
+                    node2 != "goal"
+                ):  # if the edge is to goal, then no need to prepare for the next task
+                    task_node_experience = [
+                        (
+                            node2,
+                            self.gmm_.distributions[node2[2]],
+                            self.get_related_task_nodes(node2),
+                        )
+                    ]
                     # consider the last state of the intersection motion as the start state of next task.
-                    task_start_configuration = current_edge['intersection'].configuration_in_manifold2
+                    task_start_configuration = current_edge[
+                        "intersection"
+                    ].configuration_in_manifold2
             else:
                 # edge in the same manifold except start and goal transition
-                task_node_experience.append((node2, self.gmm_.distributions[node2[2]], self.get_related_task_nodes(node2)))
+                task_node_experience.append(
+                    (
+                        node2,
+                        self.gmm_.distributions[node2[2]],
+                        self.get_related_task_nodes(node2),
+                    )
+                )
 
         return task_sequence
 
     # MTGTaskPlannerWithAtlas
     def get_related_task_nodes(self, current_node):
-        '''
+        """
         Return a list of co_parameter with beta value times similarity score.
-        '''
+        """
         result = []
         for co_parameter_index in self.foliation_with_co_parameter_id[current_node[0]]:
-            if self.task_graph.nodes[(current_node[0], co_parameter_index, current_node[2])]['has_atlas']:
-                num_of_configuration_before_project = self.task_graph.nodes[(current_node[0], co_parameter_index, current_node[2])]['valid_configuration_before_project'] + self.task_graph.nodes[(current_node[0], co_parameter_index, current_node[2])]['invalid_configuration_before_project']
-                num_of_invalid_configuration_before_project = self.task_graph.nodes[(current_node[0], co_parameter_index, current_node[2])]['invalid_configuration_before_project']
-                similarity_score = self.total_similiarity_table[current_node[0]][co_parameter_index, current_node[1]]
+            if self.task_graph.nodes[
+                (current_node[0], co_parameter_index, current_node[2])
+            ]["has_atlas"]:
+                num_of_configuration_before_project = (
+                    self.task_graph.nodes[
+                        (current_node[0], co_parameter_index, current_node[2])
+                    ]["valid_configuration_before_project"]
+                    + self.task_graph.nodes[
+                        (current_node[0], co_parameter_index, current_node[2])
+                    ]["invalid_configuration_before_project"]
+                )
+                num_of_invalid_configuration_before_project = self.task_graph.nodes[
+                    (current_node[0], co_parameter_index, current_node[2])
+                ]["invalid_configuration_before_project"]
+                similarity_score = self.total_similiarity_table[current_node[0]][
+                    co_parameter_index, current_node[1]
+                ]
                 if num_of_configuration_before_project == 0:
-                    result.append((
-                        co_parameter_index, 
-                        1.0 * similarity_score # if no configuration before project, then we assume the volume of this region is very thin.
-                    )) # related task nodes contains all the nodes in the same foliation with the same distribution id.
+                    result.append(
+                        (
+                            co_parameter_index,
+                            1.0
+                            * similarity_score,  # if no configuration before project, then we assume the volume of this region is very thin.
+                        )
+                    )  # related task nodes contains all the nodes in the same foliation with the same distribution id.
                 else:
-                    result.append((
-                        co_parameter_index, 
-                        num_of_invalid_configuration_before_project / (num_of_configuration_before_project * 1.0) * similarity_score
-                    )) # related task nodes contains all the nodes in the same foliation with the same distribution id.
+                    result.append(
+                        (
+                            co_parameter_index,
+                            num_of_invalid_configuration_before_project
+                            / (num_of_configuration_before_project * 1.0)
+                            * similarity_score,
+                        )
+                    )  # related task nodes contains all the nodes in the same foliation with the same distribution id.
         return result
-
 
     # MTGTaskPlannerWithAtlas
     def update(self, task_graph_info_, plan_, manifold_constraint_):
@@ -1588,18 +1749,22 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
         # if sampled data is empty, then skip it.
         if len(plan_[4].verified_motions) == 0:
-            print "sampled data is empty."
+            print("sampled data is empty.")
             return
 
-        sampled_data_numpy = np.array([sampled_data.sampled_state for sampled_data in plan_[4].verified_motions])
+        sampled_data_numpy = np.array(
+            [sampled_data.sampled_state for sampled_data in plan_[4].verified_motions]
+        )
 
         if np.isnan(sampled_data_numpy).any():
-            print "sampled data contains nan."
-            print sampled_data_numpy
+            print("sampled data contains nan.")
+            print(sampled_data_numpy)
             return
-        
+
         # if sampled_data_numpy is empty, then skip it.
-        sampled_data_distribution_id = self.gmm_._sklearn_gmm.predict(sampled_data_numpy).tolist()
+        sampled_data_distribution_id = self.gmm_._sklearn_gmm.predict(
+            sampled_data_numpy
+        ).tolist()
 
         # the task graph info here is the manifold id(foliatino id and co-parameter id) of the current task.
         current_manifold_id = task_graph_info_
@@ -1613,7 +1778,9 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
         # tag in column 3: obj-env collision
         # tag in column 4: valid configuration before project
         # tag in column 5: invalid configuration before project
-        sampled_data_distribution_tag_table = np.zeros((len(self.gmm_.distributions), 6))
+        sampled_data_distribution_tag_table = np.zeros(
+            (len(self.gmm_.distributions), 6)
+        )
 
         construct_atlas_request = ConstructAtlasRequest()
         construct_atlas_request.group_name = "arm"
@@ -1631,29 +1798,33 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
             if sampled_data_tag == 0 or sampled_data_tag == 5:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][0] += 1
                 configuration_with_info = ConfigurationWithInfo()
-                configuration_with_info.joint_configuration = plan_[4].verified_motions[i].sampled_state
+                configuration_with_info.joint_configuration = (
+                    plan_[4].verified_motions[i].sampled_state
+                )
                 configuration_with_info.distribution_id = sampled_data_gmm_id
-                construct_atlas_request.list_of_configuration_with_info.append(configuration_with_info)
+                construct_atlas_request.list_of_configuration_with_info.append(
+                    configuration_with_info
+                )
             elif sampled_data_tag == 1 or sampled_data_tag == 6:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][1] += 1
             elif sampled_data_tag == 2 or sampled_data_tag == 7:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][2] += 1
             elif sampled_data_tag == 4 or sampled_data_tag == 9:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][3] += 1
-            
+
             if sampled_data_tag == 5:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][4] += 1
             elif sampled_data_tag > 5:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][5] += 1
-        
+
         if len(construct_atlas_request.list_of_configuration_with_info) != 0:
             self.atlas_service.call(construct_atlas_request)
 
         # only update the weight of nodes in the same manifold with the current task.
         for n in self.task_graph.nodes():
-            if n == 'start' or n == 'goal':
+            if n == "start" or n == "goal":
                 continue
-            
+
             # if not in the same foliation, then continue
             if n[0] != current_manifold_id[0]:
                 continue
@@ -1662,31 +1833,66 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
             node_co_parameter_id = n[1]
             node_gmm_id = n[2]
 
-            current_similarity_score = self.total_similiarity_table[node_foliation_id][node_co_parameter_id, current_manifold_id[1]]
+            current_similarity_score = self.total_similiarity_table[node_foliation_id][
+                node_co_parameter_id, current_manifold_id[1]
+            ]
 
-            arm_env_collision_score = sampled_data_distribution_tag_table[node_gmm_id][1] * 1.0
-            path_constraint_violation_score = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][2] * 1.0
-            obj_env_collision_score = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][3] * 1.0
+            arm_env_collision_score = (
+                sampled_data_distribution_tag_table[node_gmm_id][1] * 1.0
+            )
+            path_constraint_violation_score = (
+                current_similarity_score
+                * sampled_data_distribution_tag_table[node_gmm_id][2]
+                * 1.0
+            )
+            obj_env_collision_score = (
+                current_similarity_score
+                * sampled_data_distribution_tag_table[node_gmm_id][3]
+                * 1.0
+            )
 
-            weight_value = arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
-            self.task_graph.nodes[n]['weight'] += weight_value
+            weight_value = (
+                arm_env_collision_score
+                + path_constraint_violation_score
+                + obj_env_collision_score
+            )
+            self.task_graph.nodes[n]["weight"] += weight_value
             if weight_value > 0.0:
                 for u, _, edge_attr in self.current_task_graph.in_edges(n, data=True):
-                    if u!= 'start' and u!= 'goal':
-                        edge_attr['weight'] += weight_value
+                    if u != "start" and u != "goal":
+                        edge_attr["weight"] += weight_value
 
                 for _, v, edge_attr in self.current_task_graph.out_edges(n, data=True):
-                    if v!= 'start' and v!= 'goal':
-                        edge_attr['weight'] += weight_value
-
+                    if v != "start" and v != "goal":
+                        edge_attr["weight"] += weight_value
 
         # update the valid configuration before project and invalid configuration before project
         for distribution_index in range(len(self.gmm_.distributions)):
-            self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['valid_configuration_before_project'] += sampled_data_distribution_tag_table[distribution_index][4]
-            self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['invalid_configuration_before_project'] += sampled_data_distribution_tag_table[distribution_index][5]
+            self.task_graph.nodes[
+                (current_manifold_id[0], current_manifold_id[1], distribution_index)
+            ][
+                "valid_configuration_before_project"
+            ] += sampled_data_distribution_tag_table[
+                distribution_index
+            ][
+                4
+            ]
+            self.task_graph.nodes[
+                (current_manifold_id[0], current_manifold_id[1], distribution_index)
+            ][
+                "invalid_configuration_before_project"
+            ] += sampled_data_distribution_tag_table[
+                distribution_index
+            ][
+                5
+            ]
             # if there are some projected valid configuration, then there must be an atlas.
-            if sampled_data_distribution_tag_table[distribution_index][0] > 0 or sampled_data_distribution_tag_table[distribution_index][4] > 0:
-                self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['has_atlas'] = True
+            if (
+                sampled_data_distribution_tag_table[distribution_index][0] > 0
+                or sampled_data_distribution_tag_table[distribution_index][4] > 0
+            ):
+                self.task_graph.nodes[
+                    (current_manifold_id[0], current_manifold_id[1], distribution_index)
+                ]["has_atlas"] = True
 
         self.expand_current_task_graph(self.current_graph_distance_radius)
-            e["weight"] = u["weight"] + v["weight"]

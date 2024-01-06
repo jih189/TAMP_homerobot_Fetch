@@ -45,9 +45,8 @@ for planner in planner_list:
 
 
 if __name__ == "__main__":
-
-    number_of_tasks = 50 # number of tasks to be sampled
-    max_attempt_time = 30 # maximum attempt time for each task
+    number_of_tasks = 50  # number of tasks to be sampled
+    max_attempt_time = 30  # maximum attempt time for each task
 
     ########################################
 
@@ -99,16 +98,39 @@ if __name__ == "__main__":
         DynamicMTGTaskPlannerWithGMM(gmm, threshold=125.0),
         DynamicMTGTaskPlannerWithGMM(gmm, threshold=150.0),
         MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
-        DynamicMTGTaskPlannerWithAtlas(gmm, threshold=25.0, default_robot_state = motion_planner.move_group.get_current_state()),
-        DynamicMTGTaskPlannerWithAtlas(gmm, threshold=50.0, default_robot_state = motion_planner.move_group.get_current_state()),
-        DynamicMTGTaskPlannerWithAtlas(gmm, threshold=75.0, default_robot_state = motion_planner.move_group.get_current_state()),
-        DynamicMTGTaskPlannerWithAtlas(gmm, threshold=100.0,default_robot_state =  motion_planner.move_group.get_current_state()),
-        DynamicMTGTaskPlannerWithAtlas(gmm, threshold=125.0,default_robot_state =  motion_planner.move_group.get_current_state()),
-        DynamicMTGTaskPlannerWithAtlas(gmm, threshold=150.0,default_robot_state =  motion_planner.move_group.get_current_state()),
+        DynamicMTGTaskPlannerWithAtlas(
+            gmm,
+            threshold=25.0,
+            default_robot_state=motion_planner.move_group.get_current_state(),
+        ),
+        DynamicMTGTaskPlannerWithAtlas(
+            gmm,
+            threshold=50.0,
+            default_robot_state=motion_planner.move_group.get_current_state(),
+        ),
+        DynamicMTGTaskPlannerWithAtlas(
+            gmm,
+            threshold=75.0,
+            default_robot_state=motion_planner.move_group.get_current_state(),
+        ),
+        DynamicMTGTaskPlannerWithAtlas(
+            gmm,
+            threshold=100.0,
+            default_robot_state=motion_planner.move_group.get_current_state(),
+        ),
+        DynamicMTGTaskPlannerWithAtlas(
+            gmm,
+            threshold=125.0,
+            default_robot_state=motion_planner.move_group.get_current_state(),
+        ),
+        DynamicMTGTaskPlannerWithAtlas(
+            gmm,
+            threshold=150.0,
+            default_robot_state=motion_planner.move_group.get_current_state(),
+        ),
     ]
 
-
-    with open(result_file_path, 'w') as result_file:
+    with open(result_file_path, "w") as result_file:
         for task_planner in task_planners:
             print("=== Evaluate task planner ", task_planner.planner_name, " ===")
 
@@ -155,21 +177,21 @@ if __name__ == "__main__":
                         "motion_planning_time": motion_planning_time,
                         "updating_time": updating_time,
                         "solution_length": solution_length,
-                        'num_attempts': num_attempts,
+                        "num_attempts": num_attempts,
                     }
                     json.dump(result_data, result_file)
                     result_file.write("\n")
                 else:
                     result_data = {
-                        'planner_name': task_planner.planner_name,
-                        'start': start,
-                        'goal': goal,
-                        'success': 'false',
-                        'task_planning_time': -1,
-                        'motion_planning_time': -1,
-                        'updating_time': -1,
-                        'solution_length': -1,
-                        'num_attempts': -1,
+                        "planner_name": task_planner.planner_name,
+                        "start": start,
+                        "goal": goal,
+                        "success": "false",
+                        "task_planning_time": -1,
+                        "motion_planning_time": -1,
+                        "updating_time": -1,
+                        "solution_length": -1,
+                        "num_attempts": -1,
                     }
                     json.dump(result_data, result_file)
                     result_file.write("\n")
