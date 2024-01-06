@@ -443,9 +443,6 @@ if __name__ == "__main__":
     # build foliation
     foliated_builder = FoliatedBuilder(config)
 
-    print foliated_builder.foliation_slide
-    print foliated_builder.foliation_regrasp
-
     # build sampler
     sampler = Sampler(config, robot_scene)
 

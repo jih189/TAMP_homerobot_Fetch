@@ -221,6 +221,7 @@ class FoliatedPlanningFramework():
                 self.task_planner.update(task.task_graph_info, experience, manifold_constraint)
 
                 if success_flag:
+                    print(success_flag)
                     list_of_motion_plan.append(motion_plan_result)
                     # add the intersection action to the list of motion plan
                     list_of_motion_plan.append(task.next_motion.get_task_motion())
