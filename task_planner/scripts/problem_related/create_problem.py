@@ -98,6 +98,7 @@ class FoliatedBuilder(object):
         self.env_mesh = trimesh.load_mesh(self.env_mesh_path)
         self.env_mesh.apply_transform(convert_pose_stamped_to_matrix(self.env_pose))
         self.collision_manager = trimesh.collision.CollisionManager()
+        print(self.env_mesh_path)
         self.collision_manager.add_object('env', self.env_mesh)
 
     def _placement_rectangular(self, params):

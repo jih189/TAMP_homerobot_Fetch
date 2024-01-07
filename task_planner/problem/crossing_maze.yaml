@@ -52,6 +52,6 @@ grasp_parameters:
     - [0, 0, 0, 1]
 
 foliation_parameters:
-  sliding_sigma: 0.1
+  similarity_sigma: 0.1
   orientation_tolerance: [0.1, 0.1, 6.28318530718]
   position_tolerance: [2000, 2000, 0.02]

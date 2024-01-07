@@ -47,7 +47,7 @@ placement_parameters:
 grasp_parameters:
   num_samples: 40
   rotated_matrix:
-    - [1, 0, 0, -0.17]
+    - [1, 0, 0, 0.0]
     - [0, 1, 0, 0.0]
     - [0, 0, 1, 0.0]
     - [0, 0, 0, 1]
