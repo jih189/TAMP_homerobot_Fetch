@@ -9,7 +9,9 @@ from jiaming_GMM import GMM
 from jiaming_task_planner import (
     MTGTaskPlanner,
     MTGTaskPlannerWithGMM,
+    DynamicMTGTaskPlannerWithGMM,
     MTGTaskPlannerWithAtlas,
+    DynamicMTGTaskPlannerWithAtlas,
 )
 from jiaming_motion_planner import MoveitMotionPlanner
 
@@ -43,8 +45,8 @@ for planner in planner_list:
 
 
 if __name__ == "__main__":
-    number_of_tasks = 5  # number of tasks to be sampled
-    max_attempt_time = 5  # maximum attempt time for each task
+    number_of_tasks = 50  # number of tasks to be sampled
+    max_attempt_time = 30  # maximum attempt time for each task
 
     ########################################
 
@@ -89,6 +91,12 @@ if __name__ == "__main__":
     task_planners = [
         MTGTaskPlanner(),
         MTGTaskPlannerWithGMM(gmm),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_50.0", threshold=50.0),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_75.0", threshold=75.0),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_100.0", threshold=100.0),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_125.0", threshold=125.0),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_150.0", threshold=150.0),
         MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
     ]
 

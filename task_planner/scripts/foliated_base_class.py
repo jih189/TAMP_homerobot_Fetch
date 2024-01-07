@@ -753,15 +753,9 @@ class BaseTaskPlanner:
         for node in self.task_graph.nodes():
             if node in lengths_to_start:
                 self.task_graph.nodes[node]["dist_to_start"] = lengths_to_start[node]
-
             if node in lengths_to_goal:
                 self.task_graph.nodes[node]["dist_to_goal"] = lengths_to_goal[node]
-            if node == "start" or node == "goal":
-                print(
-                    node,
-                    self.task_graph.nodes[node]["dist_to_start"],
-                    self.task_graph.nodes[node]["dist_to_goal"],
-                )
+
 
     #########################################################################################
     # task solution graph is a graph used to save the solution. Later, the task planner can

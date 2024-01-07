@@ -187,6 +187,23 @@ if __name__ == "__main__":
         """
         return np.linalg.norm(pose_1_[:3, 3] - pose_2_[:3, 3])
 
+    def get_pose_difference(pose_1_, pose_2_):
+        """
+        Get the position difference between two poses.
+        pose_1_ and pose_2_ are both 4x4 numpy matrices.
+        """
+        position_distance = np.linalg.norm(pose_1_[:3, 3] - pose_2_[:3, 3])
+        rotation_distance = np.arccos(
+            np.clip(
+                ((np.trace(np.dot(pose_1_[:3, :3], pose_2_[:3, :3].T)) - 1) / 2),
+                -1.0,
+                1.0,
+            )
+        ) # from http://www.boris-belousov.net/2016/12/01/quat-dist/
+
+        return position_distance + rotation_distance
+
+
     def gaussian_similarity(distance, max_distance, sigma=0.01):
         """
         Calculate the similarity score using Gaussian function.
@@ -215,7 +232,7 @@ if __name__ == "__main__":
         for j, grasp in enumerate(feasible_grasps):
             if i == j:
                 different_matrix[i, j] = 0
-            different_matrix[i, j] = get_position_difference_between_poses(
+            different_matrix[i, j] = get_pose_difference(
                 feasible_grasps[i], feasible_grasps[j]
             )
 

@@ -577,7 +577,7 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
         # super().__init__() # python 3
 
         self.gmm_ = gmm
-        self.planner_name = planner_name_ + "_" + str(threshold)
+        self.planner_name = planner_name_
         self.parameter_dict = parameter_dict_
         self.exceed_threshold = threshold
 
@@ -741,10 +741,10 @@ class DynamicMTGTaskPlannerWithGMM(BaseTaskPlanner):
                 for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])
             ]
         )
-        print(
-            "Trying to find a solution in a graph with %d nodes and path length %f"
-            % (len(self.current_task_graph.nodes()), path_length)
-        )
+        # print(
+        #     "Trying to find a solution in a graph with %d nodes and path length %f"
+        #     % (len(self.current_task_graph.nodes()), path_length)
+        # )
         if path_length > self.exceed_threshold:
             self.current_graph_distance_radius *= 1.25
 
