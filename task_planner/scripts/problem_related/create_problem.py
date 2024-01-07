@@ -436,6 +436,9 @@ if __name__ == "__main__":
     loaded_foliated_problem = FoliatedProblem.load(ManipulationFoliation, ManipulationIntersection,
                                                    config.package_path + config.get('task_parameters', 'save_path'))
 
+    # visualize problem
+    visualize_problem = ProblemVisualizer(config, foliated_builder)
+
     # warp up
     moveit_commander.roscpp_shutdown()
     moveit_commander.os._exit(0)

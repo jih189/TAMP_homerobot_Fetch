@@ -16,8 +16,8 @@ initial_joint_state:
 
 environment:
   env_mesh_path: "/mesh_dir/desk_with_drawer_frame_v2.stl"
-  manipulated_object_mesh_path: "/mesh_dir/drawer_simple.stl"
-  grasp_poses_file: "/mesh_dir/drawer_simple.npz"
+  manipulated_object_mesh_path: "/mesh_dir/drawer_v1.stl"
+  grasp_poses_file: "/mesh_dir/drawer_v1.npz"
   env_pose:
     frame_id: "base_link"
     position:
@@ -30,17 +30,17 @@ environment:
       z: 0.707
       w: -0.707
   top_pose:
-    - [1, 0, 0, 0.72]
+    - [1, 0, 0, 0]
     - [0, 1, 0, -0.150]
-    - [0, 0, 1, 0.53]
+    - [0, 0, 1, 0.5]
     - [0, 0, 0, 1]
 
 placement_parameters:
   type: "linear"
-  start_position: [0.6, -0.150, 0.53] # x, y, z
-  end_position: [0.72, -0.150, 0.53] # x, y, z
+  start_position: [0.65, -0.150, 0.5]
+  end_position: [0.7, -0.150, 0.5]
   step_size: 1
-  orientation: [0.0, 0.0, 0.707, -0.707] # x, y, z, w
+  orientation: [0.0, 0.0, 0, 0]
 
 grasp_parameters:
   num_samples: 40
@@ -52,5 +52,5 @@ grasp_parameters:
 
 foliation_parameters:
   similarity_sigma: 0.1
-  orientation_tolerance: [0.001, 0.001, 0.90]
-  position_tolerance: [10, 0.001, 0.001]
+  orientation_tolerance: [0.005, 0.005, 0.005]
+  position_tolerance: [10, 0.005, 0.005]
