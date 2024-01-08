@@ -21,7 +21,7 @@ environment:
   env_pose:
     frame_id: "base_link"
     position:
-      x: 0.6
+      x: 0.8
       y: -0.2
       z: -0.02
     orientation:
@@ -30,24 +30,24 @@ environment:
       z: 0.7071
       w: -0.7071
   top_pose:
-    - [1, 0, 0, 0.4725]
+    - [1, 0, 0, 0.672]
     - [0, 1, 0, -0.024]
-    - [0, 0, 1, 0.855]
+    - [0, 0, 1, 0.865]
     - [0, 0, 0, 1]
 
 placement_parameters:
   type: "circular"
-  center_position: [0.4725, -0.024, 0.855] # x, y, z 0.4725, -0.027, 0.86
+  center_position: [0.672, -0.024, 0.865]
   radius: 0
-  start_angle: 0.0 # rad
-  end_angle: 6.28319 # rad
-  steps: 8 # rad
-  orientation: [0.0, 0.0, 0.0, 1.0] # x, y, z, w
+  start_angle: 0.0
+  end_angle: 6.28319
+  steps: 20
+  orientation: [0.0, 0.0, 0.0, 1.0]
 
 grasp_parameters:
   num_samples: 40
   rotated_matrix:
-    - [1, 0, 0, 0.0]
+    - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]
     - [0, 0, 1, 0.0]
     - [0, 0, 0, 1]
@@ -55,4 +55,4 @@ grasp_parameters:
 foliation_parameters:
   similarity_sigma: 0.1
   orientation_tolerance: [6.28318530718, 6.28318530718, 6.28318530718]
-  position_tolerance: [0.0001, 0.0001, 0.0001]
+  position_tolerance: [1.0001, 1.0001, 0.1]

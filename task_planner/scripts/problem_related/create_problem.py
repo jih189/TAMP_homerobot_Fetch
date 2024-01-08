@@ -147,18 +147,18 @@ class FoliatedBuilder(object):
     def _placement_linear(self, params):
         start_position = np.array(params["start_position"])
         end_position = np.array(params["end_position"])
-        step_size = params["step_size"]
+        num_steps = params["num_steps"]
         orientation = params["orientation"]
 
         # total dist and steps
         total_distance = np.linalg.norm(end_position - start_position)
-        num_steps = int(total_distance / step_size)
 
         positions_to_place = [start_position]
         for step in range(1, num_steps):
             current_position = start_position + (end_position - start_position) * (float(step) / num_steps)
             positions_to_place.append(current_position)
         positions_to_place.append(end_position)
+        print positions_to_place
         for position in positions_to_place:
             obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2],
                                                     orientation[0], orientation[1], orientation[2], orientation[3])

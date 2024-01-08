@@ -46,11 +46,11 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     # task_planner = MTGTaskPlanner()
-    task_planner = MTGTaskPlannerWithGMM(gmm)
-    # task_planner = MTGTaskPlannerWithAtlas(gmm,
-    #                                       motion_planner.move_group.get_current_state())  # need to provide the current robot state as the default robot state.
+    # task_planner = MTGTaskPlannerWithGMM(gmm)
+    task_planner = MTGTaskPlannerWithAtlas(gmm,
+                                          motion_planner.move_group.get_current_state())  # need to provide the current robot state as the default robot state.
     foliated_planning_framework.setTaskPlanner(task_planner)
-    foliated_planning_framework.setMaxAttemptTime(15)
+    foliated_planning_framework.setMaxAttemptTime(50)
 
     # initialize the visualizer
     visualizer = MoveitVisualizer()
@@ -67,7 +67,7 @@ if __name__ == "__main__":
         0, 0,
         ManipulationIntersection(action='start', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
                                  active_joints=motion_planner.move_group.get_active_joints()),
-        0, 4,
+        0, 1,
         ManipulationIntersection(action='goal', motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
                                  active_joints=motion_planner.move_group.get_active_joints())
     )
@@ -85,6 +85,7 @@ if __name__ == "__main__":
     if found_solution:
         print "found solution"
         # visualize the solution
+        print str(solution_trajectory)
         foliated_planning_framework.visualizeSolutionTrajectory(solution_trajectory)
     else:
         print "no solution found"
