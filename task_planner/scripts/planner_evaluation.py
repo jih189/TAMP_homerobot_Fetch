@@ -136,7 +136,7 @@ if __name__ == "__main__":
                         "start": start,
                         "goal": goal,
                         "success": "true",
-                        "total_planning_time": task_planning_time,
+                        "total_planning_time": total_solve_time,
                         "task_planning_time": task_planning_time,
                         "motion_planning_time": motion_planning_time,
                         "updating_time": updating_time,
