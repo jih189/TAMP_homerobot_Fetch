@@ -13,12 +13,11 @@ import geometry_msgs.msg
 from sensor_msgs.msg import JointState
 from manipulation_foliations_and_intersections import ManipulationFoliation
 from foliated_base_class import FoliatedIntersection, FoliatedProblem
-from utils import create_pose_stamped, get_position_difference_between_poses, gaussian_similarity, \
-    create_pose_stamped_from_raw, collision_check
+from jiaming_helper import create_pose_stamped, get_position_difference_between_poses, gaussian_similarity, \
+    create_pose_stamped_from_raw, collision_check, convert_pose_stamped_to_matrix
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 from moveit_msgs.msg import MoveItErrorCodes
 from manipulation_foliations_and_intersections import ManipulationIntersection
-from utils import convert_pose_stamped_to_matrix
 from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 from visualization_msgs.msg import Marker, MarkerArray
@@ -39,7 +38,7 @@ class Config(object):
         self.package_path = package_path
 
         try:
-            with open(self.package_path + '/problem/config.yaml', 'r') as yaml_file:
+            with open(self.package_path + '/problems/config.yaml', 'r') as yaml_file:
                 config_base = yaml.safe_load(yaml_file)
 
             problem_path = config_base["problem_path"]
@@ -98,13 +97,11 @@ class FoliatedBuilder(object):
         self.env_mesh = trimesh.load_mesh(self.env_mesh_path)
         self.env_mesh.apply_transform(convert_pose_stamped_to_matrix(self.env_pose))
         self.collision_manager = trimesh.collision.CollisionManager()
-        print(self.env_mesh_path)
         self.collision_manager.add_object('env', self.env_mesh)
 
     def _placement_rectangular(self, params):
         layers = params["layers"]
         for layer in layers:
-            print(layer)
             num_of_row = layer["num_of_row"]
             num_of_col = layer["num_of_col"]
             x_shift = layer["x_shift"]
@@ -150,15 +147,11 @@ class FoliatedBuilder(object):
         num_steps = params["num_steps"]
         orientation = params["orientation"]
 
-        # total dist and steps
-        total_distance = np.linalg.norm(end_position - start_position)
-
         positions_to_place = [start_position]
         for step in range(1, num_steps):
             current_position = start_position + (end_position - start_position) * (float(step) / num_steps)
             positions_to_place.append(current_position)
         positions_to_place.append(end_position)
-        print positions_to_place
         for position in positions_to_place:
             obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2],
                                                     orientation[0], orientation[1], orientation[2], orientation[3])
@@ -353,8 +346,8 @@ class Sampler:
 
 class ProblemVisualizer:
     def __init__(self, config, foliated_builder):
-        self.env_mesh_path = config.package_path + config.get('environment', 'env_mesh_path')
-        self.manipulated_object_mesh_path = config.package_path + config.get("environment",
+        self.env_mesh_path = "package://task_planner/" + config.get('environment', 'env_mesh_path')
+        self.manipulated_object_mesh_path = "package://task_planner/" + config.get("environment",
                                                                              "manipulated_object_mesh_path")
         self.env_pose = create_pose_stamped(config.get('environment', 'env_pose'))
         self.feasible_placements = foliated_builder.feasible_placements
@@ -390,7 +383,7 @@ class ProblemVisualizer:
         marker.pose = pose
         marker.scale = Point(1, 1, 1)
         marker.color = ColorRGBA(0.5, 0.5, 0.5, 1)
-        marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(mesh_path)
+        marker.mesh_resource = mesh_path
         return marker
 
 

@@ -1,5 +1,5 @@
 task_parameters:
-  task_name: "open_bottle"
+  task_name: "table"
   task_type: "simple"
   num_samples: 3000
   save_path: "/check"
@@ -15,34 +15,32 @@ initial_joint_state:
   r_gripper_finger_joint: 0.04
 
 environment:
-  env_mesh_path: "/mesh_dir/desk_with_bottle_frame.stl"
-  manipulated_object_mesh_path: "/mesh_dir/lid_simple_v3.stl"
-  grasp_poses_file: "/mesh_dir/lid_simple.npz"
+  env_mesh_path: "/mesh_dir/desk_with_drawer_frame.stl"
+  manipulated_object_mesh_path: "/mesh_dir/drawer.stl"
+  grasp_poses_file: "/mesh_dir/drawer.npz"
   env_pose:
     frame_id: "base_link"
     position:
-      x: 0.8
-      y: -0.2
+      x: 1.03
+      y: 0.35
       z: -0.02
     orientation:
       x: 0.0
       y: 0.0
-      z: 0.7071
-      w: -0.7071
+      z: 0.707
+      w: -0.707
   top_pose:
-    - [1, 0, 0, 0.672]
-    - [0, 1, 0, -0.024]
-    - [0, 0, 1, 0.865]
+    - [1, 0, 0, 0.9]
+    - [0, 1, 0, -0.150]
+    - [0, 0, 1, 0.5]
     - [0, 0, 0, 1]
 
 placement_parameters:
-  type: "circular"
-  center_position: [0.672, -0.024, 0.865]
-  radius: 0
-  start_angle: 0.0
-  end_angle: 6.28319
-  steps: 20
-  orientation: [0.0, 0.0, 0.0, 1.0]
+  type: "linear"
+  start_position: [0.9, -0.150, 0.5]
+  end_position: [0.88, -0.150, 0.5]
+  num_steps: 3
+  orientation: [0.0, 0.0, 0, 0]
 
 grasp_parameters:
   num_samples: 40
@@ -54,5 +52,5 @@ grasp_parameters:
 
 foliation_parameters:
   similarity_sigma: 0.1
-  orientation_tolerance: [6.28318530718, 6.28318530718, 6.28318530718]
-  position_tolerance: [1.0001, 1.0001, 0.1]
+  orientation_tolerance: [0.005, 0.005, 0.005]
+  position_tolerance: [0.5, 0.01, 0.01]

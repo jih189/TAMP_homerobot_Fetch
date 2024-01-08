@@ -103,8 +103,8 @@ if __name__ == "__main__":
     env_pose.pose.orientation.w = 0.707
 
     # env_mesh_path = package_path + "/mesh_dir/maze.stl"
-    env_mesh_path = package_path + "/mesh_dir/desk.stl"
-    manipulated_object_mesh_path = package_path + '/mesh_dir/cup.stl'
+    env_mesh_path = package_path + "/mesh_dir/environments/desk.stl"
+    manipulated_object_mesh_path = package_path + '/mesh_dir/objects/cup.stl'
 
     env_mesh = trimesh.load_mesh(env_mesh_path)
     env_mesh.apply_transform(convert_pose_stamped_to_matrix(env_pose))
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     # find all feasible grasps as the co-parameter for sliding foliation
     feasible_grasps = []
 
-    loaded_array = np.load(package_path + "/mesh_dir/cup.npz")
+    loaded_array = np.load(package_path + "/mesh_dir/objects/cup.npz")
     rotated_matrix = np.array([[1, 0, 0, -0.17],
                                [0, 1, 0, 0],
                                [0, 0, 1, 0],
@@ -340,7 +340,7 @@ if __name__ == "__main__":
     obstacle_marker.pose = env_pose.pose
     obstacle_marker.scale = Point(1, 1, 1)
     obstacle_marker.color = ColorRGBA(0.5, 0.5, 0.5, 1)
-    obstacle_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(env_mesh_path)
+    obstacle_marker.mesh_resource = "package://task_planner/mesh_dir/environments/" + os.path.basename(env_mesh_path)
     marker_array.markers.append(obstacle_marker)
 
     # visualize the placements
@@ -355,7 +355,7 @@ if __name__ == "__main__":
         object_marker.pose = msgify(geometry_msgs.msg.Pose, placement)
         object_marker.scale = Point(1, 1, 1)
         object_marker.color = ColorRGBA(0.5, 0.5, 0.5, 1)
-        object_marker.mesh_resource = "package://task_planner/mesh_dir/" + os.path.basename(manipulated_object_mesh_path)
+        object_marker.mesh_resource = "package://task_planner/mesh_dir/objects/" + os.path.basename(manipulated_object_mesh_path)
         marker_array.markers.append(object_marker)
         
     problem_publisher.publish(marker_array)
