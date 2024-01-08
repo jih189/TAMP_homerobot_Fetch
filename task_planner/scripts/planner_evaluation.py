@@ -89,21 +89,21 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     task_planners = [
-        DynamicMTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGTaskPlannerWithAtlas_25.0", threshold=25.0),
+        # DynamicMTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGTaskPlannerWithAtlas_25.0", threshold=25.0),
         MTGTaskPlanner(),
         MTGTaskPlannerWithGMM(gmm),
-        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
+        # DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
         DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_50.0", threshold=50.0),
         DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_75.0", threshold=75.0),
         DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_100.0", threshold=100.0),
-        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_125.0", threshold=125.0),
-        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_150.0", threshold=150.0),
+        # DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_125.0", threshold=125.0),
+        # DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_150.0", threshold=150.0),
         MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
         DynamicMTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGTaskPlannerWithAtlas_50.0", threshold=50.0),
         DynamicMTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGTaskPlannerWithAtlas_75.0", threshold=75.0),
         DynamicMTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGTaskPlannerWithAtlas_100.0", threshold=100.0),
-        DynamicMTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGTaskPlannerWithAtlas_125.0", threshold=125.0),
-        DynamicMTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGTaskPlannerWithAtlas_150.0", threshold=150.0),
+        # DynamicMTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGTaskPlannerWithAtlas_125.0", threshold=125.0),
+        # DynamicMTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGTaskPlannerWithAtlas_150.0", threshold=150.0),
 
     ]
 
