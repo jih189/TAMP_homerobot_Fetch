@@ -1422,17 +1422,17 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
         self.gmm_ = gmm
         self.default_robot_state_ = default_robot_state
 
-        self.planner_name = planner_name_ + "_" + str(threshold)
-
-        self.exceed_threshold = threshold
+        self.planner_name = planner_name_
 
         self.parameter_dict = parameter_dict_
 
         self.atlas_service = rospy.ServiceProxy("/construct_atlas", ConstructAtlas)
 
         self.reset_atlas_service = rospy.ServiceProxy("/reset_atlas", ResetAtlas)
+        self.exceed_threshold = threshold
 
-    # MTGTaskPlannerWithAtlas
+
+    # DynamicMTGTaskPlannerWithAtlas
     def reset_task_planner(self):
         self.task_graph = nx.DiGraph()
         self.manifold_info = {}  # the constraints of each manifold
@@ -1462,7 +1462,7 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 valid_configuration_before_project=0,
                 invalid_configuration_before_project=0,
                 dist_to_start=np.inf,
-                dist_to_goal=np.inf,
+                dist_to_goal=np.inf,                
             )
 
         for edge in self.gmm_.edge_of_distribution:
@@ -1479,7 +1479,9 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 has_intersection=False,
                 intersection=None,
                 edge_dist=dist_between_two_distributions,
+
             )
+
 
             # need to add the inverse edge
             self.task_graph.add_edge(
@@ -1489,6 +1491,8 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 intersection=None,
                 edge_dist=dist_between_two_distributions,
             )
+
+
 
     # MTGTaskPlannerWithAtlas
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
@@ -1508,8 +1512,6 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
             self.gmm_.distributions[distribution_id_in_manifold1].mean,
             self.gmm_.distributions[distribution_id_in_manifold2].mean,
         )
-
-        # intersection_from_1_to_2_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
 
         self.task_graph.add_edge(
             (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1),
@@ -1576,6 +1578,7 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
         nx.set_edge_attributes(self.task_graph, 0.0, "weight")
 
         self.current_start_configuration = configuration_of_start
+        self.current_start_configuration = configuration_of_start
 
         self.compute_distance_to_start_and_goal()
         self.current_graph_distance_radius = (
@@ -1606,13 +1609,9 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])
             ]
         )
-        print(
-            "Trying to find a solution in a graph with %d nodes and path length %f"
-            % (len(self.current_task_graph.nodes()), path_length)
-        )
+
         if path_length > self.exceed_threshold:
             self.current_graph_distance_radius *= 1.25
-            self.expand_current_task_graph(self.current_graph_distance_radius)
 
         task_sequence = []
 
@@ -1676,7 +1675,7 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
     # MTGTaskPlannerWithAtlas
     def get_related_task_nodes(self, current_node):
         """
-        Return a list of co_parameter with beta value times similarity score.
+        Return a list of co_parameter with beta value and similarity score.
         """
         result = []
         for co_parameter_index in self.foliation_with_co_parameter_id[current_node[0]]:
@@ -1701,20 +1700,21 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
                     result.append(
                         (
                             co_parameter_index,
-                            1.0
-                            * similarity_score,  # if no configuration before project, then we assume the volume of this region is very thin.
+                            1.0,
+                            similarity_score,  # if no configuration before project, then we assume the volume of this region is very thin.
                         )
                     )  # related task nodes contains all the nodes in the same foliation with the same distribution id.
                 else:
                     result.append(
                         (
                             co_parameter_index,
-                            num_of_invalid_configuration_before_project
-                            / (num_of_configuration_before_project * 1.0)
-                            * similarity_score,
+                            (num_of_invalid_configuration_before_project * 1.0)
+                            / num_of_configuration_before_project,
+                            similarity_score,
                         )
                     )  # related task nodes contains all the nodes in the same foliation with the same distribution id.
         return result
+
 
     # MTGTaskPlannerWithAtlas
     def update(self, task_graph_info_, plan_, manifold_constraint_):
@@ -1821,7 +1821,7 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
             self.atlas_service.call(construct_atlas_request)
 
         # only update the weight of nodes in the same manifold with the current task.
-        for n in self.task_graph.nodes():
+        for n in self.current_task_graph.nodes():
             if n == "start" or n == "goal":
                 continue
 
@@ -1856,13 +1856,14 @@ class DynamicMTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 + path_constraint_violation_score
                 + obj_env_collision_score
             )
+
             self.task_graph.nodes[n]["weight"] += weight_value
             if weight_value > 0.0:
-                for u, _, edge_attr in self.current_task_graph.in_edges(n, data=True):
+                for u, _, edge_attr in self.task_graph.in_edges(n, data=True):
                     if u != "start" and u != "goal":
                         edge_attr["weight"] += weight_value
 
-                for _, v, edge_attr in self.current_task_graph.out_edges(n, data=True):
+                for _, v, edge_attr in self.task_graph.out_edges(n, data=True):
                     if v != "start" and v != "goal":
                         edge_attr["weight"] += weight_value
 
