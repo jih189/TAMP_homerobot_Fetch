@@ -1040,14 +1040,16 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             arm_env_collision_score_after_project = sampled_data_distribution_tag_table[node_gmm_id][1] * 1.0
             path_constraint_violation_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][2] * 1.0
             obj_env_collision_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][3] * 1.0
+            success_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][0] * 0.01
 
             arm_env_collision_score_before_project = sampled_data_distribution_tag_table[node_gmm_id][5] * 1.0
             path_constraint_violation_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][6] * 1.0
             obj_env_collision_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][7] * 1.0
+            success_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][4] * 0.01
 
             self.task_graph.nodes[n]['weight'] += (
-                (1 - beta_value) * (arm_env_collision_score_before_project + path_constraint_violation_score_before_project + obj_env_collision_score_before_project ) + 
-                beta_value * (arm_env_collision_score_after_project + path_constraint_violation_score_after_project + obj_env_collision_score_after_project)
+                (1 - beta_value) * (success_score_after_project + arm_env_collision_score_before_project + path_constraint_violation_score_before_project + obj_env_collision_score_before_project ) + 
+                beta_value * (success_score_before_project + arm_env_collision_score_after_project + path_constraint_violation_score_after_project + obj_env_collision_score_after_project)
             )
 
         # for u, v in self.task_graph.edges():
