@@ -610,6 +610,8 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
         self.graph_edges = []
 
+        self.max_valid_configuration_number_to_atlas = 30
+
     # MTGTaskPlannerWithAtlas
     def reset_task_planner(self):
         self.task_graph = nx.DiGraph()
@@ -969,12 +971,17 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
             if sampled_data_tag == 0:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][0] += 1
-                configuration_with_info = ConfigurationWithInfo()
-                configuration_with_info.joint_configuration = (
-                    plan_[4].verified_motions[i].sampled_state
-                )
-                configuration_with_info.distribution_id = sampled_data_gmm_id
-                construct_atlas_request.list_of_configuration_with_info.append(configuration_with_info)
+
+                # in some cases. the number of valid configuration is too large, so we need to constrain the number of valid 
+                # configuration to atlas for each node of the current manifold.
+                if sampled_data_distribution_tag_table[sampled_data_gmm_id][0] < self.max_valid_configuration_number_to_atlas:
+                    configuration_with_info = ConfigurationWithInfo()
+                    configuration_with_info.joint_configuration = (
+                        plan_[4].verified_motions[i].sampled_state
+                    )
+                    configuration_with_info.distribution_id = sampled_data_gmm_id
+                    construct_atlas_request.list_of_configuration_with_info.append(configuration_with_info)
+
             elif sampled_data_tag == 1:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][1] += 1
             elif sampled_data_tag == 2:
