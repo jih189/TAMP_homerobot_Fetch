@@ -610,6 +610,8 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
         self.graph_edges = []
 
+        self.max_valid_configuration_number_to_atlas = 30
+
     # MTGTaskPlannerWithAtlas
     def reset_task_planner(self):
         self.task_graph = nx.DiGraph()
@@ -969,12 +971,17 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
             if sampled_data_tag == 0:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][0] += 1
-                configuration_with_info = ConfigurationWithInfo()
-                configuration_with_info.joint_configuration = (
-                    plan_[4].verified_motions[i].sampled_state
-                )
-                configuration_with_info.distribution_id = sampled_data_gmm_id
-                construct_atlas_request.list_of_configuration_with_info.append(configuration_with_info)
+
+                # in some cases. the number of valid configuration is too large, so we need to constrain the number of valid 
+                # configuration to atlas for each node of the current manifold.
+                if sampled_data_distribution_tag_table[sampled_data_gmm_id][0] < self.max_valid_configuration_number_to_atlas:
+                    configuration_with_info = ConfigurationWithInfo()
+                    configuration_with_info.joint_configuration = (
+                        plan_[4].verified_motions[i].sampled_state
+                    )
+                    configuration_with_info.distribution_id = sampled_data_gmm_id
+                    construct_atlas_request.list_of_configuration_with_info.append(configuration_with_info)
+
             elif sampled_data_tag == 1:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][1] += 1
             elif sampled_data_tag == 2:
@@ -1038,16 +1045,18 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                     beta_value = 1.0 * related_node_invalid_configuration_before_project / (related_node_invalid_configuration_before_project + related_node_valid_configuration_before_project)
 
             arm_env_collision_score_after_project = sampled_data_distribution_tag_table[node_gmm_id][1] * 1.0
-            # path_constraint_violation_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][2] * 1.0
+            path_constraint_violation_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][2] * 1.0
             obj_env_collision_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][3] * 1.0
+            success_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][0] * 0.01
 
             arm_env_collision_score_before_project = sampled_data_distribution_tag_table[node_gmm_id][5] * 1.0
             path_constraint_violation_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][6] * 1.0
             obj_env_collision_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][7] * 1.0
+            success_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][4] * 0.01
 
             self.task_graph.nodes[n]['weight'] += (
-                (1 - beta_value) * (arm_env_collision_score_before_project + path_constraint_violation_score_before_project + obj_env_collision_score_before_project ) + 
-                beta_value * (arm_env_collision_score_after_project + obj_env_collision_score_after_project)
+                (1 - beta_value) * (success_score_after_project + arm_env_collision_score_before_project + path_constraint_violation_score_before_project + obj_env_collision_score_before_project ) + 
+                beta_value * (success_score_before_project + arm_env_collision_score_after_project + path_constraint_violation_score_after_project + obj_env_collision_score_after_project)
             )
 
         # for u, v in self.task_graph.edges():
