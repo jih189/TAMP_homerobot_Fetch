@@ -41,10 +41,18 @@ class Config(object):
             with open(self.package_path + '/problems/config.yaml', 'r') as yaml_file:
                 config_base = yaml.safe_load(yaml_file)
 
-            problem_path = config_base["problem_path"]
+            problem_path = config_base["path"]
 
             with open(self.package_path + problem_path, 'r') as yaml_file:
                 self.config_data = yaml.safe_load(yaml_file)
+
+            random_seed = self.config_data.get('task_parameters', {}).get('random_seed', None)
+            if random_seed is not None:
+                random.seed(random_seed)
+                print("Random seed has been set to: " + str(random_seed))
+            else:
+                print("No random seed detected")
+
         except Exception as e:
             print("Unable to load config" + str(e))
             self.config_data = None

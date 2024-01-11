@@ -1,18 +1,19 @@
 task_parameters:
   task_name: "open_door"
-  task_type: "simple"
-  num_samples: 10000
+  task_type: ""
+  num_samples: 1000
+  random_seed: 3897
   save_path: "/check"
 
 initial_joint_state:
-  torso_lift_joint: 0
-  shoulder_pan_joint: 0
-  shoulder_lift_joint: 0
-  upperarm_roll_joint: 0
-  elbow_flex_joint: 0
-  wrist_flex_joint: 0
-  l_gripper_finger_joint: 0
-  r_gripper_finger_joint: 0
+  torso_lift_joint: 0.38
+  shoulder_pan_joint: -1.28
+  shoulder_lift_joint: 1.52
+  upperarm_roll_joint: 0.35
+  elbow_flex_joint: 1.81
+  wrist_flex_joint: 1.47
+  l_gripper_finger_joint: 0.04
+  r_gripper_finger_joint: 0.04
 
 environment:
   env_mesh_path: "/mesh_dir/door_frame.stl"

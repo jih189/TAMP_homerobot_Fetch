@@ -1,7 +1,8 @@
 task_parameters:
-  task_name: "open_drawer"
-  task_type: "simple"
-  num_samples: 300
+  task_name: "maze_real"
+  task_type: ""
+  num_samples: 3000
+  random_seed: 3897
   save_path: "/check"
 
 initial_joint_state:
@@ -29,13 +30,13 @@ environment:
       y: 0.0
       z: 0.7071
       w: -0.7071
-  top_pose:
+  ref_pose:
     - [1, 0, 0, 0.5]
     - [0, 1, 0, 0.0]
     - [0, 0, 1, 0.78]
     - [0, 0, 0, 1]
 
-placement_parameters:
+placement:
   type: "rectangular"
   layers:
     - num_of_row: 5
@@ -44,7 +45,7 @@ placement_parameters:
       y_shift: 0.05
       z_shift: 0.78
 
-grasp_parameters:
+grasp:
   num_samples: 40
   rotated_matrix:
     - [1, 0, 0, -0.17]
@@ -52,7 +53,7 @@ grasp_parameters:
     - [0, 0, 1, 0.0]
     - [0, 0, 0, 1]
 
-foliation_parameters:
+foliation:
   similarity_sigma: 0.1
   orientation_tolerance: [0.1, 0.1, 6.28318530718]
   position_tolerance: [2000, 2000, 0.0008]

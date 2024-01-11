@@ -1,7 +1,8 @@
 task_parameters:
-  task_name: "table"
-  task_type: "simple"
+  task_name: "open_drawer"
+  task_type: ""
   num_samples: 10000
+  random_seed: 3897
   save_path: "/check"
 
 initial_joint_state:
