@@ -610,6 +610,8 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
         self.graph_edges = []
 
+        self.max_valid_configuration_number_to_atlas = 30
+
     # MTGTaskPlannerWithAtlas
     def reset_task_planner(self):
         self.task_graph = nx.DiGraph()
@@ -949,10 +951,10 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         # tag in column 2: path constraint violation
         # tag in column 3: obj-env collision
         # tag in column 4: valid configuration before project
-        # tag in column 5: invalid configuration before project
-        sampled_data_distribution_tag_table = np.zeros(
-            (len(self.gmm_.distributions), 6)
-        )
+        # tag in column 5: invalid configuration due to arm-env collision or out of joint limit before project
+        # tag in column 6: invalid configuration due to path constraint violation before project
+        # tag in column 7: invalid configuration due to obj-env collision before project
+        sampled_data_distribution_tag_table = np.zeros((len(self.gmm_.distributions), 8))
 
         construct_atlas_request = ConstructAtlasRequest()
         construct_atlas_request.group_name = "arm"
@@ -967,30 +969,45 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             sampled_data_gmm_id = sampled_data_distribution_id[i]
             sampled_data_tag = plan_[4].verified_motions[i].sampled_state_tag
 
-            if sampled_data_tag == 0 or sampled_data_tag == 5:
+            if sampled_data_tag == 0:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][0] += 1
-                configuration_with_info = ConfigurationWithInfo()
-                configuration_with_info.joint_configuration = (
-                    plan_[4].verified_motions[i].sampled_state
-                )
-                configuration_with_info.distribution_id = sampled_data_gmm_id
-                construct_atlas_request.list_of_configuration_with_info.append(
-                    configuration_with_info
-                )
-            elif sampled_data_tag == 1 or sampled_data_tag == 6:
+
+                # in some cases. the number of valid configuration is too large, so we need to constrain the number of valid 
+                # configuration to atlas for each node of the current manifold.
+                if sampled_data_distribution_tag_table[sampled_data_gmm_id][0] < self.max_valid_configuration_number_to_atlas:
+                    configuration_with_info = ConfigurationWithInfo()
+                    configuration_with_info.joint_configuration = (
+                        plan_[4].verified_motions[i].sampled_state
+                    )
+                    configuration_with_info.distribution_id = sampled_data_gmm_id
+                    construct_atlas_request.list_of_configuration_with_info.append(configuration_with_info)
+
+            elif sampled_data_tag == 1:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][1] += 1
-            elif sampled_data_tag == 2 or sampled_data_tag == 7:
+            elif sampled_data_tag == 2:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][2] += 1
-            elif sampled_data_tag == 4 or sampled_data_tag == 9:
+            elif sampled_data_tag == 4:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][3] += 1
-
-            if sampled_data_tag == 5:
+            elif sampled_data_tag == 5:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][4] += 1
-            elif sampled_data_tag > 5:
+            elif sampled_data_tag == 6:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][5] += 1
-
+            elif sampled_data_tag == 7:
+                sampled_data_distribution_tag_table[sampled_data_gmm_id][6] += 1
+            elif sampled_data_tag == 9:
+                sampled_data_distribution_tag_table[sampled_data_gmm_id][7] += 1
+        
         if len(construct_atlas_request.list_of_configuration_with_info) != 0:
             self.atlas_service.call(construct_atlas_request)
+
+        # if there are some projected valid configuration, then there must be an atlas.
+        for distribution_index in range(len(self.gmm_.distributions)):
+            self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['valid_configuration_before_project'] += sampled_data_distribution_tag_table[distribution_index][4]
+            invalid_configuration_number_before_project = sampled_data_distribution_tag_table[distribution_index][5] + sampled_data_distribution_tag_table[distribution_index][6] + sampled_data_distribution_tag_table[distribution_index][7]
+            self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['invalid_configuration_before_project'] += invalid_configuration_number_before_project
+            # if there are some projected valid configuration, then there must be an atlas.
+            if sampled_data_distribution_tag_table[distribution_index][0] > 0:
+                self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['has_atlas'] = True
 
         # only update the weight of nodes in the same manifold with the current task.
         for n in self.task_graph.nodes():
@@ -1004,29 +1021,42 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             node_foliation_id = n[0]
             node_co_parameter_id = n[1]
             node_gmm_id = n[2]
+            current_similarity_score = self.total_similiarity_table[node_foliation_id][node_co_parameter_id, current_manifold_id[1]]
 
-            current_similarity_score = self.total_similiarity_table[node_foliation_id][
-                node_co_parameter_id, current_manifold_id[1]
-            ]
+            related_node_invalid_configuration_before_project = self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], node_gmm_id)]['invalid_configuration_before_project']
+            related_node_valid_configuration_before_project = self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], node_gmm_id)]['valid_configuration_before_project']
+            has_atlas = self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], node_gmm_id)]['has_atlas']
 
-            arm_env_collision_score = (
-                sampled_data_distribution_tag_table[node_gmm_id][1] * 1.0
-            )
-            path_constraint_violation_score = (
-                current_similarity_score
-                * sampled_data_distribution_tag_table[node_gmm_id][2]
-                * 1.0
-            )
-            obj_env_collision_score = (
-                current_similarity_score
-                * sampled_data_distribution_tag_table[node_gmm_id][3]
-                * 1.0
-            )
+            beta_value = 0.0
+            # the beta value is a indicator of whether the motion planner should use the atlas or not.
+            if not has_atlas: 
+                if(related_node_invalid_configuration_before_project + related_node_valid_configuration_before_project == 0):
+                    # this local region does not have both atlas and any sampled configuration before project, then skip it.
+                    continue
+                else:
+                    # this local region does not have an atlas, then the beta value is 0.
+                    beta_value = 0.0
+            else:
+                if(related_node_invalid_configuration_before_project + related_node_valid_configuration_before_project == 0):
+                    # if this local region does not have any sampled configuration before project but an atlas, then the beta value is 1.
+                    beta_value = 1.0
+                else:
+                    # if this local region has both atlas and sampled configuration before project, then the beta value is the ratio of invalid configuration before project.
+                    beta_value = 1.0 * related_node_invalid_configuration_before_project / (related_node_invalid_configuration_before_project + related_node_valid_configuration_before_project)
 
-            self.task_graph.nodes[n]["weight"] += (
-                arm_env_collision_score
-                + path_constraint_violation_score
-                + obj_env_collision_score
+            arm_env_collision_score_after_project = sampled_data_distribution_tag_table[node_gmm_id][1] * 1.0
+            path_constraint_violation_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][2] * 1.0
+            obj_env_collision_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][3] * 1.0
+            success_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][0] * 0.01
+
+            arm_env_collision_score_before_project = sampled_data_distribution_tag_table[node_gmm_id][5] * 1.0
+            path_constraint_violation_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][6] * 1.0
+            obj_env_collision_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][7] * 1.0
+            success_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][4] * 0.01
+
+            self.task_graph.nodes[n]['weight'] += (
+                (1 - beta_value) * (success_score_after_project + arm_env_collision_score_before_project + path_constraint_violation_score_before_project + obj_env_collision_score_before_project ) + 
+                beta_value * (success_score_before_project + arm_env_collision_score_after_project + path_constraint_violation_score_after_project + obj_env_collision_score_after_project)
             )
 
         # for u, v in self.task_graph.edges():
@@ -1037,35 +1067,6 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         Parallel(n_jobs=cpu_count(), prefer="threads")(
             delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists
         )
-
-        # update the valid configuration before project and invalid configuration before project
-        for distribution_index in range(len(self.gmm_.distributions)):
-            self.task_graph.nodes[
-                (current_manifold_id[0], current_manifold_id[1], distribution_index)
-            ][
-                "valid_configuration_before_project"
-            ] += sampled_data_distribution_tag_table[
-                distribution_index
-            ][
-                4
-            ]
-            self.task_graph.nodes[
-                (current_manifold_id[0], current_manifold_id[1], distribution_index)
-            ][
-                "invalid_configuration_before_project"
-            ] += sampled_data_distribution_tag_table[
-                distribution_index
-            ][
-                5
-            ]
-            # if there are some projected valid configuration, then there must be an atlas.
-            if (
-                sampled_data_distribution_tag_table[distribution_index][0] > 0
-                or sampled_data_distribution_tag_table[distribution_index][4] > 0
-            ):
-                self.task_graph.nodes[
-                    (current_manifold_id[0], current_manifold_id[1], distribution_index)
-                ]["has_atlas"] = True
 
     @staticmethod
     def update_edge_weight(edge):
