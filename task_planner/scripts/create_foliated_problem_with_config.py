@@ -110,16 +110,20 @@ class FoliatedBuilder(object):
     def _placement_rectangular(self, params):
         layers = params["layers"]
         for layer in layers:
-            num_of_row = layer["num_of_row"]
-            num_of_col = layer["num_of_col"]
-            x_shift = layer["x_shift"]
-            y_shift = layer["y_shift"]
-            z_shift = layer["z_shift"]
+            size_row = layer["size_row"]
+            size_col = layer["size_col"]
+            position = np.array(layer["position"])
 
-            for i in range(num_of_row):
-                for j in range(num_of_col):
-                    obj_pose = create_pose_stamped_from_raw("base_link", i * 0.1 - num_of_row * 0.1 / 2 + x_shift,
-                                                            j * 0.1 - num_of_col * 0.1 / 2 + y_shift, z_shift,
+            x_shift = position[0]
+            y_shift = position[1]
+            z_shift = position[2]
+
+            # TODO: should have multiple foliations for seq problems
+
+            for i in range(size_row):
+                for j in range(size_col):
+                    obj_pose = create_pose_stamped_from_raw("base_link", i * 0.1 - size_row * 0.1 / 2 + x_shift,
+                                                            j * 0.1 - size_col * 0.1 / 2 + y_shift, z_shift,
                                                             0, 0, 0, 1)
 
                     if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
@@ -152,7 +156,7 @@ class FoliatedBuilder(object):
     def _placement_linear(self, params):
         start_position = np.array(params["start_position"])
         end_position = np.array(params["end_position"])
-        num_steps = params["num_steps"]
+        num_steps = params["steps"]
 
 
         positions_to_place = [start_position]

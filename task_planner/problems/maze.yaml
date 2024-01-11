@@ -39,11 +39,9 @@ environment:
 placement:
   type: "rectangular"
   layers:
-    - num_of_row: 5
-      num_of_col: 9
-      x_shift: 0.6
-      y_shift: 0.09
-      z_shift: 0.78
+    - size_row: 5
+      size_col: 9
+      position: [0.6, 0.09, 0.78]
 
 grasp:
   num_samples: 40
