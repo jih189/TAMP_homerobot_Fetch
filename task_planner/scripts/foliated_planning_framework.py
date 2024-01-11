@@ -194,6 +194,9 @@ class FoliatedPlanningFramework():
 
             # solve the problem
             for task in task_sequence:
+
+                if task.manifold_detail.foliation.foliation_name == 'regrasp':
+                    continue
                     
                 # plan the motion
                 success_flag, motion_plan_result, experience, manifold_constraint = self.motion_planner._plan(

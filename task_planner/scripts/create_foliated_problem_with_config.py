@@ -127,25 +127,22 @@ class FoliatedBuilder(object):
         angles = np.linspace(start_angle, end_angle, steps)
 
         for angle in angles:
-            orientation = params["orientation"]
             x = center_position[0] + radius * np.cos(angle)
             y = center_position[1] + radius * np.sin(angle)
             z = center_position[2]
-            orientation = quaternion_from_euler(orientation[0], orientation[1],
-                                                orientation[2] + angle)
+            orientation = quaternion_from_euler(0, 0, 0 + angle)
 
 
             obj_pose = create_pose_stamped_from_raw("base_link", x, y, z,
                                                     orientation[0], orientation[1], orientation[2], orientation[3])
 
-            if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
-                self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+            #if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+            self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
 
     def _placement_linear(self, params):
         start_position = np.array(params["start_position"])
         end_position = np.array(params["end_position"])
         num_steps = params["num_steps"]
-        orientation = params["orientation"]
 
         positions_to_place = [start_position]
         for step in range(1, num_steps):
@@ -154,7 +151,7 @@ class FoliatedBuilder(object):
         positions_to_place.append(end_position)
         for position in positions_to_place:
             obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2],
-                                                    orientation[0], orientation[1], orientation[2], orientation[3])
+                                                    0, 0, 0, 1)
 
             if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
                 self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))

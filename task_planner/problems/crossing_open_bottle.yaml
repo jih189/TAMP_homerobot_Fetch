@@ -1,7 +1,7 @@
 task_parameters:
   task_name: "open_bottle"
-  task_type: "simple"
-  num_samples: 3000
+  task_type: "crossing"
+  num_samples: 10000
   save_path: "/check"
 
 initial_joint_state:
@@ -30,8 +30,8 @@ environment:
       z: 0.7071
       w: -0.7071
   top_pose:
-    - [1, 0, 0, 0.672]
-    - [0, 1, 0, -0.024]
+    - [0, -1, 0, 0.672]
+    - [1, 0, 0, -0.024]
     - [0, 0, 1, 0.865]
     - [0, 0, 0, 1]
 
@@ -39,13 +39,12 @@ placement_parameters:
   type: "circular"
   center_position: [0.672, -0.024, 0.865]
   radius: 0
-  start_angle: 0.0
-  end_angle: 6.28319
-  steps: 5
-  orientation: [0.0, 0.0, 0.0, 1.0]
+  start_angle: 0
+  end_angle: 6.2832
+  steps: 30
 
 grasp_parameters:
-  num_samples: 40
+  num_samples: 80
   rotated_matrix:
     - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]
@@ -54,5 +53,5 @@ grasp_parameters:
 
 foliation_parameters:
   similarity_sigma: 0.1
-  orientation_tolerance: [0.0001, 0.0001, 6.28318530718]
-  position_tolerance: [0.0001, 0.0001, 0.0001]
+  orientation_tolerance: [0.01, 0.01, 6.2832]
+  position_tolerance: [0.0008, 0.0008, 0.0008]
