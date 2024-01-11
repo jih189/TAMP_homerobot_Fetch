@@ -4,3 +4,6 @@ gmm_data/
 check/
 # the following is to copy created foliated problems
 foliated_problems/
+# ide config
+**/.idea/
+**/.ipynb_checkpoints/
