@@ -610,7 +610,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
         self.graph_edges = []
 
-        self.max_valid_configuration_number_to_atlas = 30
+        self.max_valid_configuration_number_to_atlas = 100
 
     # MTGTaskPlannerWithAtlas
     def reset_task_planner(self):
