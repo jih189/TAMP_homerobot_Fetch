@@ -1,4 +1,4 @@
-path: "/problems/open_wardrobe.yaml"
+path: "/problems/open_drawer.yaml"
 
 initial_joint_state:
   torso_lift_joint: 0.38 # 21.772396214971284

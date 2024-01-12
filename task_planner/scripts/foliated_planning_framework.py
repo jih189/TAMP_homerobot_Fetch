@@ -123,7 +123,7 @@ class FoliatedPlanningFramework:
             found_solution = True
 
             # solve the problem
-            for task in task_sequence:
+            for task_index, task in enumerate(task_sequence):
                 # plan the motion
                 motion_planning_time_start = time.time()
                 (
@@ -225,7 +225,7 @@ class FoliatedPlanningFramework:
             found_solution = True
 
             # solve the problem
-            for task in task_sequence:
+            for task_index, task in enumerate(task_sequence):
                 # plan the motion
                 (
                     success_flag,
@@ -264,6 +264,9 @@ class FoliatedPlanningFramework:
                 self.task_planner.update(
                     task.task_graph_info, experience, manifold_constraint
                 )
+
+                print "Task Progress: {}/{}".format(task_index + 1, len(task_sequence)),
+                print "Success: " + ("True" if success_flag else "False")
 
                 if success_flag:
                     list_of_motion_plan.append(motion_plan_result)

@@ -1,8 +1,7 @@
 task_parameters:
-  task_name: "open_drawer"
-  task_type: ""
+  task_name: "table"
+  task_type: "simple"
   num_samples: 3000
-  random_seed: 3897
   save_path: "/check"
 
 initial_joint_state:
@@ -22,27 +21,27 @@ environment:
   env_pose:
     frame_id: "base_link"
     position:
-      x: 0.5
-      y: -0.15
+      x: 1.03
+      y: 0.35
       z: 0
     orientation:
       x: 0.0
       y: 0.0
       z: 0.707
       w: -0.707
-  ref_pose:
-    - [1, 0, 0, 0.4]
-    - [0, 1, 0, -0.650]
-    - [0, 0, 1, 0.52]
+  top_pose:
+    - [1, 0, 0, 0.6]
+    - [0, 1, 0, -0.150]
+    - [0, 0, 1, 0.5]
     - [0, 0, 0, 1]
 
-placement:
+placement_parameters:
   type: "linear"
-  start_position: [0.39, -0.650, 0.52]
-  end_position: [0, -0.650, 0.52]
-  steps: 15
+  start_position: [1.0, -0.150, 0.5]
+  end_position: [0.65, -0.150, 0.5]
+  num_steps: 20
 
-grasp:
+grasp_parameters:
   num_samples: 80
   rotated_matrix:
     - [1, 0, 0, -0.17]
@@ -50,7 +49,7 @@ grasp:
     - [0, 0, 1, 0.0]
     - [0, 0, 0, 1]
 
-foliation:
+foliation_parameters:
   similarity_sigma: 0.1
   orientation_tolerance: [0.01, 0.01, 0.01]
-  position_tolerance: [10, 0.0008, 0.0008]
+  position_tolerance: [2000, 0.0008, 0.0008]
