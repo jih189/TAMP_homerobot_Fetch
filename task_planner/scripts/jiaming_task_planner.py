@@ -29,19 +29,25 @@ class MTGTaskPlanner(BaseTaskPlanner):
         self.parameter_dict = parameter_dict_
 
     # MTGTaskPlanner
-    def reset_task_planner(self):
-        self.task_graph = nx.DiGraph()
-        self.manifold_info = {}  # the detail of each manifold
-        self.incomming_manifold_intersections = (
-            {}
-        )  # the incomming intersections of each manifold
-        self.outgoing_manifold_intersections = (
-            {}
-        )  # the outgoing intersections of each manifold
-        self.new_intersection_id = 0
+    def reset_task_planner(self, hard_reset):
+        if hard_reset:
+            self.task_graph = nx.DiGraph()
+            self.manifold_info = {}  # the detail of each manifold
+            self.incomming_manifold_intersections = (
+                {}
+            )  # the incomming intersections of each manifold
+            self.outgoing_manifold_intersections = (
+                {}
+            )  # the outgoing intersections of each manifold
+            self.new_intersection_id = 0
 
-        # self.reset_manifold_similarity_table()
-        self.total_similiarity_table = {}
+            # self.reset_manifold_similarity_table()
+            self.total_similiarity_table = {}
+        else:
+            if self.task_graph is None:
+                raise Exception("task graph is not initialized!")
+            for edge in self.task_graph.edges:
+                self.task_graph.edges[edge]["weight"] = 0.0
 
     # MTGTaskPlanner
     def add_manifold(self, manifold_info_, manifold_id_):
@@ -67,11 +73,11 @@ class MTGTaskPlanner(BaseTaskPlanner):
 
         for i in self.incomming_manifold_intersections[manifold_id1_]:
             self.task_graph.add_edge(
-                i, intersection_from_1_to_2_id, weight=0, manifold_id=manifold_id1_
+                i, intersection_from_1_to_2_id, weight=0.0, manifold_id=manifold_id1_
             )
         for i in self.outgoing_manifold_intersections[manifold_id2_]:
             self.task_graph.add_edge(
-                intersection_from_1_to_2_id, i, weight=0, manifold_id=manifold_id2_
+                intersection_from_1_to_2_id, i, weight=0.0, manifold_id=manifold_id2_
             )
 
         self.outgoing_manifold_intersections[manifold_id1_].append(
@@ -121,11 +127,11 @@ class MTGTaskPlanner(BaseTaskPlanner):
 
         for i in self.outgoing_manifold_intersections[start_manifold_id_]:
             self.task_graph.add_edge(
-                "start", i, weight=0, manifold_id=start_manifold_id_
+                "start", i, weight=0.0, manifold_id=start_manifold_id_
             )
 
         for i in self.incomming_manifold_intersections[goal_manifold_id_]:
-            self.task_graph.add_edge(i, "goal", weight=0, manifold_id=goal_manifold_id_)
+            self.task_graph.add_edge(i, "goal", weight=0.0, manifold_id=goal_manifold_id_)
 
     # MTGTaskPlanner
     def generate_task_sequence(self):
@@ -249,14 +255,22 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         self.graph_edges = {}
 
     # MTGTaskPlannerWithGMM
-    def reset_task_planner(self):
-        self.task_graph = nx.DiGraph()
-        self.manifold_info = {}  # the constraints of each manifold
+    def reset_task_planner(self, hard_reset):
+        if hard_reset:
+            self.task_graph = nx.DiGraph()
+            self.manifold_info = {}  # the constraints of each manifold
 
-        # self.reset_manifold_similarity_table()
-        self.total_similiarity_table = {}
+            # self.reset_manifold_similarity_table()
+            self.total_similiarity_table = {}
 
-        self.graph_edges = {}
+            self.graph_edges = {}
+        else:
+            if self.task_graph is None:
+                raise Exception("task graph is not initialized!")
+            for node in self.task_graph.nodes:
+                self.task_graph.nodes[node]["weight"] = 0.0
+            for edge in self.task_graph.edges:
+                self.task_graph.edges[edge]["weight"] = 0.0
 
     # MTGTaskPlannerWithGMM
     def add_manifold(self, manifold_info_, manifold_id_):
@@ -272,6 +286,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 (manifold_id_[0], manifold_id_[1], edge[1]),
                 has_intersection=False,
                 intersection=None,
+                weight=0.0,
             )
 
             # self.graph_edges.append(
@@ -315,6 +330,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 (manifold_id_[0], manifold_id_[1], edge[0]),
                 has_intersection=False,
                 intersection=None,
+                weight=0.0,
             )
 
             # self.graph_edges.append(
@@ -373,6 +389,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2),
             has_intersection=True,
             intersection=intersection_detail_,
+            weight=0.0,
         )
 
     # MTGTaskPlannerWithGMM
@@ -406,6 +423,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             ),
             has_intersection=False,
             intersection=None,
+            weight=0.0,
         )
 
         configuration_of_goal, _ = goal_intersection_.get_edge_configurations()
@@ -420,6 +438,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             intersection=IntersectionDetail(
                 goal_intersection_, configuration_of_goal, configuration_of_goal, True
             ),
+            weight=0.0,
         )
 
         self.current_start_configuration = configuration_of_start
@@ -660,17 +679,33 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         self.max_valid_configuration_number_to_atlas = 100
 
     # MTGTaskPlannerWithAtlas
-    def reset_task_planner(self):
-        self.task_graph = nx.DiGraph()
-        self.manifold_info = {}  # the constraints of each manifold
+    def reset_task_planner(self, hard_reset):
+        if hard_reset:
+            self.task_graph = nx.DiGraph()
+            self.manifold_info = {}  # the constraints of each manifold
 
-        self.foliation_with_co_parameter_id = (
-            {}
-        )  # the co-parameter id of each foliation
+            self.foliation_with_co_parameter_id = (
+                {}
+            )  # the co-parameter id of each foliation
 
-        # self.reset_manifold_similarity_table()
-        self.total_similiarity_table = {}
-        self.graph_edges = {}
+            # self.reset_manifold_similarity_table()
+            self.total_similiarity_table = {}
+            self.graph_edges = {}
+        else:
+            # if the task graph is none, then raise an error.
+            if self.task_graph is None:
+                raise ValueError("task graph is None.")
+            
+            for node in self.task_graph.nodes:
+                self.task_graph.nodes[node]["weight"] = 0.0
+                self.task_graph.nodes[node]["has_atlas"] = False
+                self.task_graph.nodes[node]["valid_configuration_before_project"] = 0
+                self.task_graph.nodes[node]["invalid_configuration_before_project"] = 0
+
+            for edge in self.task_graph.edges:
+                self.task_graph.edges[edge]["weight"] = 0.0
+        # reset the atlas
+        self.reset_atlas_service.call(ResetAtlasRequest())
 
     # MTGTaskPlannerWithAtlas
     def add_manifold(self, manifold_info_, manifold_id_):
@@ -697,6 +732,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 (manifold_id_[0], manifold_id_[1], edge[1]),
                 has_intersection=False,
                 intersection=None,
+                weight=0.0,
             )
 
             # self.graph_edges.append(
@@ -740,6 +776,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 (manifold_id_[0], manifold_id_[1], edge[0]),
                 has_intersection=False,
                 intersection=None,
+                weight=0.0,
             )
 
             # self.graph_edges.append(
@@ -799,6 +836,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2),
             has_intersection=True,
             intersection=intersection_detail_,
+            weight=0.0,
         )
 
     # MTGTaskPlannerWithAtlas
@@ -809,9 +847,6 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         goal_manifold_id_,
         goal_intersection_,
     ):
-        # reset the atlas
-        self.reset_atlas_service.call(ResetAtlasRequest())
-
         # if start and goal are set, then remove them from the task graph
         if self.task_graph.has_node("start"):
             self.task_graph.remove_node("start")
@@ -833,6 +868,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             ),
             has_intersection=False,
             intersection=None,
+            weight=0.0,
         )
 
         configuration_of_goal, _ = goal_intersection_.get_edge_configurations()
@@ -847,6 +883,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             intersection=IntersectionDetail(
                 goal_intersection_, configuration_of_goal, configuration_of_goal, True
             ),
+            weight=0.0,
         )
 
         self.current_start_configuration = configuration_of_start

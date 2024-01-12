@@ -660,7 +660,7 @@ class BaseTaskPlanner:
             )
 
     @abstractmethod
-    def reset_task_planner(self):
+    def reset_task_planner(self, hard_reset):
         # reset the task planner
         raise NotImplementedError("Please Implement this method")
 

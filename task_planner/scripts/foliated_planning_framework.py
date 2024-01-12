@@ -18,12 +18,15 @@ class FoliatedPlanningFramework:
         self.has_visualizer = False
         self.has_task_planner = False
         self.has_motion_planner = False
+        self.has_new_foliated_problem = False
+        self.has_new_task_planner = False
 
     def setFoliatedProblem(self, foliated_problem):
         """
         This function sets the foliated problem to the planning framework.
         """
         self.foliated_problem = foliated_problem
+        self.has_new_foliated_problem = True
 
     def setMotionPlanner(self, motion_planner):
         """
@@ -39,6 +42,7 @@ class FoliatedPlanningFramework:
         """
         self.task_planner = task_planner
         self.has_task_planner = True
+        self.has_new_task_planner = True
 
     def setVisualizer(self, visualizer):
         """
@@ -89,11 +93,21 @@ class FoliatedPlanningFramework:
         if not self.has_motion_planner:
             raise Exception("No motion planner is set to the planning framework.")
 
-        # reset the task planner
-        self.task_planner.reset_task_planner()
+        if self.has_new_foliated_problem or self.has_new_task_planner:
+            # if the problem is new, we need to reset the task planner and load the foliated problem.
 
-        # load the foliated problem
-        self.task_planner.load_foliated_problem(self.foliated_problem)
+            # reset the task planner. This reset requires the task planner to load problem again.
+            self.task_planner.reset_task_planner(hard_reset=True)
+
+            # load the foliated problem
+            self.task_planner.load_foliated_problem(self.foliated_problem)
+
+            self.has_new_foliated_problem = False
+            self.has_new_task_planner = False
+        else:
+            # reset the task planner. This reset does not require the task planner to load problem again. It just reset
+            # the task planner to the initial state.
+            self.task_planner.reset_task_planner(hard_reset=False)
 
         # set the start and goal
         self.task_planner.set_start_and_goal(
@@ -190,7 +204,7 @@ class FoliatedPlanningFramework:
             raise Exception("No motion planner is set to the planning framework.")
 
         # reset the task planner
-        self.task_planner.reset_task_planner()
+        self.task_planner.reset_task_planner(hard_reset=True)
 
         # load the foliated problem
         self.task_planner.load_foliated_problem(self.foliated_problem)
