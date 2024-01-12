@@ -55,10 +55,10 @@ if __name__ == "__main__":
     # task_planner = MTGTaskPlanner()
     # task_planner = MTGTaskPlannerWithGMM(gmm)
     task_planner = MTGTaskPlannerWithAtlas(
-        gmm, motion_planner.move_group.get_current_state()
+          gmm, motion_planner.move_group.get_current_state()
     )  # need to provide the current robot state as the default robot state.
     foliated_planning_framework.setTaskPlanner(task_planner)
-    foliated_planning_framework.setMaxAttemptTime(15)
+    foliated_planning_framework.setMaxAttemptTime(30)
 
     # initialize the visualizer
     visualizer = MoveitVisualizer()
@@ -75,17 +75,17 @@ if __name__ == "__main__":
     # set the start and goal
     foliated_planning_framework.setStartAndGoal(
         0,
-        5,
+    0,
         ManipulationIntersection(
             action="start",
-            motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
+            motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
             active_joints=motion_planner.move_group.get_active_joints(),
         ),
         0,
         6,
         ManipulationIntersection(
             action="goal",
-            motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
+            motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
             active_joints=motion_planner.move_group.get_active_joints(),
         ),
     )
