@@ -246,7 +246,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         self.parameter_dict = parameter_dict_
 
-        self.graph_edges = []
+        self.graph_edges = {}
 
     # MTGTaskPlannerWithGMM
     def reset_task_planner(self):
@@ -256,7 +256,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         # self.reset_manifold_similarity_table()
         self.total_similiarity_table = {}
 
-        self.graph_edges = []
+        self.graph_edges = {}
 
     # MTGTaskPlannerWithGMM
     def add_manifold(self, manifold_info_, manifold_id_):
@@ -274,17 +274,40 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 intersection=None,
             )
 
-            self.graph_edges.append(
-                (
-                    self.task_graph.edges[
-                        (manifold_id_[0], manifold_id_[1], edge[0]),
-                        (manifold_id_[0], manifold_id_[1], edge[1]),
-                    ],
-                    self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
-                    self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
-                    manifold_id_[0], # foliation id
+            # self.graph_edges.append(
+            #     (
+            #         self.task_graph.edges[
+            #             (manifold_id_[0], manifold_id_[1], edge[0]),
+            #             (manifold_id_[0], manifold_id_[1], edge[1]),
+            #         ],
+            #         self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+            #         self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
+            #         manifold_id_[0], # foliation id
+            #     )
+            # )
+            if manifold_id_[0] in self.graph_edges:
+                self.graph_edges[manifold_id_[0]].append(
+                    (
+                        self.task_graph.edges[
+                            (manifold_id_[0], manifold_id_[1], edge[0]),
+                            (manifold_id_[0], manifold_id_[1], edge[1]),
+                        ],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])]
+                    )
                 )
-            )
+            else:
+                self.graph_edges[manifold_id_[0]] = [
+                    (
+                        self.task_graph.edges[
+                            (manifold_id_[0], manifold_id_[1], edge[0]),
+                            (manifold_id_[0], manifold_id_[1], edge[1]),
+                        ],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])]
+                    )
+                ]
+
 
             # need to add the inverse edge
             self.task_graph.add_edge(
@@ -294,17 +317,39 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 intersection=None,
             )
 
-            self.graph_edges.append(
-                (
-                    self.task_graph.edges[
-                        (manifold_id_[0], manifold_id_[1], edge[1]),
-                        (manifold_id_[0], manifold_id_[1], edge[0]),
-                    ],
-                    self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
-                    self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
-                    manifold_id_[0], # foliation id
+            # self.graph_edges.append(
+            #     (
+            #         self.task_graph.edges[
+            #             (manifold_id_[0], manifold_id_[1], edge[1]),
+            #             (manifold_id_[0], manifold_id_[1], edge[0]),
+            #         ],
+            #         self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
+            #         self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+            #         manifold_id_[0], # foliation id
+            #     )
+            # )
+            if manifold_id_[0] in self.graph_edges:
+                self.graph_edges[manifold_id_[0]].append(
+                    (
+                        self.task_graph.edges[
+                            (manifold_id_[0], manifold_id_[1], edge[1]),
+                            (manifold_id_[0], manifold_id_[1], edge[0]),
+                        ],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+                    )
                 )
-            )
+            else:
+                self.graph_edges[manifold_id_[0]] = [
+                    (
+                        self.task_graph.edges[
+                            (manifold_id_[0], manifold_id_[1], edge[1]),
+                            (manifold_id_[0], manifold_id_[1], edge[0]),
+                        ],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+                    )
+                ]
 
     # MTGTaskPlannerWithGMM
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
@@ -559,16 +604,15 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         #     self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
 
         # split the graph edges into to cpu_count() parts and update the edge weight in parallel.
-        graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
+        graph_edge_lists = list(self.split_list(self.graph_edges[current_manifold_id[0]], cpu_count()))
         Parallel(n_jobs=cpu_count(), prefer="threads")(
-            delayed(self.update_edge_weight)(edge, current_manifold_id[0]) for edge in graph_edge_lists
+            delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists
         )
 
     @staticmethod
-    def update_edge_weight(edge, foliation_id_):
-        for e, u, v, f in edge:
-            if f == foliation_id_:
-                e["weight"] = u["weight"] + v["weight"]
+    def update_edge_weight(edge):
+        for e, u, v in edge:
+            e["weight"] = u["weight"] + v["weight"]
 
     def split_list(self, lst, n):
         """
@@ -611,7 +655,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
         self.reset_atlas_service = rospy.ServiceProxy("/reset_atlas", ResetAtlas)
 
-        self.graph_edges = []
+        self.graph_edges = {}
 
         self.max_valid_configuration_number_to_atlas = 100
 
@@ -626,7 +670,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
 
         # self.reset_manifold_similarity_table()
         self.total_similiarity_table = {}
-        self.graph_edges = []
+        self.graph_edges = {}
 
     # MTGTaskPlannerWithAtlas
     def add_manifold(self, manifold_info_, manifold_id_):
@@ -655,17 +699,40 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 intersection=None,
             )
 
-            self.graph_edges.append(
-                (
-                    self.task_graph.edges[
-                        (manifold_id_[0], manifold_id_[1], edge[0]),
-                        (manifold_id_[0], manifold_id_[1], edge[1]),
-                    ],
-                    self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
-                    self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
-                    manifold_id_[0], # foliation id
+            # self.graph_edges.append(
+            #     (
+            #         self.task_graph.edges[
+            #             (manifold_id_[0], manifold_id_[1], edge[0]),
+            #             (manifold_id_[0], manifold_id_[1], edge[1]),
+            #         ],
+            #         self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+            #         self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
+            #         manifold_id_[0], # foliation id
+            #     )
+            # )
+
+            if manifold_id_[0] in self.graph_edges:
+                self.graph_edges[manifold_id_[0]].append(
+                    (
+                        self.task_graph.edges[
+                            (manifold_id_[0], manifold_id_[1], edge[0]),
+                            (manifold_id_[0], manifold_id_[1], edge[1]),
+                        ],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])]
+                    )
                 )
-            )
+            else:
+                self.graph_edges[manifold_id_[0]] = [
+                    (
+                        self.task_graph.edges[
+                            (manifold_id_[0], manifold_id_[1], edge[0]),
+                            (manifold_id_[0], manifold_id_[1], edge[1]),
+                        ],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])]
+                    )
+                ]
 
             # need to add the inverse edge
             self.task_graph.add_edge(
@@ -675,17 +742,40 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 intersection=None,
             )
 
-            self.graph_edges.append(
-                (
-                    self.task_graph.edges[
-                        (manifold_id_[0], manifold_id_[1], edge[1]),
-                        (manifold_id_[0], manifold_id_[1], edge[0]),
-                    ],
-                    self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
-                    self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
-                    manifold_id_[0], # foliation id
+            # self.graph_edges.append(
+            #     (
+            #         self.task_graph.edges[
+            #             (manifold_id_[0], manifold_id_[1], edge[1]),
+            #             (manifold_id_[0], manifold_id_[1], edge[0]),
+            #         ],
+            #         self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
+            #         self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+            #         manifold_id_[0], # foliation id
+            #     )
+            # )
+            if manifold_id_[0] in self.graph_edges:
+                self.graph_edges[manifold_id_[0]].append(
+                    (
+                        self.task_graph.edges[
+                            (manifold_id_[0], manifold_id_[1], edge[1]),
+                            (manifold_id_[0], manifold_id_[1], edge[0]),
+                        ],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+                    )
                 )
-            )
+            else:
+                self.graph_edges[manifold_id_[0]] = [
+                    (
+                        self.task_graph.edges[
+                            (manifold_id_[0], manifold_id_[1], edge[1]),
+                            (manifold_id_[0], manifold_id_[1], edge[0]),
+                        ],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
+                        self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+                    )
+                ]
+
 
     # MTGTaskPlannerWithAtlas
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
@@ -1068,13 +1158,12 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         #     self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
 
         # split the graph edges into to cpu_count() parts and update the edge weight in parallel.
-        graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
+        graph_edge_lists = list(self.split_list(self.graph_edges[current_manifold_id[0]], cpu_count()))
         Parallel(n_jobs=cpu_count(), prefer="threads")(
-            delayed(self.update_edge_weight)(edge, current_manifold_id[0]) for edge in graph_edge_lists
+            delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists
         )
 
     @staticmethod
-    def update_edge_weight(edge, updated_foliation_id):
-        for e, u, v, f in edge:
-            if f == updated_foliation_id:
-                e["weight"] = u["weight"] + v["weight"]
+    def update_edge_weight(edge):
+        for e, u, v in edge:
+            e["weight"] = u["weight"] + v["weight"]

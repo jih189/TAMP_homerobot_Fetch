@@ -43,8 +43,8 @@ for planner in planner_list:
 
 
 if __name__ == "__main__":
-    number_of_tasks = 5  # number of tasks to be sampled
-    max_attempt_time = 5  # maximum attempt time for each task
+    number_of_tasks = 50  # number of tasks to be sampled
+    max_attempt_time = 50  # maximum attempt time for each task
 
     ########################################
 

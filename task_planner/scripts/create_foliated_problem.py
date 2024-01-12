@@ -125,8 +125,8 @@ if __name__ == "__main__":
     env_pose.pose.orientation.z = 0.707
     env_pose.pose.orientation.w = 0.707
 
-    # env_mesh_path = package_path + "/mesh_dir/maze.stl"
-    env_mesh_path = package_path + "/mesh_dir/desk.stl"
+    env_mesh_path = package_path + "/mesh_dir/maze.stl"
+    # env_mesh_path = package_path + "/mesh_dir/desk.stl"
     manipulated_object_mesh_path = package_path + "/mesh_dir/cup.stl"
 
     env_mesh = trimesh.load_mesh(env_mesh_path)
@@ -254,7 +254,7 @@ if __name__ == "__main__":
             "obstacle_mesh": env_mesh_path,
             "obstacle_pose": convert_pose_stamped_to_matrix(env_pose),
             "reference_pose": table_top_pose,
-            "orientation_tolerance": np.array([0.05, 0.05, 2 * 3.14]),
+            "orientation_tolerance": np.array([0.05, 0.05, 2 * 3.15]),
             "position_tolerance": np.array([2000, 2000, 0.0008]),
         },
         co_parameters=feasible_grasps,
