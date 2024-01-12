@@ -150,8 +150,8 @@ class FoliatedBuilder(object):
             obj_pose = create_pose_stamped_from_raw("base_link", x, y, z,
                                                     orientation[0], orientation[1], orientation[2], orientation[3])
 
-            if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
-                self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+            #if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+            self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
 
     def _placement_linear(self, params):
         start_position = np.array(params["start_position"])

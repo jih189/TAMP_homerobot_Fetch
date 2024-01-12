@@ -33,14 +33,14 @@ environment:
   ref_pose:
     - [1, 0, 0, 0.6]
     - [0, 1, 0, -0.150]
-    - [0, 0, 1, 0.5]
+    - [0, 0, 1, 0.52]
     - [0, 0, 0, 1]
 
 placement:
   type: "linear"
-  start_position: [1.0, -0.150, 0.5]
-  end_position: [0.65, -0.150, 0.5]
-  steps: 20
+  start_position: [1.035, -0.150, 0.52]
+  end_position: [0.65, -0.150, 0.52]
+  steps: 10
 
 grasp:
   num_samples: 80
@@ -53,4 +53,4 @@ grasp:
 foliation:
   similarity_sigma: 0.1
   orientation_tolerance: [0.01, 0.01, 0.01]
-  position_tolerance: [2000, 0.0008, 0.0008]
+  position_tolerance: [10, 0.0008, 0.0008]
