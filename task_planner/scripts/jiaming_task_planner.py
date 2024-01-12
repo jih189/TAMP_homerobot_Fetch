@@ -282,6 +282,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                     ],
                     self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
                     self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
+                    manifold_id_[0], # foliation id
                 )
             )
 
@@ -301,6 +302,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                     ],
                     self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
                     self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+                    manifold_id_[0], # foliation id
                 )
             )
 
@@ -559,13 +561,14 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         # split the graph edges into to cpu_count() parts and update the edge weight in parallel.
         graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
         Parallel(n_jobs=cpu_count(), prefer="threads")(
-            delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists
+            delayed(self.update_edge_weight)(edge, current_manifold_id[0]) for edge in graph_edge_lists
         )
 
     @staticmethod
-    def update_edge_weight(edge):
-        for e, u, v in edge:
-            e["weight"] = u["weight"] + v["weight"]
+    def update_edge_weight(edge, foliation_id_):
+        for e, u, v, f in edge:
+            if f == foliation_id_:
+                e["weight"] = u["weight"] + v["weight"]
 
     def split_list(self, lst, n):
         """
@@ -660,6 +663,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                     ],
                     self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
                     self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
+                    manifold_id_[0], # foliation id
                 )
             )
 
@@ -679,6 +683,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                     ],
                     self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[1])],
                     self.task_graph.nodes[(manifold_id_[0], manifold_id_[1], edge[0])],
+                    manifold_id_[0], # foliation id
                 )
             )
 
@@ -997,8 +1002,10 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             elif sampled_data_tag == 9:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][7] += 1
         
+        atlas_updating_time_start = time.time()
         if len(construct_atlas_request.list_of_configuration_with_info) != 0:
             self.atlas_service.call(construct_atlas_request)
+        print "atlas updating time: ", time.time() - atlas_updating_time_start
 
         # if there are some projected valid configuration, then there must be an atlas.
         for distribution_index in range(len(self.gmm_.distributions)):
@@ -1065,10 +1072,11 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         # split the graph edges into to cpu_count() parts and update the edge weight in parallel.
         graph_edge_lists = list(self.split_list(self.graph_edges, cpu_count()))
         Parallel(n_jobs=cpu_count(), prefer="threads")(
-            delayed(self.update_edge_weight)(edge) for edge in graph_edge_lists
+            delayed(self.update_edge_weight)(edge, current_manifold_id[0]) for edge in graph_edge_lists
         )
 
     @staticmethod
-    def update_edge_weight(edge):
-        for e, u, v in edge:
-            e["weight"] = u["weight"] + v["weight"]
+    def update_edge_weight(edge, updated_foliation_id):
+        for e, u, v, f in edge:
+            if f == updated_foliation_id:
+                e["weight"] = u["weight"] + v["weight"]
