@@ -1002,10 +1002,8 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             elif sampled_data_tag == 9:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][7] += 1
         
-        atlas_updating_time_start = time.time()
         if len(construct_atlas_request.list_of_configuration_with_info) != 0:
             self.atlas_service.call(construct_atlas_request)
-        print "atlas updating time: ", time.time() - atlas_updating_time_start
 
         # if there are some projected valid configuration, then there must be an atlas.
         for distribution_index in range(len(self.gmm_.distributions)):

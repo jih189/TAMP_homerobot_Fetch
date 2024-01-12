@@ -6,3 +6,5 @@ mpt_general/
 acronym/
 task_planner/empty_world_trajectory_data
 *result*.json
+.Trash*
+.idea
