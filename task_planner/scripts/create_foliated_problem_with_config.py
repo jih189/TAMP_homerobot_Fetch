@@ -81,6 +81,10 @@ class FoliatedBuilder(object):
         self.env_pose = create_pose_stamped(config.get('environment', 'env_pose'))
         self.ref_pose = np.array(config.get('environment', 'ref_pose'))
 
+        self.foliation_grasp = None
+        self.foliation_placement_group = []
+        self.sliding_similarity_matrix = None
+        self.similarity_sigma = config.get('placement', 'similarity_sigma')
         self.env_mesh = None
         self.collision_manager = None
         self.feasible_placements = []
@@ -88,18 +92,15 @@ class FoliatedBuilder(object):
 
         self.placement_parameters = config.get('placement')
         self.grasp_parameters = config.get('grasp')
-        self.foliation_parameters = config.get('foliation')
-
-        self.foliation_regrasp = None
-        self.foliation_slide = None
 
         self.initialize()
 
     def initialize(self):
         self._load_environment()
-        self._find_feasible_placements(self.placement_parameters)
         self._find_feasible_grasps(**self.grasp_parameters)
-        self._create_foliations(**self.foliation_parameters)
+        self._calc_similarity_matrix()
+        self._find_feasible_placements(self.placement_parameters)
+        self._create_grasp_foliation()
 
     def _load_environment(self):
         self.env_mesh = trimesh.load_mesh(self.env_mesh_path)
@@ -108,17 +109,22 @@ class FoliatedBuilder(object):
         self.collision_manager.add_object('env', self.env_mesh)
 
     def _placement_rectangular(self, params):
-        layers = params["layers"]
-        for layer in layers:
-            size_row = layer["size_row"]
-            size_col = layer["size_col"]
-            position = np.array(layer["position"])
+        foliations = params["foliations"]
+        for foliation in foliations:
+            foliation_name = foliation["name"]
+            reference_pose = np.array(foliation["reference_pose"])
+            orientation_tolerance = foliation["orientation_tolerance"]
+            position_tolerance = foliation["position_tolerance"]
+            self._create_foliation(foliation_name, "base_link", reference_pose, orientation_tolerance,
+                                   position_tolerance)
+
+            size_row = foliation["size_row"]
+            size_col = foliation["size_col"]
+            position = np.array(foliation["placement_position"])
 
             x_shift = position[0]
             y_shift = position[1]
             z_shift = position[2]
-
-            # TODO: should have multiple foliations for seq problems
 
             for i in range(size_row):
                 for j in range(size_col):
@@ -130,46 +136,61 @@ class FoliatedBuilder(object):
                         self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
 
     def _placement_circular(self, params):
-        center_position = np.array(params["center_position"])
-        radius = params["radius"]
-        start_angle = params["start_angle"]
-        end_angle = params["end_angle"]
-        steps = params["steps"]
+        foliations = params["foliations"]
+        for foliation in foliations:
+            foliation_name = foliation["name"]
+            reference_pose = np.array(foliation["reference_pose"])
+            orientation_tolerance = foliation["orientation_tolerance"]
+            position_tolerance = foliation["position_tolerance"]
+            self._create_foliation(foliation_name, "base_link", reference_pose, orientation_tolerance,
+                                   position_tolerance)
 
-        angles = np.linspace(start_angle, end_angle, steps)
+            center_position = np.array(foliation["placement_position"])
+            radius = foliation["radius"]
+            start_angle = foliation["start_angle"]
+            end_angle = foliation["end_angle"]
+            steps = foliation["steps"]
 
-        for angle in angles:
+            angles = np.linspace(start_angle, end_angle, steps)
 
-            x = center_position[0] + radius * np.cos(angle)
-            y = center_position[1] + radius * np.sin(angle)
-            z = center_position[2]
-            orientation = quaternion_from_euler(0, 0,
-                                                0 + angle)
+            for angle in angles:
+                x = center_position[0] + radius * np.cos(angle)
+                y = center_position[1] + radius * np.sin(angle)
+                z = center_position[2]
+                orientation = quaternion_from_euler(0, 0,
+                                                    0 + angle)
 
+                obj_pose = create_pose_stamped_from_raw("base_link", x, y, z,
+                                                        orientation[0], orientation[1], orientation[2], orientation[3])
 
-            obj_pose = create_pose_stamped_from_raw("base_link", x, y, z,
-                                                    orientation[0], orientation[1], orientation[2], orientation[3])
-
-            #if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
-            self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+                # if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+                self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
 
     def _placement_linear(self, params):
-        start_position = np.array(params["start_position"])
-        end_position = np.array(params["end_position"])
-        num_steps = params["steps"]
+        foliations = params["foliations"]
+        for foliation in foliations:
+            foliation_name = foliation["name"]
+            reference_pose = np.array(foliation["reference_pose"])
+            orientation_tolerance = foliation["orientation_tolerance"]
+            position_tolerance = foliation["position_tolerance"]
+            self._create_foliation(foliation_name, "base_link", reference_pose, orientation_tolerance,
+                                   position_tolerance)
 
+            start_position = np.array(foliation["start_position"])
+            end_position = np.array(foliation["end_position"])
+            num_steps = foliation["steps"]
 
-        positions_to_place = [start_position]
-        for step in range(1, num_steps):
-            current_position = start_position + (end_position - start_position) * (float(step) / num_steps)
-            positions_to_place.append(current_position)
-        positions_to_place.append(end_position)
-        for position in positions_to_place:
-            obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2],
-                                                    0, 0, 0, 1)
+            positions_to_place = [start_position]
+            for step in range(1, num_steps):
+                current_position = start_position + (end_position - start_position) * (float(step) / num_steps)
+                positions_to_place.append(current_position)
+            positions_to_place.append(end_position)
+            for position in positions_to_place:
+                obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2],
+                                                        0, 0, 0, 1)
 
-            if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
-                self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+                if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+                    self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
 
     def _find_feasible_placements(self, params):
         placement_type = params["type"]
@@ -184,10 +205,12 @@ class FoliatedBuilder(object):
 
     def _find_feasible_grasps(self, num_samples, rotated_matrix):
         loaded_array = np.load(self.grasp_poses_file)
+        if num_samples == 0:
+            num_samples = len(loaded_array.files)
         for ind in random.sample(list(range(len(loaded_array.files))), num_samples):
             self.feasible_grasps.append(np.dot(loaded_array[loaded_array.files[ind]], rotated_matrix))
 
-    def _create_foliations(self, similarity_sigma, orientation_tolerance, position_tolerance):
+    def _calc_similarity_matrix(self):
         # calculate sliding similarity matrix
         different_matrix = np.zeros((len(self.feasible_grasps), len(self.feasible_grasps)))
         for i, grasp in enumerate(self.feasible_grasps):
@@ -202,35 +225,39 @@ class FoliatedBuilder(object):
         for i, grasp in enumerate(self.feasible_grasps):
             for j, grasp in enumerate(self.feasible_grasps):
                 sliding_similarity_matrix[i, j] = gaussian_similarity(different_matrix[i, j], max_distance,
-                                                                      sigma=similarity_sigma)
+                                                                      sigma=self.similarity_sigma)
 
-        foliation_regrasp = ManipulationFoliation(foliation_name='regrasp',
-                                                  constraint_parameters={
-                                                      "frame_id": "base_link",
-                                                      "is_object_in_hand": False,
-                                                      "object_mesh_path": self.manipulated_object_mesh_path,
-                                                      "obstacle_mesh": self.env_mesh_path,
-                                                      "obstacle_pose": convert_pose_stamped_to_matrix(self.env_pose)
-                                                  },
-                                                  co_parameters=self.feasible_placements,
-                                                  similarity_matrix=np.identity(len(self.feasible_placements)))
+        self.sliding_similarity_matrix = sliding_similarity_matrix
 
-        foliation_slide = ManipulationFoliation(foliation_name='slide',
+    def _create_grasp_foliation(self, name='grasp', frame_id="base_link"):
+        foliation_grasp = ManipulationFoliation(foliation_name=name,
                                                 constraint_parameters={
-                                                    "frame_id": "base_link",
-                                                    "is_object_in_hand": True,
-                                                    'object_mesh_path': self.manipulated_object_mesh_path,
+                                                    "frame_id": frame_id,
+                                                    "is_object_in_hand": False,
+                                                    "object_mesh_path": self.manipulated_object_mesh_path,
                                                     "obstacle_mesh": self.env_mesh_path,
-                                                    "obstacle_pose": convert_pose_stamped_to_matrix(self.env_pose),
-                                                    "reference_pose": self.ref_pose,
-                                                    "orientation_tolerance": orientation_tolerance,
-                                                    "position_tolerance": position_tolerance
+                                                    "obstacle_pose": convert_pose_stamped_to_matrix(self.env_pose)
                                                 },
-                                                co_parameters=self.feasible_grasps,
-                                                similarity_matrix=sliding_similarity_matrix)
+                                                co_parameters=self.feasible_placements,
+                                                similarity_matrix=np.identity(len(self.feasible_placements)))
+        self.foliation_grasp = foliation_grasp
 
-        self.foliation_regrasp = foliation_regrasp
-        self.foliation_slide = foliation_slide
+    def _create_foliation(self, name, frame_id, reference_pose, orientation_tolerance, position_tolerance):
+
+        foliation_placement = ManipulationFoliation(foliation_name=name,
+                                                    constraint_parameters={
+                                                        "frame_id": frame_id,
+                                                        "is_object_in_hand": True,
+                                                        'object_mesh_path': self.manipulated_object_mesh_path,
+                                                        "obstacle_mesh": self.env_mesh_path,
+                                                        "obstacle_pose": convert_pose_stamped_to_matrix(self.env_pose),
+                                                        "reference_pose": reference_pose,
+                                                        "orientation_tolerance": orientation_tolerance,
+                                                        "position_tolerance": position_tolerance
+                                                    },
+                                                    co_parameters=self.feasible_grasps,
+                                                    similarity_matrix=self.sliding_similarity_matrix)
+        self.foliation_placement_group.append(foliation_placement)
 
 
 class RobotScene(object):
@@ -360,7 +387,7 @@ class ProblemVisualizer:
     def __init__(self, config, foliated_builder):
         self.env_mesh_path = "package://task_planner/" + config.get('environment', 'env_mesh_path')
         self.manipulated_object_mesh_path = "package://task_planner/" + config.get("environment",
-                                                                             "manipulated_object_mesh_path")
+                                                                                   "manipulated_object_mesh_path")
         self.env_pose = create_pose_stamped(config.get('environment', 'env_pose'))
         self.feasible_placements = foliated_builder.feasible_placements
         self.visualize_problem()
@@ -416,15 +443,17 @@ if __name__ == "__main__":
     sampler = Sampler(config, robot_scene)
 
     # sample pipeline
-    foliated_intersection = FoliatedIntersection(foliated_builder.foliation_slide, foliated_builder.foliation_regrasp,
-                                                 sampler.sampling_func, sampler.prepare_sampling_func,
-                                                 sampler.warp_sampling_func)
+    foliated_intersections = []
+    foliations = [foliated_builder.foliation_grasp] + foliated_builder.foliation_placement_group
+    for placement_foliation in foliated_builder.foliation_placement_group:
+        foliated_intersection = FoliatedIntersection(placement_foliation, foliated_builder.foliation_grasp,
+                                                     sampler.sampling_func, sampler.prepare_sampling_func,
+                                                     sampler.warp_sampling_func)
+        foliated_intersections.append(foliated_intersection)
 
     # build problem
     foliated_problem = FoliatedProblem(config.get("task_parameters", 'task_name'))
-    foliated_problem.set_foliation_n_foliated_intersection(
-        [foliated_builder.foliation_regrasp, foliated_builder.foliation_slide],
-        [foliated_intersection])
+    foliated_problem.set_foliation_n_foliated_intersection(foliations, foliated_intersections)
     foliated_problem.sample_intersections(config.get('task_parameters', 'num_samples'))
 
     # set the start and goal candidates

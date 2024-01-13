@@ -261,10 +261,10 @@ def convert_pose_stamped_to_matrix(pose_stamped):
 
 
 def create_pose_stamped(pose_data):
-    pose = create_pose_stamped_from_raw(pose_data['frame_id'], pose_data['position']['x'], pose_data['position']['y'],
-                                        pose_data['position']['z'], pose_data['orientation']['x'],
-                                        pose_data['orientation']['y'], pose_data['orientation']['z'],
-                                        pose_data['orientation']['w'])
+    pose = create_pose_stamped_from_raw(pose_data['frame_id'], pose_data['position'][0], pose_data['position'][1],
+                                        pose_data['position'][2], pose_data['orientation'][0],
+                                        pose_data['orientation'][1], pose_data['orientation'][2],
+                                        pose_data['orientation'][3])
     return pose
 
 

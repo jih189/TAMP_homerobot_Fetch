@@ -9,3 +9,5 @@ foliated_problems/
 **/.idea/
 **/.ipynb_checkpoints/
 
+.idea/
+.ipynb_checkpoints/

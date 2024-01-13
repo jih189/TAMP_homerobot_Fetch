@@ -107,14 +107,14 @@ if __name__ == "__main__":
                     start[1],
                     ManipulationIntersection(
                         action="start",
-                        motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
+                        motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
                         active_joints=motion_planner.move_group.get_active_joints(),
                     ),
                     goal[0],
                     goal[1],
                     ManipulationIntersection(
                         action="goal",
-                        motion=[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
+                        motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
                         active_joints=motion_planner.move_group.get_active_joints(),
                     ),
                 )

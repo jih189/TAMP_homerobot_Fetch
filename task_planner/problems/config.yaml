@@ -1,11 +1,1 @@
-path: "/problems/open_drawer.yaml"
-
-initial_joint_state:
-  torso_lift_joint: 0.38 # 21.772396214971284
-  shoulder_pan_joint: -1.28 # -73.33859777674537
-  shoulder_lift_joint: 1.51 # 87.08958485988514
-  upperarm_roll_joint: 0.35 # 20.05352282957881
-  elbow_flex_joint: 1.81 # 103.705360918679
-  wrist_flex_joint: 1.47 # 84.22479588423103
-  l_gripper_finger_joint: 0.04 # 2.291831180523293
-  r_gripper_finger_joint: 0.04 # 2.291831180523293
+path: "/problems/open_wardrobe.yaml"

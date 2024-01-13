@@ -21,27 +21,8 @@ environment:
   grasp_poses_file: "/mesh_dir/cup.npz"
   env_pose:
     frame_id: "base_link"
-    position:
-      x: 0.6
-      y: -0.2
-      z: -0.02
-    orientation:
-      x: 0.0
-      y: 0.0
-      z: 0.7071
-      w: -0.7071
-  ref_pose:
-    - [1, 0, 0, 0.5]
-    - [0, 1, 0, 0.0]
-    - [0, 0, 1, 0.78]
-    - [0, 0, 0, 1]
-
-placement:
-  type: "rectangular"
-  layers:
-    - size_row: 5
-      size_col: 10
-      position: [0.665, 0.05, 0.78]
+    position: [0.6, -0.2, -0.02]
+    orientation: [0.0, 0.0, 0.7071, -0.7071]
 
 grasp:
   num_samples: 40
@@ -51,7 +32,18 @@ grasp:
     - [0, 0, 1, 0.0]
     - [0, 0, 0, 1]
 
-foliation:
+placement:
+  type: "rectangular"
   similarity_sigma: 0.1
-  orientation_tolerance: [0.1, 0.1, 6.28318530718]
-  position_tolerance: [2000, 2000, 0.0008]
+  foliations:
+    - name: "slide_table"
+      orientation_tolerance: [0.1, 0.1, 6.28318530718]
+      position_tolerance: [2000, 2000, 0.0008]
+      size_row: 5
+      size_col: 10
+      placement_position: [0.665, 0.05, 0.78]
+      reference_pose:
+      - [1, 0, 0, 0.5]
+      - [0, 1, 0, 0.0]
+      - [0, 0, 1, 0.78]
+      - [0, 0, 0, 1]
