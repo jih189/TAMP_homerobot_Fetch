@@ -46,8 +46,9 @@ class MTGTaskPlanner(BaseTaskPlanner):
         else:
             if self.task_graph is None:
                 raise Exception("task graph is not initialized!")
-            for edge in self.task_graph.edges:
-                self.task_graph.edges[edge]["weight"] = 0.0
+            # for edge in self.task_graph.edges:
+            #     self.task_graph.edges[edge]["weight"] = 0.0
+            nx.set_edge_attributes(self.task_graph, 0.0, "weight")
 
     # MTGTaskPlanner
     def add_manifold(self, manifold_info_, manifold_id_):
@@ -267,10 +268,12 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         else:
             if self.task_graph is None:
                 raise Exception("task graph is not initialized!")
-            for node in self.task_graph.nodes:
-                self.task_graph.nodes[node]["weight"] = 0.0
-            for edge in self.task_graph.edges:
-                self.task_graph.edges[edge]["weight"] = 0.0
+            # for node in self.task_graph.nodes:
+            #     self.task_graph.nodes[node]["weight"] = 0.0
+            # for edge in self.task_graph.edges:
+            #     self.task_graph.edges[edge]["weight"] = 0.0
+            nx.set_edge_attributes(self.task_graph, 0.0, "weight")
+            nx.set_node_attributes(self.task_graph, 0.0, "weight")
 
     # MTGTaskPlannerWithGMM
     def add_manifold(self, manifold_info_, manifold_id_):
@@ -696,14 +699,20 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             if self.task_graph is None:
                 raise ValueError("task graph is None.")
             
-            for node in self.task_graph.nodes:
-                self.task_graph.nodes[node]["weight"] = 0.0
-                self.task_graph.nodes[node]["has_atlas"] = False
-                self.task_graph.nodes[node]["valid_configuration_before_project"] = 0
-                self.task_graph.nodes[node]["invalid_configuration_before_project"] = 0
+            # for node in self.task_graph.nodes:
+            #     self.task_graph.nodes[node]["weight"] = 0.0
+            #     self.task_graph.nodes[node]["has_atlas"] = False
+            #     self.task_graph.nodes[node]["valid_configuration_before_project"] = 0
+            #     self.task_graph.nodes[node]["invalid_configuration_before_project"] = 0
+            nx.set_node_attributes(self.task_graph, 0.0, "weight")
+            nx.set_node_attributes(self.task_graph, False, "has_atlas")
+            nx.set_node_attributes(self.task_graph, 0.0, "valid_configuration_before_project")
+            nx.set_node_attributes(self.task_graph, 0.0, "invalid_configuration_before_project")
 
-            for edge in self.task_graph.edges:
-                self.task_graph.edges[edge]["weight"] = 0.0
+            # for edge in self.task_graph.edges:
+            #     self.task_graph.edges[edge]["weight"] = 0.0
+            nx.set_edge_attributes(self.task_graph, 0.0, "weight")
+            
         # reset the atlas
         self.reset_atlas_service.call(ResetAtlasRequest())
 
