@@ -110,12 +110,14 @@ class FoliatedPlanningFramework:
             self.task_planner.reset_task_planner(hard_reset=False)
 
         # set the start and goal
+        t1 = time.time()
         self.task_planner.set_start_and_goal(
             (self.start_foliation_index, self.start_co_parameter_index),
             self.start_configuration,
             (self.goal_foliation_index, self.goal_co_parameter_index),
             self.goal_configuration,
         )
+        set_start_and_goal_time = time.time() - t1
 
         total_solve_time_start = time.time()
         task_node_sequence_generation_time = 0
@@ -186,9 +188,10 @@ class FoliatedPlanningFramework:
                     path_length,
                     attempt_time + 1,
                     time.time() - total_solve_time_start,
+                    set_start_and_goal_time,
                 )
 
-        return False, None, None, None, None, None, None
+        return False, None, None, None, None, None, None, None
 
     def solve(self):
         """
