@@ -590,8 +590,9 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         for n in self.task_graph.nodes():
             self._update_node_weight(n, current_manifold_id, sampled_data_distribution_tag_table)
 
-        # for u, v in self.task_graph.edges():
-        #     self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
+        for u, v in self.task_graph.edges():
+
+            self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
 
 
 class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
@@ -607,8 +608,43 @@ class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
         # super().__init__() # python 3
         self.exceed_threshold = threshold
 
-    def add_manifold(self, manifold_info_, manifold_id_):
-        return super().add_manifold(manifold_info_, manifold_id_)
+    def add_edge_distance_for_all_edges(self):
+        for node1, node2 in self.task_graph.edges():
+            dist1, dist2 = node1[2], node2[2]
+            dist_between_two_distributions = (
+                self.get_position_difference_between_distributions(
+                    self.gmm_.distributions[dist1[0]].mean,
+                    self.gmm_.distributions[dist2[1]].mean,
+                )
+            )
+            self.task_graph.edges[node1, node2]["edge_dist"] = dist_between_two_distributions 
+
+    # DynamicMTGTaskPlannerWithGMM
+    def generate_task_sequence(self):
+        # print the number of nodes can achieve the goal
+        # print "number of nodes can achieve the goal: ", len([node for node in self.task_graph.nodes if nx.has_path(self.task_graph, node, 'goal')])
+
+        # check the connectivity of the task graph from start to goal
+        if not nx.has_path(self.current_task_graph, "start", "goal"):
+            print("no connection between start and goal!")
+            return []
+
+        # find the shortest path from start to goal
+        shortest_path = nx.shortest_path(
+            self.current_task_graph, "start", "goal", weight="weight"
+        )
+
+        path_length = np.sum(
+            [
+                self.current_task_graph.get_edge_data(node1, node2)["weight"]
+                for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])
+            ]
+        )
+        if path_length > self.exceed_threshold:
+            self.current_graph_distance_radius *= 1.25
+
+        return self._generate_task_sequence_from_shortest_path(shortest_path)
+
 
 class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
     def __init__(
