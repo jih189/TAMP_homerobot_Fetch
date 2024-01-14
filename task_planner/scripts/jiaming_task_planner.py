@@ -543,11 +543,11 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         self.task_graph.nodes[n]["weight"] += weight_value
         if weight_value > 0.0:
             for u, _, edge_attr in self.task_graph.in_edges(n, data=True):
-                if u != "start" and u != "goal":
+                if u != "start" and u != "goal" and u[0] == current_manifold_id[0]:
                     edge_attr["weight"] += weight_value
 
             for _, v, edge_attr in self.task_graph.out_edges(n, data=True):
-                if v != "start" and v != "goal":
+                if v != "start" and v != "goal" and v[0] == current_manifold_id[0]:
                     edge_attr["weight"] += weight_value
 
 
