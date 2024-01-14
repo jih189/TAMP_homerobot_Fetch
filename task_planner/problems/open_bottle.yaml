@@ -17,7 +17,7 @@ initial_joint_state:
 
 environment:
   env_mesh_path: "/mesh_dir/desk_with_bottle_frame.stl"
-  manipulated_object_mesh_path: "/mesh_dir/lid_simple.stl"
+  manipulated_object_mesh_path: "/mesh_dir/lid.stl"
   grasp_poses_file: "/mesh_dir/lid_simple.npz"
   env_pose:
     frame_id: "base_link"
@@ -36,8 +36,8 @@ placement:
   type: "circular"
   similarity_sigma: 0.1
   foliations:
-    - name: "rotate"
-      orientation_tolerance: [0.04, 0.04, 6.28318530718]
+    - name: "rotate_1"
+      orientation_tolerance: [0.01, 0.01, 6.28318530718]
       position_tolerance: [0.0009, 0.0009, 0.0009]
       reference_pose:
       - [1, 0, 0, 0.822]
@@ -47,5 +47,26 @@ placement:
       placement_position: [0.822, -0.224, 0.865]
       radius: 0
       start_angle: 0.0
-      end_angle: 6.28319
-      steps: 12
+      end_angle: 3.14159
+      steps: 6
+    - name: "rotate_2"
+      orientation_tolerance: [ 0.01, 0.01, 6.28318530718 ]
+      position_tolerance: [ 0.0009, 0.0009, 0.0009 ]
+      reference_pose:
+        - [ 1, 0, 0, 0.822 ]
+        - [ 0, 1, 0, -0.224 ]
+        - [ 0, 0, 1, 0.87 ]
+        - [ 0, 0, 0, 1 ]
+      placement_position: [ 0.822, -0.224, 0.87 ]
+      radius: 0
+      start_angle: 3.14159
+      end_angle: 6.28318
+      steps: 6
+    - name: "lift"
+      orientation_tolerance: [ 0.01, 0.01, 0.01 ]
+      position_tolerance: [ 0.0009, 0.0009, 2000 ]
+      reference_pose:
+        - [ -1,  0,  0, 0.822]
+        - [ 0,  -1,  0, -0.224]
+        - [ 0,  0,  1, 0.87]
+        - [ 0,  0,  0, 1]

@@ -161,7 +161,7 @@ class FoliatedIntersection:
             co_parameter2_index,
             sampled_intersection,
         ) = self.sampling_function(
-            self.foliation1.co_parameters, self.foliation2.co_parameters
+            self.foliation1, self.foliation2
         )
 
         if not isinstance(success_flag, bool):
