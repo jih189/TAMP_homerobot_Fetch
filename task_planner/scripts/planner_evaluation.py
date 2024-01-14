@@ -128,6 +128,7 @@ if __name__ == "__main__":
                     solution_length,
                     num_attempts,
                     total_solve_time,
+                    set_start_and_goal_time,
                 ) = foliated_planning_framework.evaluation()
 
                 if success_flag:
@@ -139,6 +140,7 @@ if __name__ == "__main__":
                         "total_planning_time": total_solve_time,
                         "task_planning_time": task_planning_time,
                         "motion_planning_time": motion_planning_time,
+                        "set_start_and_goal_time": set_start_and_goal_time,
                         "updating_time": updating_time,
                         "solution_length": solution_length,
                         "num_attempts": num_attempts,
@@ -154,6 +156,7 @@ if __name__ == "__main__":
                         "total_planning_time": -1,
                         "task_planning_time": -1,
                         "motion_planning_time": -1,
+                        "set_start_and_goal_time": -1,
                         "updating_time": -1,
                         "solution_length": -1,
                         "num_attempts": -1,
