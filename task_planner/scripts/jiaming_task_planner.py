@@ -596,6 +596,21 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         #     self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
 
 
+class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
+    def __init__(
+        self,
+        gmm,
+        planner_name_="DynamicMTGTaskPlannerWithGMM",
+        threshold=75.0,
+        parameter_dict_={},
+    ):
+        # Constructor
+        super(MTGTaskPlannerWithGMM, self).__init__(gmm, planner_name_, parameter_dict_)
+        # super().__init__() # python 3
+        self.exceed_threshold = threshold
+
+    def add_manifold(self, manifold_info_, manifold_id_):
+        return super().add_manifold(manifold_info_, manifold_id_)
 
 class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
     def __init__(
