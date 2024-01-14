@@ -153,6 +153,7 @@ class FoliatedPlanningFramework:
                         task.manifold_detail.co_parameter_index
                     ],
                     task.related_experience,
+                    task.use_atlas,
                 )
                 motion_planning_time += time.time() - motion_planning_time_start
 
@@ -254,6 +255,7 @@ class FoliatedPlanningFramework:
                         task.manifold_detail.co_parameter_index
                     ],
                     task.related_experience,
+                    task.use_atlas,
                 )
 
                 # the following code is for debugging with visualizer.

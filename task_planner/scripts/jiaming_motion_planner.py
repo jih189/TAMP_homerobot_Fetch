@@ -83,6 +83,7 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         foliation_constraints,
         co_parameter,
         related_experience,
+        use_atlas=False,
     ):
         # reset the motion planner
         self.scene.clear()
@@ -141,6 +142,7 @@ class MoveitMotionPlanner(BaseMotionPlanner):
 
         self.move_group.set_distribution(distribution_sequence)
         self.move_group.set_clean_planning_context_flag(True)
+        self.move_group.set_use_atlas_flag(use_atlas)
 
         # if you have object in hand, then you need to set the object in hand pose
         if foliation_constraints["is_object_in_hand"]:

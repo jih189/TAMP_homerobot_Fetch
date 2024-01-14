@@ -162,6 +162,7 @@ class MTGTaskPlanner(BaseTaskPlanner):
                 next_motion_=nx.get_node_attributes(self.task_graph, "intersection")[
                     node2
                 ].intersection_data,
+                use_atlas=False,
             )
 
             task.set_task_graph_info((node1, node2))
@@ -484,6 +485,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                     next_motion_=current_edge[
                         "intersection"
                     ].intersection_data,  # the motion after the task.
+                    use_atlas=False,
                 )
 
                 task.related_experience = list(task_node_experience)
@@ -602,6 +604,10 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 node_co_parameter_id, current_manifold_id[1]
             ]
 
+            success_score = (
+                current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][0] * 0.01
+            )
+
             arm_env_collision_score = (
                 sampled_data_distribution_tag_table[node_gmm_id][1] * 1.0
             )
@@ -617,7 +623,8 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             )
 
             self.task_graph.nodes[n]["weight"] += (
-                arm_env_collision_score
+                success_score
+                + arm_env_collision_score
                 + path_constraint_violation_score
                 + obj_env_collision_score
             )
@@ -934,6 +941,7 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                     next_motion_=current_edge[
                         "intersection"
                     ].intersection_data,  # the motion after the task.
+                    use_atlas=True,
                 )
 
                 task.related_experience = list(task_node_experience)
@@ -1196,8 +1204,8 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             success_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][4] * 0.01
 
             self.task_graph.nodes[n]['weight'] += (
-                (1 - beta_value) * (success_score_after_project + arm_env_collision_score_before_project + path_constraint_violation_score_before_project + obj_env_collision_score_before_project ) + 
-                beta_value * (success_score_before_project + arm_env_collision_score_after_project + path_constraint_violation_score_after_project + obj_env_collision_score_after_project)
+                (1.0 - beta_value) * (success_score_before_project + arm_env_collision_score_before_project + path_constraint_violation_score_before_project + obj_env_collision_score_before_project ) + 
+                beta_value * (success_score_after_project + arm_env_collision_score_after_project + path_constraint_violation_score_after_project + obj_env_collision_score_after_project)
             )
 
         # for u, v in self.task_graph.edges():

@@ -486,6 +486,7 @@ class BaseMotionPlanner:
         foliation_constraints,
         co_parameter,
         planning_hint,
+        use_atlas,
     ):
         # Returns a success flag, a motion plan which can be visualized, and an experience which can be used to update the task planner.
         raise NotImplementedError("Please Implement this method")
@@ -497,6 +498,7 @@ class BaseMotionPlanner:
         foliation_constraints,
         co_parameter,
         planning_hint,
+        use_atlas,
     ):
         """
         This function must return a success flag, a motion plan, and an experience.
@@ -507,6 +509,7 @@ class BaseMotionPlanner:
             foliation_constraints,
             co_parameter,
             planning_hint,
+            use_atlas,
         )
         if not isinstance(success_flag, bool):
             raise Exception(
@@ -569,7 +572,7 @@ class BaseVisualizer(object):
 
 class Task:
     def __init__(
-        self, manifold_detail_, start_configuration_, goal_configuration_, next_motion_
+        self, manifold_detail_, start_configuration_, goal_configuration_, next_motion_, use_atlas
     ):
         # Constructor
         self.manifold_detail = manifold_detail_
@@ -577,6 +580,7 @@ class Task:
         self.goal_configuration = goal_configuration_
         self.next_motion = next_motion_  # the robot motion after the task is completed
         self.related_experience = []
+        self.use_atlas = use_atlas
 
     # set which edge of the task graph this task is.
     # so user can use this information to update the task graph.
