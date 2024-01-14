@@ -9,6 +9,7 @@ import rospkg
 import rospy
 import moveit_commander
 import geometry_msgs.msg
+import tf.transformations as tf_trans
 
 from sensor_msgs.msg import JointState
 from manipulation_foliations_and_intersections import ManipulationFoliation
@@ -22,7 +23,6 @@ from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
-from tf.transformations import quaternion_from_euler
 
 
 class Config(object):
@@ -98,7 +98,7 @@ class FoliatedBuilder(object):
     def initialize(self):
         self._load_environment()
         self._find_feasible_grasps(**self.grasp_parameters)
-        self._calc_similarity_matrix()
+        self._calc_similarity_matrix(self.feasible_grasps)
         self._find_feasible_placements(self.placement_parameters)
         self._create_grasp_foliation()
 
@@ -110,30 +110,35 @@ class FoliatedBuilder(object):
 
     def _placement_rectangular(self, params):
         foliations = params["foliations"]
-        for foliation in foliations:
+        for idx, foliation in enumerate(foliations):
             foliation_name = foliation["name"]
             reference_pose = np.array(foliation["reference_pose"])
             orientation_tolerance = foliation["orientation_tolerance"]
             position_tolerance = foliation["position_tolerance"]
             self._create_foliation(foliation_name, "base_link", reference_pose, orientation_tolerance,
-                                   position_tolerance)
+                                   position_tolerance, self.feasible_grasps, self.sliding_similarity_matrix)
 
-            size_row = foliation["size_row"]
-            size_col = foliation["size_col"]
-            position = np.array(foliation["placement_position"])
+            size_row = foliation.get("size_row")
+            size_col = foliation.get("size_col")
+            position = np.array(foliation.get("placement_position"))
 
-            x_shift = position[0]
-            y_shift = position[1]
-            z_shift = position[2]
+            if size_row and size_col:
+                x_shift = position[0]
+                y_shift = position[1]
+                z_shift = position[2]
 
-            for i in range(size_row):
-                for j in range(size_col):
-                    obj_pose = create_pose_stamped_from_raw("base_link", i * 0.1 - size_row * 0.1 / 2 + x_shift,
-                                                            j * 0.1 - size_col * 0.1 / 2 + y_shift, z_shift,
-                                                            0, 0, 0, 1)
+                for i in range(size_row):
+                    for j in range(size_col):
+                        obj_pose = create_pose_stamped_from_raw("base_link",
+                                                                i * 0.1 - size_row * 0.1 / 2 + x_shift + 0.05,
+                                                                j * 0.1 - size_col * 0.1 / 2 + y_shift + 0.05,
+                                                                z_shift,
+                                                                0, 0, 0, 1)
 
-                    if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
-                        self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+                        if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+                            self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+            else:
+                print "no placement for foliation: " + foliation_name
 
     def _placement_circular(self, params):
         foliations = params["foliations"]
@@ -143,54 +148,59 @@ class FoliatedBuilder(object):
             orientation_tolerance = foliation["orientation_tolerance"]
             position_tolerance = foliation["position_tolerance"]
             self._create_foliation(foliation_name, "base_link", reference_pose, orientation_tolerance,
-                                   position_tolerance)
+                                   position_tolerance, self.feasible_grasps, self.sliding_similarity_matrix)
 
-            center_position = np.array(foliation["placement_position"])
-            radius = foliation["radius"]
-            start_angle = foliation["start_angle"]
-            end_angle = foliation["end_angle"]
-            steps = foliation["steps"]
+            center_position = np.array(foliation.get("placement_position"))
+            radius = foliation.get("radius")
+            start_angle = foliation.get("start_angle")
+            end_angle = foliation.get("end_angle")
+            steps = foliation.get("steps")
 
-            angles = np.linspace(start_angle, end_angle, steps)
+            if steps:
+                angles = np.linspace(start_angle, end_angle, steps)
 
-            for angle in angles:
-                x = center_position[0] + radius * np.cos(angle)
-                y = center_position[1] + radius * np.sin(angle)
-                z = center_position[2]
-                orientation = quaternion_from_euler(0, 0,
-                                                    0 + angle)
+                for angle in angles:
+                    x = center_position[0] + radius * np.cos(angle)
+                    y = center_position[1] + radius * np.sin(angle)
+                    z = center_position[2]
+                    orientation = tf_trans.quaternion_from_euler(0, 0,
+                                                        0 + angle)
+                    obj_pose = create_pose_stamped_from_raw("base_link", x, y, z,
+                                                            orientation[0], orientation[1], orientation[2], orientation[3])
 
-                obj_pose = create_pose_stamped_from_raw("base_link", x, y, z,
-                                                        orientation[0], orientation[1], orientation[2], orientation[3])
-
-                # if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
-                self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+                    if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+                        self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+            else:
+                print "no placement for foliation: " + foliation_name
 
     def _placement_linear(self, params):
         foliations = params["foliations"]
         for foliation in foliations:
-            foliation_name = foliation["name"]
-            reference_pose = np.array(foliation["reference_pose"])
-            orientation_tolerance = foliation["orientation_tolerance"]
-            position_tolerance = foliation["position_tolerance"]
+            foliation_name = foliation.get("name")
+            reference_pose = np.array(foliation.get("reference_pose"))
+            orientation_tolerance = foliation.get("orientation_tolerance")
+            position_tolerance = foliation.get("position_tolerance")
             self._create_foliation(foliation_name, "base_link", reference_pose, orientation_tolerance,
-                                   position_tolerance)
+                                   position_tolerance, self.feasible_grasps, self.sliding_similarity_matrix)
 
-            start_position = np.array(foliation["start_position"])
-            end_position = np.array(foliation["end_position"])
-            num_steps = foliation["steps"]
+            start_position = np.array(foliation.get("start_position"))
+            end_position = np.array(foliation.get("end_position"))
+            num_steps = foliation.get("steps")
 
-            positions_to_place = [start_position]
-            for step in range(1, num_steps):
-                current_position = start_position + (end_position - start_position) * (float(step) / num_steps)
-                positions_to_place.append(current_position)
-            positions_to_place.append(end_position)
-            for position in positions_to_place:
-                obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2],
-                                                        0, 0, 0, 1)
+            if num_steps:
+                positions_to_place = [start_position]
+                for step in range(1, num_steps):
+                    current_position = start_position + (end_position - start_position) * (float(step) / num_steps)
+                    positions_to_place.append(current_position)
+                positions_to_place.append(end_position)
+                for position in positions_to_place:
+                    obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2],
+                                                            0, 0, 0, 1)
 
-                if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
-                    self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+                    if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+                        self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+            else:
+                print "no placement for foliation: " + foliation_name
 
     def _find_feasible_placements(self, params):
         placement_type = params["type"]
@@ -209,27 +219,28 @@ class FoliatedBuilder(object):
             num_samples = len(loaded_array.files)
         for ind in random.sample(list(range(len(loaded_array.files))), num_samples):
             self.feasible_grasps.append(np.dot(loaded_array[loaded_array.files[ind]], rotated_matrix))
+        random.shuffle(self.feasible_grasps)
 
-    def _calc_similarity_matrix(self):
+    def _calc_similarity_matrix(self, feasible_grasps):
         # calculate sliding similarity matrix
-        different_matrix = np.zeros((len(self.feasible_grasps), len(self.feasible_grasps)))
-        for i, grasp in enumerate(self.feasible_grasps):
-            for j, grasp in enumerate(self.feasible_grasps):
+        different_matrix = np.zeros((len(feasible_grasps), len(feasible_grasps)))
+        for i, grasp in enumerate(feasible_grasps):
+            for j, grasp in enumerate(feasible_grasps):
                 if i == j:
                     different_matrix[i, j] = 0
-                different_matrix[i, j] = get_position_difference_between_poses(self.feasible_grasps[i],
-                                                                               self.feasible_grasps[j])
+                different_matrix[i, j] = get_position_difference_between_poses(feasible_grasps[i],
+                                                                               feasible_grasps[j])
 
-        sliding_similarity_matrix = np.zeros((len(self.feasible_grasps), len(self.feasible_grasps)))
+        sliding_similarity_matrix = np.zeros((len(feasible_grasps), len(feasible_grasps)))
         max_distance = np.max(different_matrix)
-        for i, grasp in enumerate(self.feasible_grasps):
-            for j, grasp in enumerate(self.feasible_grasps):
+        for i, grasp in enumerate(feasible_grasps):
+            for j, grasp in enumerate(feasible_grasps):
                 sliding_similarity_matrix[i, j] = gaussian_similarity(different_matrix[i, j], max_distance,
                                                                       sigma=self.similarity_sigma)
 
         self.sliding_similarity_matrix = sliding_similarity_matrix
 
-    def _create_grasp_foliation(self, name='grasp', frame_id="base_link"):
+    def _create_grasp_foliation(self, name='regrasp', frame_id="base_link"):
         foliation_grasp = ManipulationFoliation(foliation_name=name,
                                                 constraint_parameters={
                                                     "frame_id": frame_id,
@@ -242,7 +253,7 @@ class FoliatedBuilder(object):
                                                 similarity_matrix=np.identity(len(self.feasible_placements)))
         self.foliation_grasp = foliation_grasp
 
-    def _create_foliation(self, name, frame_id, reference_pose, orientation_tolerance, position_tolerance):
+    def _create_foliation(self, name, frame_id, reference_pose, orientation_tolerance, position_tolerance, co_parameters, similarity_matrix):
 
         foliation_placement = ManipulationFoliation(foliation_name=name,
                                                     constraint_parameters={
@@ -255,8 +266,8 @@ class FoliatedBuilder(object):
                                                         "orientation_tolerance": orientation_tolerance,
                                                         "position_tolerance": position_tolerance
                                                     },
-                                                    co_parameters=self.feasible_grasps,
-                                                    similarity_matrix=self.sliding_similarity_matrix)
+                                                    co_parameters=co_parameters,
+                                                    similarity_matrix=similarity_matrix)
         self.foliation_placement_group.append(foliation_placement)
 
 
@@ -313,17 +324,60 @@ class Sampler:
         self.target_group_name = "arm"
         self.grasp_pose_mat = [[1, 0, 0, -0.05], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
 
-    def sampling_func(self, co_parameters1, co_parameters2):
+    def _check_tolerance(self, reference_pose, position_tolerance, orientation_tolerance, position):
+        ref_translation = reference_pose[:3, 3]
+        pos_translation = position[:3, 3]
+        translation_diff = np.abs(ref_translation - pos_translation)
+        within_position_tolerance = np.all(translation_diff <= position_tolerance)
+
+        ref_rotation_matrix = reference_pose[:3, :3]
+        pos_rotation_matrix = position[:3, :3]
+        relative_rotation_matrix = np.dot(ref_rotation_matrix.T, pos_rotation_matrix)
+
+        relative_transform = np.identity(4)
+        relative_transform[:3, :3] = relative_rotation_matrix
+
+        relative_quaternion = tf_trans.quaternion_from_matrix(relative_transform)
+        relative_euler_angles = tf_trans.euler_from_quaternion(relative_quaternion)
+        within_orientation_tolerance = np.all(np.abs(relative_euler_angles) <= orientation_tolerance)
+
+        # print relative_euler_angles, within_orientation_tolerance
+        return within_position_tolerance and within_orientation_tolerance
+
+    def sampling_func(self, foliation_1, foliation_2):
+        co_parameters1 = foliation_1.co_parameters
+        co_parameters2 = foliation_2.co_parameters
 
         # random choose param1 and param2
         selected_co_parameters1_index = random.randint(0, len(co_parameters1) - 1)
-        selected_co_parameters2_index = random.randint(0, len(co_parameters2) - 1)
 
-        # random set placement
-        placement = co_parameters2[selected_co_parameters2_index]
-
-        # random set grasp
+        # random set grasp (slide)
         grasp = co_parameters1[selected_co_parameters1_index]
+
+        # random select placement and check if valid
+        shuffled_indices = range(len(co_parameters2))
+        random.shuffle(shuffled_indices)
+
+        selected_co_parameters2_index = None
+        placement = None
+        found_valid_sample = False
+
+        reference_pose = foliation_1.constraint_parameters.get("reference_pose")
+        position_tolerance = foliation_1.constraint_parameters.get("position_tolerance")
+        orientation_tolerance = foliation_1.constraint_parameters.get("orientation_tolerance")
+
+
+        for index in shuffled_indices:
+            placement = co_parameters2[index]
+            tolerance = self._check_tolerance(reference_pose, position_tolerance, orientation_tolerance, placement)
+            if tolerance:
+                selected_co_parameters2_index = index
+                found_valid_sample = True
+                break
+
+        if not found_valid_sample:
+            print "Can't sample any valid co_parameter, skip..."
+            return False, selected_co_parameters1_index, selected_co_parameters2_index, None
 
         # calc grasp pose based on base_link
         grasp_pose_mat = np.dot(placement, grasp)
