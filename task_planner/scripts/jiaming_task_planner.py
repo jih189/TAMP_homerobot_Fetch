@@ -280,25 +280,23 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
             self.task_graph.add_node((manifold_id_[0], manifold_id_[1], i), weight=0.0)
 
         for edge in self.gmm_.edge_of_distribution:
-            self._add_adge_for_manifold(edge, manifold_id_)
+            self.task_graph.add_edge(
+                (manifold_id_[0], manifold_id_[1], edge[0]),
+                (manifold_id_[0], manifold_id_[1], edge[1]),
+                has_intersection=False,
+                intersection=None,
+                weight=0.0,
+            )
 
-    def _add_adge_for_manifold(self, edge, manifold_id_):
-        self.task_graph.add_edge(
-            (manifold_id_[0], manifold_id_[1], edge[0]),
-            (manifold_id_[0], manifold_id_[1], edge[1]),
-            has_intersection=False,
-            intersection=None,
-            weight=0.0,
-        )
+            # need to add the inverse edge
+            self.task_graph.add_edge(
+                (manifold_id_[0], manifold_id_[1], edge[1]),
+                (manifold_id_[0], manifold_id_[1], edge[0]),
+                has_intersection=False,
+                intersection=None,
+                weight=0.0,
+            )
 
-        # need to add the inverse edge
-        self.task_graph.add_edge(
-            (manifold_id_[0], manifold_id_[1], edge[1]),
-            (manifold_id_[0], manifold_id_[1], edge[0]),
-            has_intersection=False,
-            intersection=None,
-            weight=0.0,
-        )
 
     # MTGTaskPlannerWithGMM
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
@@ -671,26 +669,24 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             )
 
         for edge in self.gmm_.edge_of_distribution:
-            self._add_adge_for_manifold(edge, manifold_id_)
-
-    def _add_adge_for_manifold(self, edge, manifold_id_):
-        self.task_graph.add_edge(
-            (manifold_id_[0], manifold_id_[1], edge[0]),
-            (manifold_id_[0], manifold_id_[1], edge[1]),
-            has_intersection=False,
-            intersection=None,
-            weight=0.0,
-        )
+            self.task_graph.add_edge(
+                (manifold_id_[0], manifold_id_[1], edge[0]),
+                (manifold_id_[0], manifold_id_[1], edge[1]),
+                has_intersection=False,
+                intersection=None,
+                weight=0.0,
+            )
 
 
-        # need to add the inverse edge
-        self.task_graph.add_edge(
-            (manifold_id_[0], manifold_id_[1], edge[1]),
-            (manifold_id_[0], manifold_id_[1], edge[0]),
-            has_intersection=False,
-            intersection=None,
-            weight=0.0,
-        )
+            # need to add the inverse edge
+            self.task_graph.add_edge(
+                (manifold_id_[0], manifold_id_[1], edge[1]),
+                (manifold_id_[0], manifold_id_[1], edge[0]),
+                has_intersection=False,
+                intersection=None,
+                weight=0.0,
+            )
+
 
     # MTGTaskPlannerWithAtlas
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
