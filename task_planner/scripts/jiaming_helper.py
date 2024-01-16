@@ -323,3 +323,12 @@ def collision_check(collision_manager, obj_mesh, obj_pose):
 
     collision_manager.remove_object('obj')
     return False
+
+def create_rotation_matrix_from_euler(orientation, position):
+    rotation_matrix = tf_trans.euler_matrix(orientation[0], orientation[1], orientation[2])[:3, :3]
+
+    reference_pose = np.identity(4)
+    reference_pose[:3, :3] = rotation_matrix
+    reference_pose[:3, 3] = position
+
+    return reference_pose
