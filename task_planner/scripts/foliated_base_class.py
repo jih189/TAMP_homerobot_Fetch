@@ -723,15 +723,17 @@ class BaseTaskPlanner:
 
 
     def add_edge_distance_for_all_edges(self):
+        nx.set_edge_attributes(self.task_graph, 0.0, "edge_dist")
         for node1, node2 in self.task_graph.edges():
-            dist1, dist2 = node1[2], node2[2]
-            dist_between_two_distributions = (
-                self.get_position_difference_between_distributions(
-                    self.gmm_.distributions[dist1[0]].mean,
-                    self.gmm_.distributions[dist2[1]].mean,
+            if node1 != "start" and node2 != "goal" and node1 != "goal" and node2 != "start":
+                dist1, dist2 = node1[2], node2[2]
+                dist_between_two_distributions = (
+                    self.get_position_difference_between_distributions(
+                        self.gmm_.distributions[dist1].mean,
+                        self.gmm_.distributions[dist2].mean,
+                    )
                 )
-            )
-            self.task_graph.edges[node1, node2]["edge_dist"] = dist_between_two_distributions 
+                self.task_graph.edges[node1, node2]["edge_dist"] = dist_between_two_distributions 
 
     def setup_dynamic_planner(self):
 
