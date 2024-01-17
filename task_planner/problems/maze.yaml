@@ -2,7 +2,6 @@ task_parameters:
   task_name: "maze"
   task_type: ""
   num_samples: 5000
-  random_seed: 3897
   save_path: "/check"
 
 initial_joint_state:
