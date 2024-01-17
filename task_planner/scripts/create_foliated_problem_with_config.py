@@ -15,7 +15,7 @@ from sensor_msgs.msg import JointState
 from manipulation_foliations_and_intersections import ManipulationFoliation
 from foliated_base_class import FoliatedIntersection, FoliatedProblem
 from jiaming_helper import create_pose_stamped, get_position_difference_between_poses, gaussian_similarity, \
-    create_pose_stamped_from_raw, collision_check, convert_pose_stamped_to_matrix
+    create_pose_stamped_from_raw, collision_check, convert_pose_stamped_to_matrix, create_rotation_matrix_from_euler
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 from moveit_msgs.msg import MoveItErrorCodes
 from manipulation_foliations_and_intersections import ManipulationIntersection
@@ -97,9 +97,9 @@ class FoliatedBuilder(object):
 
     def initialize(self):
         self._load_environment()
-        self._find_feasible_grasps(**self.grasp_parameters)
+        self._handle_grasps(**self.grasp_parameters)
         self._calc_similarity_matrix(self.feasible_grasps)
-        self._find_feasible_placements(self.placement_parameters)
+        self._handle_placements(self.placement_parameters)
         self._create_grasp_foliation()
 
     def _load_environment(self):
@@ -108,112 +108,123 @@ class FoliatedBuilder(object):
         self.collision_manager = trimesh.collision.CollisionManager()
         self.collision_manager.add_object('env', self.env_mesh)
 
-    def _placement_rectangular(self, params):
-        foliations = params["foliations"]
-        for idx, foliation in enumerate(foliations):
-            foliation_name = foliation["name"]
-            reference_pose = np.array(foliation["reference_pose"])
-            orientation_tolerance = foliation["orientation_tolerance"]
-            position_tolerance = foliation["position_tolerance"]
-            self._create_foliation(foliation_name, "base_link", reference_pose, orientation_tolerance,
-                                   position_tolerance, self.feasible_grasps, self.sliding_similarity_matrix)
+    def _placement_rectangular(self, foliation):
+        size_row = foliation.get("size_row")
+        size_col = foliation.get("size_col")
+        position = np.array(foliation.get("placement_position"))
 
-            size_row = foliation.get("size_row")
-            size_col = foliation.get("size_col")
-            position = np.array(foliation.get("placement_position"))
+        if size_row and size_col:
+            x_shift = position[0]
+            y_shift = position[1]
+            z_shift = position[2]
 
-            if size_row and size_col:
-                x_shift = position[0]
-                y_shift = position[1]
-                z_shift = position[2]
-
-                for i in range(size_row):
-                    for j in range(size_col):
-                        obj_pose = create_pose_stamped_from_raw("base_link",
-                                                                i * 0.1 - size_row * 0.1 / 2 + x_shift + 0.05,
-                                                                j * 0.1 - size_col * 0.1 / 2 + y_shift + 0.05,
-                                                                z_shift,
-                                                                0, 0, 0, 1)
-
-                        if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
-                            self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
-            else:
-                print "no placement for foliation: " + foliation_name
-
-    def _placement_circular(self, params):
-        foliations = params["foliations"]
-        for foliation in foliations:
-            foliation_name = foliation["name"]
-            reference_pose = np.array(foliation["reference_pose"])
-            orientation_tolerance = foliation["orientation_tolerance"]
-            position_tolerance = foliation["position_tolerance"]
-            self._create_foliation(foliation_name, "base_link", reference_pose, orientation_tolerance,
-                                   position_tolerance, self.feasible_grasps, self.sliding_similarity_matrix)
-
-            center_position = np.array(foliation.get("placement_position"))
-            radius = foliation.get("radius")
-            start_angle = foliation.get("start_angle")
-            end_angle = foliation.get("end_angle")
-            steps = foliation.get("steps")
-
-            if steps:
-                angles = np.linspace(start_angle, end_angle, steps)
-
-                for angle in angles:
-                    x = center_position[0] + radius * np.cos(angle)
-                    y = center_position[1] + radius * np.sin(angle)
-                    z = center_position[2]
-                    orientation = tf_trans.quaternion_from_euler(0, 0,
-                                                        0 + angle)
-                    obj_pose = create_pose_stamped_from_raw("base_link", x, y, z,
-                                                            orientation[0], orientation[1], orientation[2], orientation[3])
+            for i in range(size_row):
+                for j in range(size_col):
+                    obj_pose = create_pose_stamped_from_raw("base_link",
+                                                            i * 0.1 - size_row * 0.1 / 2 + x_shift + 0.05,
+                                                            j * 0.1 - size_col * 0.1 / 2 + y_shift + 0.05,
+                                                            z_shift,
+                                                            0, 0, 0, 1)
 
                     if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
                         self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
-            else:
-                print "no placement for foliation: " + foliation_name
 
-    def _placement_linear(self, params):
-        foliations = params["foliations"]
+    def _placement_point(self, foliation):
+        position = np.array(foliation.get("placement_position"))
+        euler = np.array(foliation.get("placement_orientation"))
+
+        orientation = tf_trans.quaternion_from_euler(euler[0], euler[1], euler[2])
+        obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2], orientation[0], orientation[1], orientation[2], orientation[3])
+
+        if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+            self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+        else:
+            foliation_name = foliation.get("name")
+            print "no placement added for: " + foliation_name
+
+    def _placement_circular(self, foliation):
+        center_position = np.array(foliation.get("placement_position"))
+        radius = foliation.get("radius")
+        steps = foliation.get("steps")
+
+        start_angle_z = foliation.get("start_angle_z", 0)
+        end_angle_z = foliation.get("end_angle_z", 0)
+        start_angle_x = foliation.get("start_angle_x", 0)
+        end_angle_x = foliation.get("end_angle_x", 0)
+        start_angle_y = foliation.get("start_angle_y", 0)
+        end_angle_y = foliation.get("end_angle_y", 0)
+
+        if steps:
+            angles_z = np.linspace(start_angle_z, end_angle_z, steps)
+            angles_x = np.linspace(start_angle_x, end_angle_x, steps)
+            angles_y = np.linspace(start_angle_y, end_angle_y, steps)
+
+            for angle_z, angle_x, angle_y in zip(angles_z, angles_x, angles_y):
+                x = center_position[0] + radius * np.cos(angle_z)
+                y = center_position[1] + radius * np.sin(angle_z)
+                z = center_position[2]
+                orientation = tf_trans.quaternion_from_euler(angle_x, angle_y, angle_z)
+                obj_pose = create_pose_stamped_from_raw("base_link", x, y, z,
+                                                        orientation[0], orientation[1], orientation[2], orientation[3])
+
+                if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+                    self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+
+    def _placement_linear(self, foliation):
+        start_position = np.array(foliation.get("start_position"))
+        end_position = np.array(foliation.get("end_position"))
+        num_steps = foliation.get("steps")
+
+        if num_steps:
+            positions_to_place = [start_position]
+            for step in range(1, num_steps):
+                current_position = start_position + (end_position - start_position) * (float(step) / num_steps)
+                positions_to_place.append(current_position)
+            positions_to_place.append(end_position)
+            for position in positions_to_place:
+                obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2],
+                                                        0, 0, 0, 1)
+
+                if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+                    self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+
+    def _handle_placements(self, params):
+        foliations = params.get("foliations")
         for foliation in foliations:
             foliation_name = foliation.get("name")
-            reference_pose = np.array(foliation.get("reference_pose"))
+
+            reference_pose = None
+            if foliation.get("reference_pose"):
+                reference_pose = np.array(foliation.get("reference_pose"))
+            elif foliation.get("reference_pose_position"):
+                reference_pose = np.array(create_rotation_matrix_from_euler(foliation.get("reference_pose_orientation"),
+                                                                            foliation.get("reference_pose_position")))
+
             orientation_tolerance = foliation.get("orientation_tolerance")
             position_tolerance = foliation.get("position_tolerance")
             self._create_foliation(foliation_name, "base_link", reference_pose, orientation_tolerance,
                                    position_tolerance, self.feasible_grasps, self.sliding_similarity_matrix)
 
-            start_position = np.array(foliation.get("start_position"))
-            end_position = np.array(foliation.get("end_position"))
-            num_steps = foliation.get("steps")
+            placement_type = foliation.get("type")
+            if not placement_type:
+                placement_type = params.get("type")
+            if not placement_type:
+                print "no valid placement type detected"
 
-            if num_steps:
-                positions_to_place = [start_position]
-                for step in range(1, num_steps):
-                    current_position = start_position + (end_position - start_position) * (float(step) / num_steps)
-                    positions_to_place.append(current_position)
-                positions_to_place.append(end_position)
-                for position in positions_to_place:
-                    obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2],
-                                                            0, 0, 0, 1)
-
-                    if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
-                        self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+            if placement_type == "rectangular":
+                self._placement_rectangular(foliation)
+            elif placement_type == "linear":
+                self._placement_linear(foliation)
+            elif placement_type == "circular":
+                self._placement_circular(foliation)
+            elif placement_type == "point":
+                self._placement_point(foliation)
+            elif placement_type == "none":
+                continue
             else:
-                print "no placement for foliation: " + foliation_name
+                print("invalid placement type, check config: " + foliation_name)
 
-    def _find_feasible_placements(self, params):
-        placement_type = params["type"]
-        if placement_type == "rectangular":
-            self._placement_rectangular(params)
-        elif placement_type == "linear":
-            self._placement_linear(params)
-        elif placement_type == "circular":
-            self._placement_circular(params)
-        else:
-            raise Exception("Invalid placement type, check config")
-
-    def _find_feasible_grasps(self, num_samples, rotated_matrix):
+    def _handle_grasps(self, num_samples, rotated_matrix):
         loaded_array = np.load(self.grasp_poses_file)
         if num_samples == 0:
             num_samples = len(loaded_array.files)
@@ -370,6 +381,9 @@ class Sampler:
         for index in shuffled_indices:
             placement = co_parameters2[index]
             tolerance = self._check_tolerance(reference_pose, position_tolerance, orientation_tolerance, placement)
+            # if foliation_1.foliation_name == "rotate":
+            #     print reference_pose, position_tolerance, orientation_tolerance, placement
+            #     print tolerance
             if tolerance:
                 selected_co_parameters2_index = index
                 found_valid_sample = True

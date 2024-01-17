@@ -46,6 +46,6 @@ placement:
         - [ 0, 0, 0, 1 ]
       placement_position: [1.18, -0.60, -0.2]
       radius: 0
-      start_angle: -0.2
-      end_angle: -1.56
+      start_angle_z: -0.2
+      end_angle_z: -1.56
       steps: 25
