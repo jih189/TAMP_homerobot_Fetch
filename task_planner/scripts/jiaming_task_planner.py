@@ -245,7 +245,7 @@ class MTGTaskPlanner(BaseTaskPlanner):
 class MTGTaskPlannerWithGMM(BaseTaskPlanner):
     def __init__(self, gmm, planner_name_="MTGTaskPlannerWithGMM", parameter_dict_={}):
         # Constructor
-        super(BaseTaskPlanner, self).__init__()
+        super(MTGTaskPlannerWithGMM, self).__init__()
         # super().__init__() # python 3
 
         self.gmm_ = gmm
@@ -590,9 +590,219 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         for n in self.task_graph.nodes():
             self._update_node_weight(n, current_manifold_id, sampled_data_distribution_tag_table)
 
-        # for u, v in self.task_graph.edges():
-        #     self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
 
+
+class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
+    def __init__(
+        self,
+        gmm,
+        planner_name_="DynamicMTGTaskPlannerWithGMM",
+        threshold=50.0,
+        parameter_dict_={},
+    ):
+        # Constructor
+        super(DynamicMTGTaskPlannerWithGMM, self).__init__(gmm, planner_name_, parameter_dict_)
+        # super().__init__() # python 3
+        self.exceed_threshold = threshold
+
+    def add_manifold(self, manifold_info_, manifold_id_):
+
+        self.manifold_info[manifold_id_] = manifold_info_
+        # construct a set of nodes represented by a tuple (foliation id, manifold id, GMM id)
+        for i in range(len(self.gmm_.distributions)):
+            self.task_graph.add_node(
+                (manifold_id_[0], manifold_id_[1], i),
+                weight=0.0,
+                dist_to_start=np.inf,
+                dist_to_goal=np.inf,
+            )
+
+        for edge in self.gmm_.edge_of_distribution:
+            dist_between_two_distributions = (
+                self.get_position_difference_between_distributions(
+                    self.gmm_.distributions[edge[0]].mean,
+                    self.gmm_.distributions[edge[1]].mean,
+                )
+            )
+
+            self.task_graph.add_edge(
+                (manifold_id_[0], manifold_id_[1], edge[0]),
+                (manifold_id_[0], manifold_id_[1], edge[1]),
+                has_intersection=False,
+                intersection=None,
+                edge_dist=dist_between_two_distributions,
+                weight=0.0,
+            )
+
+            # need to add the inverse edge
+            self.task_graph.add_edge(
+                (manifold_id_[0], manifold_id_[1], edge[1]),
+                (manifold_id_[0], manifold_id_[1], edge[0]),
+                has_intersection=False,
+                intersection=None,
+                edge_dist=dist_between_two_distributions,
+                weight=0.0,
+            )
+
+    # MTGTaskPlannerWithGMM
+    def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
+        # connect two distribution of this intersection_detail_ between two different manifolds(manifold1 and manifold2) if they have the same ditribution id in GMM.
+        # first, find the related distribution that the intersection's ends are in in different manifolds.
+
+        (
+            distribution_id_in_manifold1,
+            distribution_id_in_manifold2,
+        ) = self.gmm_.get_distribution_indexs(
+            [
+                intersection_detail_.configuration_in_manifold1,
+                intersection_detail_.configuration_in_manifold2,
+            ]
+        )
+        dist_between_edges = self.get_position_difference_between_distributions(
+            self.gmm_.distributions[distribution_id_in_manifold1].mean,
+            self.gmm_.distributions[distribution_id_in_manifold2].mean,
+        )
+
+        self.task_graph.add_edge(
+            (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1),
+            (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2),
+            has_intersection=True,
+            intersection=intersection_detail_,
+            edge_dist=dist_between_edges,
+            weight=0.0,
+        )
+
+    # MTGTaskPlannerWithGMM
+    def set_start_and_goal(
+        self,
+        start_manifold_id_,
+        start_intersection_,
+        goal_manifold_id_,
+        goal_intersection_,
+    ):
+        # self.set_start_and_goal_for_task_solution_graph(start_manifold_id_, goal_manifold_id_)
+
+        # if start and goal are set, then remove them from the task graph
+        if self.task_graph.has_node("start"):
+            self.task_graph.remove_node("start")
+
+        if self.task_graph.has_node("goal"):
+            self.task_graph.remove_node("goal")
+
+        nx.set_node_attributes(self.task_graph, np.inf, "dist_to_start")
+        nx.set_node_attributes(self.task_graph, np.inf, "dist_to_goal")
+
+        # include start and goal configurations in the task graph
+        self.task_graph.add_node("start", weight=0.0, dist_to_start=0.0, dist_to_goal=np.inf)
+        self.task_graph.add_node("goal", weight=0.0, dist_to_start=np.inf, dist_to_goal=0.0)
+
+        configuration_of_start, _ = start_intersection_.get_edge_configurations()
+        self.task_graph.add_edge(
+            "start",
+            (
+                start_manifold_id_[0],
+                start_manifold_id_[1],
+                self.gmm_.get_distribution_index(np.array(configuration_of_start)),
+            ),
+            has_intersection=False,
+            intersection=None,
+            edge_dist=0.0,
+            weight=0.0,
+        )
+
+        configuration_of_goal, _ = goal_intersection_.get_edge_configurations()
+        self.task_graph.add_edge(
+            (
+                goal_manifold_id_[0],
+                goal_manifold_id_[1],
+                self.gmm_.get_distribution_index(np.array(configuration_of_goal)),
+            ),
+            "goal",
+            has_intersection=True,
+            intersection=IntersectionDetail(
+                goal_intersection_, configuration_of_goal, configuration_of_goal, True
+            ),
+            weight=0.0,
+            edge_dist=0.0,
+        )
+
+        self.current_start_configuration = configuration_of_start
+
+        self.compute_distance_to_start_and_goal()
+        self.current_graph_distance_radius = (
+            nx.shortest_path_length(
+                self.task_graph, "start", "goal", weight="edge_dist"
+            )
+            + 1e-8
+        )
+        self.expand_current_task_graph(self.current_graph_distance_radius)
+
+    # DynamicMTGTaskPlannerWithGMM
+    def generate_task_sequence(self):
+        # print the number of nodes can achieve the goal
+        # print "number of nodes can achieve the goal: ", len([node for node in self.task_graph.nodes if nx.has_path(self.task_graph, node, 'goal')])
+
+        # check the connectivity of the task graph from start to goal
+        if not nx.has_path(self.current_task_graph, "start", "goal"):
+            print("no connection between start and goal!")
+            return []
+
+        # find the shortest path from start to goal
+        shortest_path = nx.shortest_path(
+            self.current_task_graph, "start", "goal", weight="weight"
+        )
+
+        path_length = np.sum(
+            [
+                self.current_task_graph.get_edge_data(node1, node2)["weight"]
+                for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])
+            ]
+        )
+        if path_length > self.exceed_threshold:
+            self.current_graph_distance_radius *= 1.25
+
+        return self._generate_task_sequence_from_shortest_path(shortest_path)
+
+
+    # DynamicMTGTaskPlannerWithGMM
+    def update(self, task_graph_info_, plan_, manifold_constraint_):
+        """
+        After planning a motion task in a foliated manifold M(f', c'), we receive a set of configuration with its status.
+        Where f', c' are the foliation id and co-parameter id define the current task's manifold.
+        The sampled_data_distribution_tag_table is a table with shape (number of distributions in GMM, 4).
+        Each row is a distribution in GMM, and each column is a tag of sampled data.
+        The value in the table is the number of sampled data with the same distribution id and tag.
+
+        Then, we need to update the weight of all nodes in the task graph having the same foliation with the foliated manifold M(f', c').
+        For each node (f, c, d) where f is the foliation id, c is the co-parameter id, and d is the distribution id, we update the weight of the node by:
+        current_similarity_score is the similarty between c and c' in the foliation f.
+        arm_env_collision_score = sampled_data_distribution_tag_table[d][1] * 1.0
+        path_constraint_violation_score = current_similarity_score * sampled_data_distribution_tag_table[d][2] * 1.0
+        obj_env_collision_score = current_similarity_score * sampled_data_distribution_tag_table[d][3] * 1.0
+        weight = weight + arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+        """
+        # use the sample data to update the task graph.
+        # sampled_state_tag hint
+        # 0: collision free
+        # 1: arm-env collision or out of joint limit
+        # 2: path constraint violation
+        # 3: infeasble state, you should ignore this
+        # 4: obj-env collision
+        # 5: valid configuration before project
+        # 6: arm-env collision or out of joint limit before project
+        # 7: path constraint violation before project
+        # 8: infeasble state, you should ignore this before project
+        # 9: obj-env collision before project
+
+        current_manifold_id = task_graph_info_
+        sampled_data_distribution_tag_table = self._generate_sampled_distribution_tag_table(plan_)
+        if sampled_data_distribution_tag_table is None:
+            return
+
+        # only update the weight of nodes in the same manifold with the current task.
+        for n in self.current_task_graph.nodes():
+            self._update_node_weight(n, current_manifold_id, sampled_data_distribution_tag_table)
+        self.expand_current_task_graph(self.current_graph_distance_radius)
 
 
 class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
@@ -1081,3 +1291,436 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         #     self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
 
         # split the graph edges into to cpu_count() parts and update the edge weight in parallel.
+
+
+class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
+    def __init__(
+        self,
+        gmm,
+        default_robot_state,
+        planner_name_="DynamicMTGPlannerWithAtlas",
+        threshold=50.0,
+        parameter_dict_={},
+    ):
+        # Constructor
+        super(DynamicMTGPlannerWithAtlas, self).__init__(gmm, default_robot_state, planner_name_, parameter_dict_)
+        # super().__init__() # python 3
+        self.exceed_threshold = threshold
+
+
+    # MTGTaskPlannerWithAtlas
+    def add_manifold(self, manifold_info_, manifold_id_):
+        self.manifold_info[manifold_id_] = manifold_info_
+
+        if manifold_id_[0] not in self.foliation_with_co_parameter_id:
+            self.foliation_with_co_parameter_id[manifold_id_[0]] = [manifold_id_[1]]
+        else:
+            self.foliation_with_co_parameter_id[manifold_id_[0]].append(manifold_id_[1])
+
+        # construct a set of nodes represented by a tuple (foliation id, manifold id, GMM id)
+        for i in range(len(self.gmm_.distributions)):
+            self.task_graph.add_node(
+                (manifold_id_[0], manifold_id_[1], i),
+                weight=0.0,
+                has_atlas=False,
+                valid_configuration_before_project=0,
+                invalid_configuration_before_project=0,
+                dist_to_start=np.inf,
+                dist_to_goal=np.inf,
+            )
+
+        for edge in self.gmm_.edge_of_distribution:
+            dist_between_two_distributions = (
+                self.get_position_difference_between_distributions(
+                    self.gmm_.distributions[edge[0]].mean,
+                    self.gmm_.distributions[edge[1]].mean,
+                )
+            )            
+            self.task_graph.add_edge(
+                (manifold_id_[0], manifold_id_[1], edge[0]),
+                (manifold_id_[0], manifold_id_[1], edge[1]),
+                has_intersection=False,
+                intersection=None,
+                edge_dist=dist_between_two_distributions,
+                weight=0.0,
+            )
+
+
+            # need to add the inverse edge
+            self.task_graph.add_edge(
+                (manifold_id_[0], manifold_id_[1], edge[1]),
+                (manifold_id_[0], manifold_id_[1], edge[0]),
+                has_intersection=False,
+                intersection=None,
+                edge_dist=dist_between_two_distributions,
+                weight=0.0,
+            )
+
+
+    # MTGTaskPlannerWithAtlas
+    def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
+        # connect two distribution of this intersection_detail_ between two different manifolds(manifold1 and manifold2) if they have the same ditribution id in GMM.
+        # first, find the related distribution that the intersection's ends are in in different manifolds.
+
+        (
+            distribution_id_in_manifold1,
+            distribution_id_in_manifold2,
+        ) = self.gmm_.get_distribution_indexs(
+            [
+                intersection_detail_.configuration_in_manifold1,
+                intersection_detail_.configuration_in_manifold2,
+            ]
+        )
+
+        # intersection_from_1_to_2_id = self.add_intersection_for_task_solution_graph(manifold_id1_, manifold_id2_)
+        dist_between_edges = self.get_position_difference_between_distributions(
+            self.gmm_.distributions[distribution_id_in_manifold1].mean,
+            self.gmm_.distributions[distribution_id_in_manifold2].mean,
+        )
+
+        self.task_graph.add_edge(
+            (manifold_id1_[0], manifold_id1_[1], distribution_id_in_manifold1),
+            (manifold_id2_[0], manifold_id2_[1], distribution_id_in_manifold2),
+            has_intersection=True,
+            intersection=intersection_detail_,
+            weight=0.0,
+            edge_dist=dist_between_edges,
+
+        )
+
+    # MTGTaskPlannerWithAtlas
+    def set_start_and_goal(
+        self,
+        start_manifold_id_,
+        start_intersection_,
+        goal_manifold_id_,
+        goal_intersection_,
+    ):
+        # if start and goal are set, then remove them from the task graph
+        if self.task_graph.has_node("start"):
+            self.task_graph.remove_node("start")
+
+        if self.task_graph.has_node("goal"):
+            self.task_graph.remove_node("goal")
+
+        nx.set_node_attributes(self.task_graph, np.inf, "dist_to_start")
+        nx.set_node_attributes(self.task_graph, np.inf, "dist_to_goal")
+
+        # include start and goal configurations in the task graph
+        self.task_graph.add_node(
+            "start", weight=0.0, dist_to_start=0.0, dist_to_goal=np.inf
+        )
+        self.task_graph.add_node(
+            "goal", weight=0.0, dist_to_start=np.inf, dist_to_goal=0.0
+        )
+
+        configuration_of_start, _ = start_intersection_.get_edge_configurations()
+        self.task_graph.add_edge(
+            "start",
+            (
+                start_manifold_id_[0],
+                start_manifold_id_[1],
+                self.gmm_.get_distribution_index(np.array(configuration_of_start)),
+            ),
+            has_intersection=False,
+            intersection=None,
+            edge_dist=0.0,
+            weight=0.0,
+        )
+
+        configuration_of_goal, _ = goal_intersection_.get_edge_configurations()
+        self.task_graph.add_edge(
+            (
+                goal_manifold_id_[0],
+                goal_manifold_id_[1],
+                self.gmm_.get_distribution_index(np.array(configuration_of_goal)),
+            ),
+            "goal",
+            has_intersection=True,
+            intersection=IntersectionDetail(
+                goal_intersection_, configuration_of_goal, configuration_of_goal, True
+            ),
+            edge_dist=0.0,
+            weight=0.0,
+        )
+
+        self.current_start_configuration = configuration_of_start
+
+        self.compute_distance_to_start_and_goal()
+        self.current_graph_distance_radius = (
+            nx.shortest_path_length(
+                self.task_graph, "start", "goal", weight="edge_dist"
+            )
+            + 1e-8
+        )
+        self.expand_current_task_graph(self.current_graph_distance_radius)
+
+    # MTGTaskPlannerWithAtlas
+    def generate_task_sequence(self):
+        # print the number of nodes can achieve the goal
+        # print "number of nodes can achieve the goal: ", len([node for node in self.task_graph.nodes if nx.has_path(self.task_graph, node, 'goal')])
+
+        # check the connectivity of the task graph from start to goal
+        if not nx.has_path(self.current_task_graph, "start", "goal"):
+            print("no connection between start and goal!")
+            return []
+
+        # find the shortest path from start to goal
+        shortest_path = nx.shortest_path(
+            self.current_task_graph, "start", "goal", weight="weight"
+        )
+
+        path_length = np.sum(
+            [
+                self.current_task_graph.get_edge_data(node1, node2)["weight"]
+                for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])
+            ]
+        )
+        if path_length > self.exceed_threshold:
+            self.current_graph_distance_radius *= 1.25
+
+        return self._generate_task_sequence_from_shortest_path(shortest_path)
+
+
+    def update(self, task_graph_info_, plan_, manifold_constraint_):
+        """
+        After planning a motion task in a foliated manifold M(f', c'), we receive a set of configuration with its status.
+        Where f', c' are the foliation id and co-parameter id define the current task's manifold.
+        The sampled_data_distribution_tag_table is a table with shape (number of distributions in GMM, 4).
+        Each row is a distribution in GMM, and each column is a tag of sampled data.
+        The value in the table is the number of sampled data with the same distribution id and tag.
+
+        Then, we need to update the weight of all nodes in the task graph having the same foliation with the foliated manifold M(f', c').
+        For each node (f, c, d) where f is the foliation id, c is the co-parameter id, and d is the distribution id, we update the weight of the node by:
+        current_similarity_score is the similarty between c and c' in the foliation f.
+        arm_env_collision_score = sampled_data_distribution_tag_table[d][1] * 1.0
+        path_constraint_violation_score = current_similarity_score * sampled_data_distribution_tag_table[d][2] * 1.0
+        obj_env_collision_score = current_similarity_score * sampled_data_distribution_tag_table[d][3] * 1.0
+        weight = weight + arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+        """
+        # use the sample data to update the task graph.
+        # sampled_state_tag hint
+        # 0: collision free
+        # 1: arm-env collision or out of joint limit
+        # 2: path constraint violation
+        # 3: infeasble state, you should ignore this
+        # 4: obj-env collision
+        # ---
+        # 5: valid configuration before project
+        # 6: arm-env collision or out of joint limit before project
+        # 7: path constraint violation before project
+        # 8: infeasble state, you should ignore this before project
+        # 9: obj-env collision before project
+        sampled_data_distribution_tag_table = self._generate_sampled_distribution_tag_table_and_construct_atlas(plan_, task_graph_info_, manifold_constraint_)
+        if sampled_data_distribution_tag_table is None:
+            return
+        
+
+        # the task graph info here is the manifold id(foliatino id and co-parameter id) of the current task.
+        current_manifold_id = task_graph_info_
+
+        # only update the weight of nodes in the same manifold with the current task.
+        for n in self.current_task_graph.nodes():
+            self._update_node_weight(n, current_manifold_id, sampled_data_distribution_tag_table)
+        self.expand_current_task_graph(self.current_graph_distance_radius)
+
+
+
+# class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
+#     def __init__(
+#         self,
+#         gmm,
+#         planner_name_="DynamicMTGTaskPlannerWithGMM",
+#         threshold=50.0,
+#         parameter_dict_={},
+#     ):
+#         # Constructor
+#         super(DynamicMTGTaskPlannerWithGMM, self).__init__(gmm, planner_name_, parameter_dict_)
+#         # super().__init__() # python 3
+#         self.exceed_threshold = threshold
+
+
+#     def set_start_and_goal(
+#             self, 
+#             start_manifold_id_, 
+#             start_intersection_, 
+#             goal_manifold_id_, 
+#             goal_intersection_
+#         ):
+        
+#         super(DynamicMTGTaskPlannerWithGMM, self).set_start_and_goal(
+#             start_manifold_id_, 
+#             start_intersection_, 
+#             goal_manifold_id_, 
+#             goal_intersection_
+#             )
+#         self.setup_dynamic_planner()
+
+
+
+#     # DynamicMTGTaskPlannerWithGMM
+#     def generate_task_sequence(self):
+#         # print the number of nodes can achieve the goal
+#         # print "number of nodes can achieve the goal: ", len([node for node in self.task_graph.nodes if nx.has_path(self.task_graph, node, 'goal')])
+
+#         # check the connectivity of the task graph from start to goal
+#         if not nx.has_path(self.current_task_graph, "start", "goal"):
+#             print("no connection between start and goal!")
+#             return []
+
+#         # find the shortest path from start to goal
+#         shortest_path = nx.shortest_path(
+#             self.current_task_graph, "start", "goal", weight="weight"
+#         )
+
+#         path_length = np.sum(
+#             [
+#                 self.current_task_graph.get_edge_data(node1, node2)["weight"]
+#                 for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])
+#             ]
+#         )
+#         if path_length > self.exceed_threshold:
+#             self.current_graph_distance_radius *= 1.25
+
+#         return self._generate_task_sequence_from_shortest_path(shortest_path)
+
+
+#     # DynamicMTGTaskPlannerWithGMM
+#     def update(self, task_graph_info_, plan_, manifold_constraint_):
+#         """
+#         After planning a motion task in a foliated manifold M(f', c'), we receive a set of configuration with its status.
+#         Where f', c' are the foliation id and co-parameter id define the current task's manifold.
+#         The sampled_data_distribution_tag_table is a table with shape (number of distributions in GMM, 4).
+#         Each row is a distribution in GMM, and each column is a tag of sampled data.
+#         The value in the table is the number of sampled data with the same distribution id and tag.
+
+#         Then, we need to update the weight of all nodes in the task graph having the same foliation with the foliated manifold M(f', c').
+#         For each node (f, c, d) where f is the foliation id, c is the co-parameter id, and d is the distribution id, we update the weight of the node by:
+#         current_similarity_score is the similarty between c and c' in the foliation f.
+#         arm_env_collision_score = sampled_data_distribution_tag_table[d][1] * 1.0
+#         path_constraint_violation_score = current_similarity_score * sampled_data_distribution_tag_table[d][2] * 1.0
+#         obj_env_collision_score = current_similarity_score * sampled_data_distribution_tag_table[d][3] * 1.0
+#         weight = weight + arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+#         """
+#         # use the sample data to update the task graph.
+#         # sampled_state_tag hint
+#         # 0: collision free
+#         # 1: arm-env collision or out of joint limit
+#         # 2: path constraint violation
+#         # 3: infeasble state, you should ignore this
+#         # 4: obj-env collision
+#         # 5: valid configuration before project
+#         # 6: arm-env collision or out of joint limit before project
+#         # 7: path constraint violation before project
+#         # 8: infeasble state, you should ignore this before project
+#         # 9: obj-env collision before project
+
+#         current_manifold_id = task_graph_info_
+#         sampled_data_distribution_tag_table = self._generate_sampled_distribution_tag_table(plan_)
+#         if sampled_data_distribution_tag_table is None:
+#             return
+
+#         # only update the weight of nodes in the same manifold with the current task.
+#         for n in self.current_task_graph.nodes():
+#             self._update_node_weight(n, current_manifold_id, sampled_data_distribution_tag_table)
+#         self.expand_current_task_graph(self.current_graph_distance_radius)
+
+
+# class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
+#     def __init__(
+#         self,
+#         gmm,
+#         default_robot_state,
+#         planner_name_="DynamicMTGPlannerWithAtlas",
+#         threshold=75.0,
+#         parameter_dict_={},
+#     ):
+#         # Constructor
+#         super(DynamicMTGPlannerWithAtlas, self).__init__(gmm, default_robot_state, planner_name_, parameter_dict_)
+#         # super().__init__() # python 3
+#         self.exceed_threshold = threshold
+
+#     def set_start_and_goal(
+#             self, 
+#             start_manifold_id_, 
+#             start_intersection_, 
+#             goal_manifold_id_, 
+#             goal_intersection_
+#         ):
+        
+#         super(DynamicMTGPlannerWithAtlas, self).set_start_and_goal(
+#             start_manifold_id_, 
+#             start_intersection_, 
+#             goal_manifold_id_, 
+#             goal_intersection_
+#             )
+#         self.setup_dynamic_planner()
+
+#     # DynamicMTGTaskPlannerWithAtlas
+#     def generate_task_sequence(self):
+#         # print the number of nodes can achieve the goal
+#         # print "number of nodes can achieve the goal: ", len([node for node in self.task_graph.nodes if nx.has_path(self.task_graph, node, 'goal')])
+
+#         # check the connectivity of the task graph from start to goal
+#         if not nx.has_path(self.current_task_graph, "start", "goal"):
+#             print("no connection between start and goal!")
+#             return []
+
+#         # find the shortest path from start to goal
+#         shortest_path = nx.shortest_path(
+#             self.current_task_graph, "start", "goal", weight="weight"
+#         )
+#         path_length = np.sum(
+#             [
+#                 self.current_task_graph.get_edge_data(node1, node2)["weight"]
+#                 for node1, node2 in zip(shortest_path[:-1], shortest_path[1:])
+#             ]
+#         )
+#         if path_length > self.exceed_threshold:
+#             self.current_graph_distance_radius *= 1.25
+
+#         return self._generate_task_sequence_from_shortest_path(shortest_path)
+
+
+#     # MTGTaskPlannerWithAtlas
+#     def update(self, task_graph_info_, plan_, manifold_constraint_):
+#         """
+#         After planning a motion task in a foliated manifold M(f', c'), we receive a set of configuration with its status.
+#         Where f', c' are the foliation id and co-parameter id define the current task's manifold.
+#         The sampled_data_distribution_tag_table is a table with shape (number of distributions in GMM, 4).
+#         Each row is a distribution in GMM, and each column is a tag of sampled data.
+#         The value in the table is the number of sampled data with the same distribution id and tag.
+
+#         Then, we need to update the weight of all nodes in the task graph having the same foliation with the foliated manifold M(f', c').
+#         For each node (f, c, d) where f is the foliation id, c is the co-parameter id, and d is the distribution id, we update the weight of the node by:
+#         current_similarity_score is the similarty between c and c' in the foliation f.
+#         arm_env_collision_score = sampled_data_distribution_tag_table[d][1] * 1.0
+#         path_constraint_violation_score = current_similarity_score * sampled_data_distribution_tag_table[d][2] * 1.0
+#         obj_env_collision_score = current_similarity_score * sampled_data_distribution_tag_table[d][3] * 1.0
+#         weight = weight + arm_env_collision_score + path_constraint_violation_score + obj_env_collision_score
+#         """
+#         # use the sample data to update the task graph.
+#         # sampled_state_tag hint
+#         # 0: collision free
+#         # 1: arm-env collision or out of joint limit
+#         # 2: path constraint violation
+#         # 3: infeasble state, you should ignore this
+#         # 4: obj-env collision
+#         # ---
+#         # 5: valid configuration before project
+#         # 6: arm-env collision or out of joint limit before project
+#         # 7: path constraint violation before project
+#         # 8: infeasble state, you should ignore this before project
+#         # 9: obj-env collision before project
+#         sampled_data_distribution_tag_table = self._generate_sampled_distribution_tag_table_and_construct_atlas(plan_, task_graph_info_, manifold_constraint_)
+#         if sampled_data_distribution_tag_table is None:
+#             return
+        
+
+#         # the task graph info here is the manifold id(foliatino id and co-parameter id) of the current task.
+#         current_manifold_id = task_graph_info_
+
+#         # only update the weight of nodes in the same manifold with the current task.
+#         for n in self.current_task_graph.nodes():
+#             self._update_node_weight(n, current_manifold_id, sampled_data_distribution_tag_table)
+#         self.expand_current_task_graph(self.current_graph_distance_radius)
