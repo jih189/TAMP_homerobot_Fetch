@@ -355,6 +355,8 @@ class Sampler:
         self.grasp_pose_mat = [[1, 0, 0, -0.05], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
         self.placements = placements
 
+        self.selected_co_param_grasp = {}
+
     def _check_tolerance(self, reference_pose, position_tolerance, orientation_tolerance, position):
         ref_translation = reference_pose[:3, 3]
         pos_translation = position[:3, 3]
@@ -486,9 +488,8 @@ class Sampler:
 
     def sampling_func_placement_placement(self, foliation_1, foliation_2):
         successful_placements = {}
-        foliation_grasps = [foliation_1, foliation_2]
 
-        for foliation_grasp in foliation_grasps:
+        for foliation_grasp in [foliation_1, foliation_2]:
             successful_placements[foliation_grasp.foliation_name] = []
             for placement_index, placement in enumerate(self.placements):
                 if self._check_tolerance(foliation_grasp.constraint_parameters.get("reference_pose"),
@@ -498,12 +499,11 @@ class Sampler:
                     successful_placements[foliation_grasp.foliation_name].append(placement)
 
         common_placements = []
-        tolerance = 1e-6
 
         successful_placements_values = successful_placements.values()
         for array1 in successful_placements_values[0]:
             for array2 in successful_placements_values[1]:
-                if np.allclose(array1, array2, atol=tolerance):
+                if np.allclose(array1, array2, atol=1e-6):
                     common_placements.append(array1)
 
         selected_common_placement = common_placements[random.randint(0, len(common_placements) - 1)]
@@ -513,16 +513,41 @@ class Sampler:
             if placement.all() == selected_common_placement.all():
                 placement_index = i
 
-        selected_co_parameters1_index = random.randint(0, len(foliation_grasps[0].co_parameters) - 1)
+        # if self.selected_co_param_grasp.get(foliation_1.foliation_name) and self.selected_co_param_grasp.get(foliation_2.foliation_name):
+        #     if len(self.selected_co_param_grasp.get(foliation_1.foliation_name)) == len(self.selected_co_param_grasp.get(foliation_2.foliation_name)):
+        #         selected_co_parameters1_index = random.randint(0, len(foliation_1.co_parameters) - 1)
+        #     else:
+        #         temp_list = [item for item in self.selected_co_param_grasp.get(foliation_1.foliation_name) if item != -1]
+        #         selected_co_parameters1_index = random.choice(temp_list)
+        # else:
+        #     selected_co_parameters1_index = random.randint(0, len(foliation_1.co_parameters) - 1)
+
+        selected_co_parameters1_index = random.randint(0, len(foliation_1.co_parameters) - 1)
 
         check_result, intersection_motion, placement, selected_co_parameters1_index, selected_co_parameters2_index = (
-            self._sample_co_param(foliation_grasps[0], self.placements,
+            self._sample_co_param(foliation_1, self.placements,
                                   selected_co_parameters1_index, placement_index))
 
         if check_result:
+            # storage prev grasp pose
+            if foliation_1.foliation_name not in self.selected_co_param_grasp:
+                self.selected_co_param_grasp[foliation_1.foliation_name] = []
+            if foliation_2.foliation_name not in self.selected_co_param_grasp:
+                self.selected_co_param_grasp[foliation_2.foliation_name] = []
+
+            if selected_co_parameters1_index not in self.selected_co_param_grasp[foliation_1.foliation_name]:
+                self.selected_co_param_grasp[foliation_1.foliation_name].append(selected_co_parameters1_index)
+            else:
+                self.selected_co_param_grasp[foliation_1.foliation_name].append(-1)
+
+            if selected_co_parameters1_index not in self.selected_co_param_grasp[foliation_2.foliation_name]:
+                self.selected_co_param_grasp[foliation_2.foliation_name].append(selected_co_parameters1_index)
+            else:
+                self.selected_co_param_grasp[foliation_2.foliation_name].append(-1)
+
             return True, selected_co_parameters1_index, selected_co_parameters1_index, ManipulationIntersection(
                 'release',
-                [],
+                [intersection_motion[0]],
                 self.move_group.get_active_joints(),
                 placement,
                 self.manipulated_object_mesh_path,
