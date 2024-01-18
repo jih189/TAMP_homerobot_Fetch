@@ -722,35 +722,35 @@ class BaseTaskPlanner:
         self.total_similiarity_table[foliation_id_] = similarity_matrix_
 
 
-    def add_edge_distance_for_all_edges(self):
-        nx.set_edge_attributes(self.task_graph, 0.0, "edge_dist")
-        for node1, node2 in self.task_graph.edges():
-            if node1 != "start" and node2 != "goal" and node1 != "goal" and node2 != "start":
-                dist1, dist2 = node1[2], node2[2]
-                dist_between_two_distributions = (
-                    self.get_position_difference_between_distributions(
-                        self.gmm_.distributions[dist1].mean,
-                        self.gmm_.distributions[dist2].mean,
-                    )
-                )
-                self.task_graph.edges[node1, node2]["edge_dist"] = dist_between_two_distributions 
+    # def add_edge_distance_for_all_edges(self):
+    #     nx.set_edge_attributes(self.task_graph, 0.0, "edge_dist")
+    #     for node1, node2 in self.task_graph.edges():
+    #         if node1 != "start" and node2 != "goal" and node1 != "goal" and node2 != "start":
+    #             dist1, dist2 = node1[2], node2[2]
+    #             dist_between_two_distributions = (
+    #                 self.get_position_difference_between_distributions(
+    #                     self.gmm_.distributions[dist1].mean,
+    #                     self.gmm_.distributions[dist2].mean,
+    #                 )
+    #             )
+    #             self.task_graph.edges[node1, node2]["edge_dist"] = dist_between_two_distributions 
 
-    def setup_dynamic_planner(self):
+    # def setup_dynamic_planner(self):
 
-        self.add_edge_distance_for_all_edges()        
-        nx.set_node_attributes(self.task_graph, np.inf, "dist_to_start")
-        nx.set_node_attributes(self.task_graph, np.inf, "dist_to_goal")
-        self.task_graph.nodes["start"]["dist_to_start"] = 0.0
-        self.task_graph.nodes["goal"]["dist_to_goal"] = 0.0
+    #     self.add_edge_distance_for_all_edges()        
+    #     nx.set_node_attributes(self.task_graph, np.inf, "dist_to_start")
+    #     nx.set_node_attributes(self.task_graph, np.inf, "dist_to_goal")
+    #     self.task_graph.nodes["start"]["dist_to_start"] = 0.0
+    #     self.task_graph.nodes["goal"]["dist_to_goal"] = 0.0
 
-        self.compute_distance_to_start_and_goal()
-        self.current_graph_distance_radius = (
-            nx.shortest_path_length(
-                self.task_graph, "start", "goal", weight="edge_dist"
-            )
-            + 1e-8
-        )
-        self.expand_current_task_graph(self.current_graph_distance_radius)
+    #     self.compute_distance_to_start_and_goal()
+    #     self.current_graph_distance_radius = (
+    #         nx.shortest_path_length(
+    #             self.task_graph, "start", "goal", weight="edge_dist"
+    #         )
+    #         + 1e-8
+    #     )
+    #     self.expand_current_task_graph(self.current_graph_distance_radius)
 
     def get_position_difference_between_distributions(self, dist_mean_1, dist_mean_2):
         """

@@ -11,9 +11,7 @@ from jiaming_task_planner import (
     MTGTaskPlannerWithGMM,
     MTGTaskPlannerWithAtlas,
     DynamicMTGTaskPlannerWithGMM,
-    DynamicMTGTaskPlannerWithGMM_V2,
     DynamicMTGPlannerWithAtlas,
-    DynamicMTGPlannerWithAtlas_V2,
 )
 from jiaming_motion_planner import MoveitMotionPlanner
 
@@ -61,11 +59,11 @@ if __name__ == "__main__":
 
     # load the foliated problem
     loaded_foliated_problem = FoliatedProblem.load(
-        ManipulationFoliation, ManipulationIntersection, package_path + "/check/drive-download-20240114T225505Z-001/pour_water_seq/check"
+        ManipulationFoliation, ManipulationIntersection, package_path + "/check"
     )
 
     # set the result file path
-    result_file_path = package_path + "/check/drive-download-20240114T225505Z-001/pour_water_seq/check" + "/result.json"
+    result_file_path = package_path + "/result.json"
 
     # sampled random start and goal
     sampled_start_and_goal_list = [
@@ -91,17 +89,15 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     task_planners = [
-        MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
-        MTGTaskPlannerWithGMM(gmm),
-        # DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM"),
-        DynamicMTGTaskPlannerWithGMM_V2(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
-        DynamicMTGPlannerWithAtlas_V2(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_25.0", threshold=25.0),
-        DynamicMTGTaskPlannerWithGMM_V2(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_50.0", threshold=50.0),
-        DynamicMTGPlannerWithAtlas_V2(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=50.0),
-        DynamicMTGTaskPlannerWithGMM_V2(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_75.0", threshold=75.0),
-        DynamicMTGPlannerWithAtlas_V2(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_75.0", threshold=75.0),
-        # DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas"),
         MTGTaskPlanner(),
+        MTGTaskPlannerWithGMM(gmm),
+        MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
+        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_25.0", threshold=25.0),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_50.0", threshold=50.0),
+        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=50.0),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_75.0", threshold=75.0),
+        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_75.0", threshold=75.0),
     ]
 
     with open(result_file_path, "w") as result_file:
