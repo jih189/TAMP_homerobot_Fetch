@@ -52,18 +52,25 @@ if __name__ == "__main__":
 
     rospy.init_node("evaluation_node", anonymous=True)
 
+    task_name = rospy.get_param("~task_name", "")
+
     rospack = rospkg.RosPack()
 
     # Get the path of the desired package
     package_path = rospack.get_path("task_planner")
 
+    problem_file_path = package_path + "/" + task_name + "/check"
+
     # load the foliated problem
     loaded_foliated_problem = FoliatedProblem.load(
-        ManipulationFoliation, ManipulationIntersection, package_path + "/check"
+        ManipulationFoliation, ManipulationIntersection, problem_file_path
     )
 
     # set the result file path
-    result_file_path = package_path + "/result.json"
+    result_file_path = package_path + "/" + task_name + "/result.json"
+
+    print "problem file path: ", problem_file_path
+    print "result file path: ", result_file_path
 
     # sampled random start and goal
     sampled_start_and_goal_list = [
