@@ -374,7 +374,6 @@ class Sampler:
         relative_euler_angles = tf_trans.euler_from_quaternion(relative_quaternion)
         within_orientation_tolerance = np.all(np.abs(relative_euler_angles) <= orientation_tolerance)
 
-        # print relative_euler_angles, within_orientation_tolerance
         return within_position_tolerance and within_orientation_tolerance
 
     def _check_grasp_feasibility(self, placement, grasp):
@@ -499,6 +498,8 @@ class Sampler:
                     successful_placements[foliation_grasp.foliation_name].append(placement)
 
         common_placements = []
+        
+        # print successful_placements
 
         successful_placements_values = successful_placements.values()
         for array1 in successful_placements_values[0]:
@@ -507,22 +508,22 @@ class Sampler:
                     common_placements.append(array1)
 
         selected_common_placement = common_placements[random.randint(0, len(common_placements) - 1)]
-
+        
         placement_index = None
         for i, placement in enumerate(self.placements):
-            if placement.all() == selected_common_placement.all():
+            # print i, placement
+            if np.allclose(placement, selected_common_placement, atol=1e-6):
                 placement_index = i
+                break
 
-        # if self.selected_co_param_grasp.get(foliation_1.foliation_name) and self.selected_co_param_grasp.get(foliation_2.foliation_name):
-        #     if len(self.selected_co_param_grasp.get(foliation_1.foliation_name)) == len(self.selected_co_param_grasp.get(foliation_2.foliation_name)):
-        #         selected_co_parameters1_index = random.randint(0, len(foliation_1.co_parameters) - 1)
-        #     else:
-        #         temp_list = [item for item in self.selected_co_param_grasp.get(foliation_1.foliation_name) if item != -1]
-        #         selected_co_parameters1_index = random.choice(temp_list)
-        # else:
-        #     selected_co_parameters1_index = random.randint(0, len(foliation_1.co_parameters) - 1)
-
-        selected_co_parameters1_index = random.randint(0, len(foliation_1.co_parameters) - 1)
+        if self.selected_co_param_grasp.get(foliation_1.foliation_name) and self.selected_co_param_grasp.get(foliation_2.foliation_name):
+            if len(self.selected_co_param_grasp.get(foliation_1.foliation_name)) == len(self.selected_co_param_grasp.get(foliation_2.foliation_name)):
+                selected_co_parameters1_index = random.randint(0, len(foliation_1.co_parameters) - 1)
+            else:
+                temp_list = [item for item in self.selected_co_param_grasp.get(foliation_1.foliation_name) if item != -1]
+                selected_co_parameters1_index = random.choice(temp_list)
+        else:
+            selected_co_parameters1_index = random.randint(0, len(foliation_1.co_parameters) - 1)
 
         check_result, intersection_motion, placement, selected_co_parameters1_index, selected_co_parameters2_index = (
             self._sample_co_param(foliation_1, self.placements,

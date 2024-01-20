@@ -11,3 +11,5 @@ foliated_problems/
 
 .idea/
 .ipynb_checkpoints/
+
+.results/
