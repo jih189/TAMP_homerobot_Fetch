@@ -18,6 +18,7 @@ The objective of this project is to leverage both atlas and Gaussian Mixture Mod
   - [GMM generation tutorial](#gmm-generation-tutorial)
   - [Experience task generation tutorial](#experience-task-generation-tutorial)
   - [Evaluation tutorial](#evaluation-tutorial)
+  - [Evaluation in parallel tutorial](#evaluation-in-parallel-tutorial)
 - [Other tutorial](#other-tutorial)
 
 # Preivous Works
@@ -187,7 +188,31 @@ There are also two parameters you can change to change the evaluation setting.
 number_of_tasks = 5 # number of tasks to be sampled
 max_attempt_time = 5 # maximum attempt time for each task
 ```
+## Evaluation in parallel tutorial
+You can also run evaluation parallelly by using multiple docker. Here is the instruction how to do that. Before you run the following code, you need to save all tasks into "task_set" directory in the task_planner package(directory). That is, after you download the experiment file, you decompress it and place it directly to there. Therefore, the "task_set" directory should contain "door", "drawer", "maze",...etc. 
 
+1. After you create a container, you can commit it with the following code
+   ```
+   docker commit [container-id] jiaming-ubuntu18:evaluation
+   ```
+2. Run the following code to create a new docker container for evaluation(you can run multiple times in different terminals, so you can run multiple evaluation in parallel)
+   ```
+   sh run_evaluation.sh
+   ```
+3. Check the __docker ps__ for the container id. The container id should be also shown in the terminal you just create right after the "root@". Then, run the following code to enter the container
+   ```
+   docker exec -it [container-id] bash
+   ```
+4. Therefore, you can have two terminals for one docker container. One for running moveit, and the other for running evaluation. In the terminal for running moveit, you can run the following code to start moveit
+   ```
+   roslaunch fetch_moveit_config fake_move_group.launch
+   ```
+    In the terminal for running evaluation, you can run the following code(example) to start evaluation
+   ```
+   rosrun task_planner planner_evaluation.py _task_name:=task_set/shelf
+   ```
+
+5. The jupyter script should be set up already to check the values.
 <!-- We also provide the code to evaluate different task planner. 
 ```
 rosrun task_planner evaluation.py
