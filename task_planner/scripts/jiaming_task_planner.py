@@ -445,6 +445,102 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         return task_sequence
 
+    # def _generate_sampled_distribution_tag_table(self, plan_):
+    #     # if sampled data is empty, then skip it.
+    #     if len(plan_[4].verified_motions) == 0:
+    #         print("sampled data is empty.")
+    #         return
+
+    #     collision_free_sampled_data = []
+    #     arm_env_collision_sampled_data = []
+    #     path_constraint_violation_sampled_data = []
+    #     obj_env_collision_sampled_data = []
+
+    #     for sampled_data in plan_[4].verified_motions:
+    #         if (
+    #             sampled_data.sampled_state_tag == 0 
+    #             or sampled_data.sampled_state_tag == 5
+    #         ):
+    #             collision_free_sampled_data.append(sampled_data.sampled_state)
+    #         elif (
+    #             sampled_data.sampled_state_tag == 1
+    #             or sampled_data.sampled_state_tag == 6
+    #         ):
+    #             arm_env_collision_sampled_data.append(sampled_data.sampled_state)
+    #         elif (
+    #             sampled_data.sampled_state_tag == 2
+    #             or sampled_data.sampled_state_tag == 7
+    #         ):
+    #             path_constraint_violation_sampled_data.append(sampled_data.sampled_state)
+    #         elif (
+    #             sampled_data.sampled_state_tag == 4
+    #             or sampled_data.sampled_state_tag == 9
+    #         ):
+    #             obj_env_collision_sampled_data.append(sampled_data.sampled_state)
+
+    #     if len(collision_free_sampled_data) > 0:
+    #         collision_free_sampled_data_numpy = np.array(collision_free_sampled_data)
+    #         collision_free_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(
+    #             collision_free_sampled_data_numpy
+    #         )
+    #         collision_free_density_of_each_component_sum = np.sum(
+    #             collision_free_density_of_each_component, axis=0
+    #         )
+    #     else:
+    #         collision_free_density_of_each_component_sum = np.zeros(
+    #             len(self.gmm_.distributions)
+    #         )
+
+    #     if len(arm_env_collision_sampled_data) > 0:
+    #         arm_env_collision_sampled_data_numpy = np.array(
+    #             arm_env_collision_sampled_data
+    #         )
+    #         arm_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(
+    #             arm_env_collision_sampled_data_numpy
+    #         )
+    #         arm_env_collision_density_of_each_component_sum = np.sum(
+    #             arm_env_collision_density_of_each_component, axis=0
+    #         )
+    #     else:
+    #         arm_env_collision_density_of_each_component_sum = np.zeros(
+    #             len(self.gmm_.distributions)
+    #         )
+
+    #     if len(path_constraint_violation_sampled_data) > 0:
+    #         path_constraint_violation_sampled_data_numpy = np.array(
+    #             path_constraint_violation_sampled_data
+    #         )
+    #         path_constraint_violation_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(
+    #             path_constraint_violation_sampled_data_numpy
+    #         )
+    #         path_constraint_violation_density_of_each_component_sum = np.sum(
+    #             path_constraint_violation_density_of_each_component, axis=0
+    #         )
+    #     else:
+    #         path_constraint_violation_density_of_each_component_sum = np.zeros(
+    #             len(self.gmm_.distributions)
+    #         )
+
+    #     if len(obj_env_collision_sampled_data) > 0:
+    #         obj_env_collision_sampled_data_numpy = np.array(
+    #             obj_env_collision_sampled_data
+    #         )
+    #         obj_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(
+    #             obj_env_collision_sampled_data_numpy
+    #         )
+    #         obj_env_collision_density_of_each_component_sum = np.sum(
+    #             obj_env_collision_density_of_each_component, axis=0
+    #         )
+    #     else:
+    #         obj_env_collision_density_of_each_component_sum = np.zeros(
+    #             len(self.gmm_.distributions)
+    #         )
+
+    #     sampled_data_distribution_tag_table = np.vstack(
+    #         (collision_free_density_of_each_component_sum, arm_env_collision_density_of_each_component_sum, path_constraint_violation_density_of_each_component_sum, obj_env_collision_density_of_each_component_sum)
+    #     ).T
+
+    #     return sampled_data_distribution_tag_table
 
     def _generate_sampled_distribution_tag_table(self, plan_):
 
@@ -1092,6 +1188,147 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                         )
                     )  # related task nodes contains all the nodes in the same foliation with the same distribution id.
         return result
+
+    # def _generate_sampled_distribution_tag_table_and_construct_atlas(self, plan_, task_graph_info_, manifold_constraint_):
+        # # if sampled data is empty, then skip it.
+        # if len(plan_[4].verified_motions) == 0:
+        #     print("sampled data is empty.")
+        #     return
+        
+        # # the task graph info here is the manifold id(foliatino id and co-parameter id) of the current task.
+        # current_manifold_id = task_graph_info_
+
+        # construct_atlas_request = ConstructAtlasRequest()
+        # construct_atlas_request.group_name = "arm"
+        # construct_atlas_request.foliation_id = task_graph_info_[0]
+        # construct_atlas_request.co_parameter_id = task_graph_info_[1]
+        # construct_atlas_request.list_of_configuration_with_info = []
+        # construct_atlas_request.default_state = self.default_robot_state_
+        # construct_atlas_request.constraints = manifold_constraint_
+
+        # after_project_collision_free_sampled_data = []
+        # after_project_arm_env_collision_sampled_data = []
+        # after_project_path_constraint_violation_sampled_data = []
+        # after_project_obj_env_collision_sampled_data = []
+        # pre_project_collision_free_sampled_data = []
+        # pre_project_arm_env_collision_sampled_data = []
+        # pre_project_path_constraint_violation_sampled_data = []
+        # pre_project_obj_env_collision_sampled_data = []
+
+        # for sampled_data in plan_[4].verified_motions:
+        #     if sampled_data.sampled_state_tag == 0:
+        #         after_project_collision_free_sampled_data.append(sampled_data.sampled_state)
+        #     elif sampled_data.sampled_state_tag == 1:
+        #         after_project_arm_env_collision_sampled_data.append(sampled_data.sampled_state)
+        #     elif sampled_data.sampled_state_tag == 2:
+        #         after_project_path_constraint_violation_sampled_data.append(sampled_data.sampled_state)
+        #     elif sampled_data.sampled_state_tag == 4:
+        #         after_project_obj_env_collision_sampled_data.append(sampled_data.sampled_state)
+        #     elif sampled_data.sampled_state_tag == 5:
+        #         pre_project_collision_free_sampled_data.append(sampled_data.sampled_state)
+        #     elif sampled_data.sampled_state_tag == 6:
+        #         pre_project_arm_env_collision_sampled_data.append(sampled_data.sampled_state)
+        #     elif sampled_data.sampled_state_tag == 7:
+        #         pre_project_path_constraint_violation_sampled_data.append(sampled_data.sampled_state)
+        #     elif sampled_data.sampled_state_tag == 9:
+        #         pre_project_obj_env_collision_sampled_data.append(sampled_data.sampled_state)
+
+        # # (n_samples, n_distribution) <- (n_samples, n_features)
+        # if len(after_project_collision_free_sampled_data) > 0:
+        #     after_project_collision_free_sampled_data_numpy = np.array(after_project_collision_free_sampled_data)
+        #     after_project_collision_free_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(after_project_collision_free_sampled_data_numpy)
+        #     after_project_collision_free_density_of_each_component_sum = np.sum(after_project_collision_free_density_of_each_component, axis=0)
+        # else:
+        #     after_project_collision_free_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+
+        # if len(after_project_arm_env_collision_sampled_data) > 0:
+        #     after_project_arm_env_collision_sampled_data_numpy = np.array(after_project_arm_env_collision_sampled_data)
+        #     after_project_arm_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(after_project_arm_env_collision_sampled_data_numpy)
+        #     after_project_arm_env_collision_density_of_each_component_sum = np.sum(after_project_arm_env_collision_density_of_each_component, axis=0)
+        # else:
+        #     after_project_arm_env_collision_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+
+        # if len(after_project_path_constraint_violation_sampled_data) > 0:
+        #     after_project_path_constraint_violation_sampled_data_numpy = np.array(after_project_path_constraint_violation_sampled_data)
+        #     after_project_path_constraint_violation_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(after_project_path_constraint_violation_sampled_data_numpy)
+        #     after_project_path_constraint_violation_density_of_each_component_sum = np.sum(after_project_path_constraint_violation_density_of_each_component, axis=0)
+        # else:
+        #     after_project_path_constraint_violation_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+
+        # if len(after_project_obj_env_collision_sampled_data) > 0:
+        #     after_project_obj_env_collision_sampled_data_numpy = np.array(after_project_obj_env_collision_sampled_data)
+        #     after_project_obj_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(after_project_obj_env_collision_sampled_data_numpy)
+        #     after_project_obj_env_collision_density_of_each_component_sum = np.sum(after_project_obj_env_collision_density_of_each_component, axis=0)
+        # else:
+        #     after_project_obj_env_collision_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+
+        # if len(pre_project_collision_free_sampled_data) > 0:
+        #     pre_project_collision_free_sampled_data_numpy = np.array(pre_project_collision_free_sampled_data)
+        #     pre_project_collision_free_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(pre_project_collision_free_sampled_data_numpy)
+        #     pre_project_collision_free_density_of_each_component_sum = np.sum(pre_project_collision_free_density_of_each_component, axis=0)
+        # else:
+        #     pre_project_collision_free_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+
+        # if len(pre_project_arm_env_collision_sampled_data) > 0:
+        #     pre_project_arm_env_collision_sampled_data_numpy = np.array(pre_project_arm_env_collision_sampled_data)
+        #     pre_project_arm_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(pre_project_arm_env_collision_sampled_data_numpy)
+        #     pre_project_arm_env_collision_density_of_each_component_sum = np.sum(pre_project_arm_env_collision_density_of_each_component, axis=0)
+        # else:
+        #     pre_project_arm_env_collision_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+
+        # if len(pre_project_path_constraint_violation_sampled_data) > 0:
+        #     pre_project_path_constraint_violation_sampled_data_numpy = np.array(pre_project_path_constraint_violation_sampled_data)
+        #     pre_project_path_constraint_violation_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(pre_project_path_constraint_violation_sampled_data_numpy)
+        #     pre_project_path_constraint_violation_density_of_each_component_sum = np.sum(pre_project_path_constraint_violation_density_of_each_component, axis=0)
+        # else:
+        #     pre_project_path_constraint_violation_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+
+        # if len(pre_project_obj_env_collision_sampled_data) > 0:
+        #     pre_project_obj_env_collision_sampled_data_numpy = np.array(pre_project_obj_env_collision_sampled_data)
+        #     pre_project_obj_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(pre_project_obj_env_collision_sampled_data_numpy)
+        #     pre_project_obj_env_collision_density_of_each_component_sum = np.sum(pre_project_obj_env_collision_density_of_each_component, axis=0)
+        # else:
+        #     pre_project_obj_env_collision_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+
+        # if len(after_project_collision_free_sampled_data) > 0:
+        #     after_project_collision_free_density_of_each_component_max = np.max(after_project_collision_free_density_of_each_component, axis=1)
+        #     for j in range(len(self.gmm_.distributions)):
+        #         current_added_node_to_atlas = 0
+        #         for i in range(len(after_project_collision_free_sampled_data)):
+        #             if current_added_node_to_atlas > self.max_valid_configuration_number_to_atlas:
+        #                 break
+        #             if after_project_collision_free_density_of_each_component[i][j] >= (after_project_collision_free_density_of_each_component_max[i] / len(self.gmm_.distributions)):
+        #                 current_added_node_to_atlas += 1
+        #                 configuration_with_info = ConfigurationWithInfo()
+        #                 configuration_with_info.joint_configuration = (
+        #                     after_project_collision_free_sampled_data[i]
+        #                 )
+        #                 configuration_with_info.distribution_id = j
+        #                 construct_atlas_request.list_of_configuration_with_info.append(configuration_with_info)
+        #                 self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], j)]['has_atlas'] = True
+
+        # sampled_data_distribution_tag_table = np.vstack((
+        #     after_project_collision_free_density_of_each_component_sum,
+        #     after_project_arm_env_collision_density_of_each_component_sum,
+        #     after_project_path_constraint_violation_density_of_each_component_sum,
+        #     after_project_obj_env_collision_density_of_each_component_sum,
+        #     pre_project_collision_free_density_of_each_component_sum,
+        #     pre_project_arm_env_collision_density_of_each_component_sum,
+        #     pre_project_path_constraint_violation_density_of_each_component_sum,
+        #     pre_project_obj_env_collision_density_of_each_component_sum
+        # )).T
+
+        # if len(construct_atlas_request.list_of_configuration_with_info) != 0:
+        #     self.atlas_service.call(construct_atlas_request)
+
+        # # if there are some projected valid configuration, then there must be an atlas.
+        # for distribution_index in range(len(self.gmm_.distributions)):
+        #     self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['valid_configuration_before_project'] += sampled_data_distribution_tag_table[distribution_index][4]
+        #     invalid_configuration_number_before_project = sampled_data_distribution_tag_table[distribution_index][5] + sampled_data_distribution_tag_table[distribution_index][6] + sampled_data_distribution_tag_table[distribution_index][7]
+        #     self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['invalid_configuration_before_project'] += invalid_configuration_number_before_project
+
+        # return sampled_data_distribution_tag_table
+        
 
     def _generate_sampled_distribution_tag_table_and_construct_atlas(self, plan_, task_graph_info_, manifold_constraint_):    
 
