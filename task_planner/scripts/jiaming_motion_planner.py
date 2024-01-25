@@ -205,6 +205,7 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         return (
             motion_plan_result[0],
             ManipulationTaskMotion(
+                'arm_motion',
                 planned_motion=motion_plan_result[1],
                 has_object_in_hand=foliation_constraints["is_object_in_hand"],
                 object_pose=co_parameter,

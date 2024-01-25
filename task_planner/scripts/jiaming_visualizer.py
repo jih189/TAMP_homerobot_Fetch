@@ -16,6 +16,7 @@ import random
 class ManipulationTaskMotion(BaseTaskMotion):
     def __init__(
         self,
+        action_name,
         planned_motion,
         has_object_in_hand,
         object_pose,
@@ -27,6 +28,7 @@ class ManipulationTaskMotion(BaseTaskMotion):
         if not isinstance(planned_motion, moveit_msgs.msg.RobotTrajectory):
             raise TypeError("planned_motion must be trajectory_msgs/JointTrajectory.")
 
+        self.action_name = action_name
         self.planned_motion = planned_motion
         self.has_object_in_hand = has_object_in_hand  # if the object is in hand.
         self.object_pose = object_pose  # if the object is in hand, then this is the object pose in the hand frame. if not, this is the object pose in the base_link frame.
@@ -36,6 +38,7 @@ class ManipulationTaskMotion(BaseTaskMotion):
 
     def get(self):
         return (
+            self.action_name,
             self.planned_motion,
             self.has_object_in_hand,
             self.object_pose,
@@ -466,9 +469,13 @@ class MoveitVisualizer(BaseVisualizer):
 
         need_to_break = False
 
+        is_gripper_open = True 
+        gripper_joint_names = ["l_gripper_finger_joint", "r_gripper_finger_joint"]
+
         while not rospy.is_shutdown():
             for motion_plan in list_of_motion_plan:
                 (
+                    action_name,
                     motion_trajectory,
                     has_object_in_hand,
                     object_pose,
@@ -476,6 +483,10 @@ class MoveitVisualizer(BaseVisualizer):
                     obstacle_pose,
                     obstacle_mesh_path,
                 ) = motion_plan.get()
+
+                # if the action is release, then we need to visualize the release motion
+                if action_name == "release":
+                    is_gripper_open = True
 
                 if obstacle_pose is not None:
                     self.obstacle_marker.mesh_resource = (
@@ -487,8 +498,17 @@ class MoveitVisualizer(BaseVisualizer):
 
                 for p in motion_trajectory.joint_trajectory.points:
                     current_robot_state_msg = moveit_msgs.msg.DisplayRobotState()
+                    # current_robot_state_msg.state = convert_joint_values_to_robot_state(
+                    #     p.positions, self.active_joints, self.robot
+                    # )
+
+                    # based on the is_gripper_open, we need to change the gripper states
+                    if is_gripper_open:
+                        gripper_positions = [0.04, 0.04]
+                    else:
+                        gripper_positions = [0.0, 0.0]
                     current_robot_state_msg.state = convert_joint_values_to_robot_state(
-                        p.positions, self.active_joints, self.robot
+                        list(p.positions) + gripper_positions, self.active_joints + gripper_joint_names, self.robot
                     )
 
                     # if not manipulated object, then does not need to publish the object
@@ -528,5 +548,9 @@ class MoveitVisualizer(BaseVisualizer):
                         break
                 if need_to_break:
                     break
+                # if the action is grasp, then we need to visualize the grasp motion
+                if action_name == "grasp":
+                    is_gripper_open = False
+
             if need_to_break:
                 break
