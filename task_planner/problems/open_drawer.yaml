@@ -3,7 +3,7 @@ task_parameters:
   task_type: ""
   num_samples: 5000
   random_seed: 3897
-  save_path: "/check"
+  save_path: "/check/self_generated/open_drawer"
 
 initial_joint_state:
   torso_lift_joint: 0.38
@@ -41,7 +41,7 @@ placement:
       steps: 15
 
 grasp:
-  num_samples: 80
+  num_samples: 0
   rotated_matrix:
     - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]

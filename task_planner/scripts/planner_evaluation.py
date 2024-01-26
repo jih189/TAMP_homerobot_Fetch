@@ -59,7 +59,7 @@ if __name__ == "__main__":
     # Get the path of the desired package
     package_path = rospack.get_path("task_planner")
 
-    problem_file_path = package_path + "/" + task_name + "/check"
+    problem_file_path = package_path + "/" + 'check/self_generated/' + task_name + "/"
 
     # load the foliated problem
     loaded_foliated_problem = FoliatedProblem.load(
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     )
 
     # set the result file path
-    result_file_path = package_path + "/" + task_name + "/result.json"
+    result_file_path = package_path + "/" + 'check/old_good_res/self_generated/' + task_name + "/result_gmm_2.json"
 
     print "problem file path: ", problem_file_path
     print "result file path: ", result_file_path
@@ -96,15 +96,11 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     task_planners = [
-        MTGTaskPlanner(),
-        MTGTaskPlannerWithGMM(gmm),
         MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
         DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
-        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_25.0", threshold=25.0),
-        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_50.0", threshold=50.0),
         DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=50.0),
-        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_75.0", threshold=75.0),
-        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_75.0", threshold=75.0),
+        MTGTaskPlannerWithGMM(gmm),
+        MTGTaskPlanner(),
     ]
 
     with open(result_file_path, "w") as result_file:
@@ -144,6 +140,8 @@ if __name__ == "__main__":
                     num_attempts,
                     total_solve_time,
                     set_start_and_goal_time,
+                    task_graph_size,
+                    current_task_graph_size,
                 ) = foliated_planning_framework.evaluation()
 
                 if success_flag:
@@ -159,6 +157,8 @@ if __name__ == "__main__":
                         "updating_time": updating_time,
                         "solution_length": solution_length,
                         "num_attempts": num_attempts,
+                        "task_graph_size": task_graph_size,
+                        "current_task_graph_size": current_task_graph_size,
                     }
                     json.dump(result_data, result_file)
                     result_file.write("\n")
@@ -175,9 +175,12 @@ if __name__ == "__main__":
                         "updating_time": -1,
                         "solution_length": -1,
                         "num_attempts": -1,
+                        "task_graph_size": -1,
+                        "current_task_graph_size": -1,
                     }
                     json.dump(result_data, result_file)
                     result_file.write("\n")
 
+            task_planner.reset_task_planner(hard_reset = True)
     # shutdown the planning framework
     foliated_planning_framework.shutdown()

@@ -2,7 +2,7 @@ task_parameters:
   task_name: "maze"
   task_type: ""
   num_samples: 5000
-  save_path: "/check"
+  save_path: "/check/self_generated/maze"
 
 initial_joint_state:
   torso_lift_joint: 0.38
@@ -29,7 +29,7 @@ environment:
     - [0, 0, 0, 1]
 
 grasp:
-  num_samples: 40
+  num_samples: 100
   rotated_matrix:
     - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]

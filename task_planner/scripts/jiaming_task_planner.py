@@ -830,7 +830,7 @@ class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
                 self.task_graph, "start", "goal", weight="edge_dist"
             )
             + 1e-8
-        )
+        ) * 2.0
         self.expand_current_task_graph(self.current_graph_distance_radius)
 
     # DynamicMTGTaskPlannerWithGMM
@@ -1689,7 +1689,7 @@ class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
                 self.task_graph, "start", "goal", weight="edge_dist"
             )
             + 1e-8
-        )
+        ) * 2.0
         self.expand_current_task_graph(self.current_graph_distance_radius)
 
     # MTGTaskPlannerWithAtlas
