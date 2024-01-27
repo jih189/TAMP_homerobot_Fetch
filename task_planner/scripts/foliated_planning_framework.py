@@ -28,12 +28,12 @@ class FoliatedPlanningFramework:
         self.foliated_problem = foliated_problem
         self.has_new_foliated_problem = True
 
-    def setMotionPlanner(self, motion_planner):
+    def setMotionPlanner(self, motion_planner, is_real_robot=False):
         """
         This function sets the motion planner to the planning framework.
         """
         self.motion_planner = motion_planner
-        self.motion_planner.prepare_planner()
+        self.motion_planner.prepare_planner(is_real_robot=is_real_robot)
         self.has_motion_planner = True
 
     def setTaskPlanner(self, task_planner):

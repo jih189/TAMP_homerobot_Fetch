@@ -17,6 +17,7 @@ from moveit_msgs.msg import (
     MoveItErrorCodes,
     AttachedCollisionObject,
     SamplingDistribution,
+    RobotTrajectory,
 )
 from sensor_msgs.msg import JointState
 from ros_numpy import numpify, msgify
@@ -33,9 +34,15 @@ from jiaming_helper import (
 from foliated_base_class import BaseMotionPlanner
 from jiaming_visualizer import ManipulationTaskMotion
 
+import actionlib
+from control_msgs.msg import (
+    GripperCommandAction,
+    GripperCommandGoal
+)
+
 
 class MoveitMotionPlanner(BaseMotionPlanner):
-    def prepare_planner(self):
+    def prepare_planner(self, is_real_robot=False):
         moveit_commander.roscpp_initialize(sys.argv)
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
@@ -47,34 +54,40 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         # self.move_group.set_planner_id('RRTConnectkConfigDefault')
         self.move_group.set_planning_time(1.0)
 
-        # set initial joint state
-        joint_state_publisher = rospy.Publisher(
-            "/move_group/fake_controller_joint_states", JointState, queue_size=1
-        )
+        if(not is_real_robot):
+            # set initial joint state
+            joint_state_publisher = rospy.Publisher(
+                "/move_group/fake_controller_joint_states", JointState, queue_size=1
+            )
 
-        # Create a JointState message
-        joint_state = JointState()
-        joint_state.header.stamp = rospy.Time.now()
-        joint_state.name = [
-            "torso_lift_joint",
-            "shoulder_pan_joint",
-            "shoulder_lift_joint",
-            "upperarm_roll_joint",
-            "elbow_flex_joint",
-            "wrist_flex_joint",
-            "l_gripper_finger_joint",
-            "r_gripper_finger_joint",
-        ]
-        joint_state.position = [0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
+            # Create a JointState message
+            joint_state = JointState()
+            joint_state.header.stamp = rospy.Time.now()
+            joint_state.name = [
+                "torso_lift_joint",
+                "shoulder_pan_joint",
+                "shoulder_lift_joint",
+                "upperarm_roll_joint",
+                "elbow_flex_joint",
+                "wrist_flex_joint",
+                "l_gripper_finger_joint",
+                "r_gripper_finger_joint",
+            ]
+            joint_state.position = [0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
 
-        rate = rospy.Rate(10)
-        while (
-            joint_state_publisher.get_num_connections() < 1
-        ):  # need to wait until the publisher is ready.
-            rate.sleep()
-        joint_state_publisher.publish(joint_state)
+            rate = rospy.Rate(10)
+            while (
+                joint_state_publisher.get_num_connections() < 1
+            ):  # need to wait until the publisher is ready.
+                rate.sleep()
+            joint_state_publisher.publish(joint_state)
 
-        rospy.sleep(0.5)
+            rospy.sleep(0.5)
+        else:
+            self.gripper_client = actionlib.SimpleActionClient(
+                "/gripper_controller/gripper_action", GripperCommandAction
+            )
+            self.gripper_client.wait_for_server()
 
     def plan(
         self,
@@ -216,6 +229,87 @@ class MoveitMotionPlanner(BaseMotionPlanner):
             motion_plan_result,
             manifold_constraint,
         )
+
+    def move_to_start_robot_state(self, start_robot_state):
+
+        self.open_gripper()
+
+        self.move_group = moveit_commander.MoveGroupCommander("arm_with_torso")
+        self.move_group.set_planner_id("RRTConnectkConfigDefault")
+        # Create a JointState message
+        start_joint_state = JointState()
+        start_joint_state.header.stamp = rospy.Time.now()
+        start_joint_state.name = start_robot_state.joint_state.name
+        start_joint_state.position = start_robot_state.joint_state.position
+        self.move_group.set_joint_value_target(start_joint_state)
+        self.move_group.go()
+
+        # sleep for 1 second
+        rospy.sleep(1)
+        # self.move_group = moveit_commander.MoveGroupCommander("gripper")
+        # # Create a JointState message
+        # start_joint_state = JointState()
+        # start_joint_state.header.stamp = rospy.Time.now()
+        # start_joint_state.name = ["l_gripper_finger_joint", "r_gripper_finger_joint"]
+        # start_joint_state.position = [0.04, 0.04]
+        # self.move_group.set_joint_value_target(start_joint_state)
+        # self.move_group.go()
+
+        self.move_group = moveit_commander.MoveGroupCommander("arm")
+        self.move_group.set_planner_id("CDISTRIBUTIONRRTConfigDefault")
+
+    
+    def open_gripper(self):
+        # raw_input("Press Enter to open gripper...")
+
+        goal = GripperCommandGoal()
+        goal.command.position = 0.08
+        goal.command.max_effort = 100
+        
+        self.gripper_client.send_goal(goal)
+        self.gripper_client.wait_for_result(rospy.Duration(10.0))
+
+    def close_gripper(self):
+        # raw_input("Press Enter to close gripper...")
+
+        goal = GripperCommandGoal()
+        goal.command.position = 0.0
+        goal.command.max_effort = 100
+        self.gripper_client.send_goal(goal)
+        self.gripper_client.wait_for_result(rospy.Duration(10.0))
+
+
+
+    def execute(self, list_of_motion_plan):
+
+        for motion_plan in list_of_motion_plan:
+            current_trajectory = RobotTrajectory()
+            (
+                action_name,
+                motion_trajectory,
+                has_object_in_hand,
+                object_pose,
+                object_mesh_path,
+                obstacle_pose,
+                obstacle_mesh_path,
+            ) = motion_plan.get()
+
+            print "action_name: ", action_name
+
+            if action_name == "release":
+                # open the gripper
+                print "open gripper"
+                self.open_gripper()
+
+            # set the current joint to the first point of the trajectory, so it will not cause the tolerance error.
+            motion_trajectory.joint_trajectory.points[0].positions = self.move_group.get_current_joint_values()
+
+            self.move_group.execute(motion_trajectory)
+
+            if action_name == "grasp":
+                # close the gripper
+                print "close gripper"
+                self.close_gripper()
 
     def shutdown_planner(self):
         moveit_commander.roscpp_shutdown()

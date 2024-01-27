@@ -349,7 +349,7 @@ class Sampler:
         self.env_pose = create_pose_stamped(config.get('environment', 'env_pose'))
         self.env_mesh_path = config.package_path + config.get('environment', 'env_mesh_path')
         self.scene = robot_scene.scene
-        self.fraction = 0.97
+        self.fraction = 1.0
         self.target_frame_id = "base_link"
         self.target_group_name = "arm"
         self.grasp_pose_mat = [[1, 0, 0, -0.05], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
@@ -411,9 +411,9 @@ class Sampler:
 
         self.move_group.set_start_state(moveit_robot_state)
         (planned_motion, fraction) = self.move_group.compute_cartesian_path(
-            [msgify(geometry_msgs.msg.Pose, pre_grasp_pose_mat)], 0.01, 0.0)
+            [msgify(geometry_msgs.msg.Pose, pre_grasp_pose_mat)], 0.001, 0.0)
 
-        if fraction < self.fraction:
+        if fraction != self.fraction:
             return False, None
 
         intersection_motion = np.array([p.positions for p in planned_motion.joint_trajectory.points])
