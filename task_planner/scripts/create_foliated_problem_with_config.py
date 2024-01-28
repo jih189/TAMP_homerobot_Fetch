@@ -411,7 +411,7 @@ class Sampler:
 
         self.move_group.set_start_state(moveit_robot_state)
         (planned_motion, fraction) = self.move_group.compute_cartesian_path(
-            [msgify(geometry_msgs.msg.Pose, pre_grasp_pose_mat)], 0.001, 0.0)
+            [msgify(geometry_msgs.msg.Pose, pre_grasp_pose_mat)], 0.0005, 5.0)
 
         if fraction != self.fraction:
             return False, None

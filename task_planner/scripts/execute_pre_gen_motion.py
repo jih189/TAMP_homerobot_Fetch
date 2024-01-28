@@ -17,7 +17,7 @@ from jiaming_visualizer import MoveitVisualizer
 import rospy
 import rospkg
 import pickle
-# from moveit_msgs.msg import RobotState
+from moveit_msgs.msg import RobotState
 
 
 if __name__ == "__main__":
@@ -42,14 +42,17 @@ if __name__ == "__main__":
     # initialize the motion planner
     motion_planner = MoveitMotionPlanner()
 
-    # # get the current robot state
-    # robot_state = RobotState()
-    # robot_state.joint_state.name = ['torso_lift_joint', 'shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'wrist_flex_joint', 'l_gripper_finger_joint', 'r_gripper_finger_joint']
-    # robot_state.joint_state.position = [0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
+    # get the current robot state
+    start_robot_state = RobotState()
+    start_robot_state.joint_state.name = ['torso_lift_joint', 'shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'forearm_roll_joint', 'wrist_flex_joint', 'wrist_roll_joint']
+    start_robot_state.joint_state.position = [0.36, -1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]
 
     # initialize the foliated planning framework, and set the task planner and motion planner
     foliated_planning_framework = FoliatedPlanningFramework()
-    foliated_planning_framework.setMotionPlanner(motion_planner)
+    foliated_planning_framework.setMotionPlanner(motion_planner, is_real_robot=True)
+
+    # move the robot to the current robot state
+    motion_planner.move_to_start_robot_state(start_robot_state)
 
     # load it into the task planner.
     # task_planner = MTGTaskPlanner()
@@ -69,47 +72,25 @@ if __name__ == "__main__":
     # set the visualizer
     foliated_planning_framework.setVisualizer(visualizer)
 
-    # set the foliated problem
-    foliated_planning_framework.setFoliatedProblem(loaded_foliated_problem)
+    print("found solution")
+    raw_input("Press Enter to visualize and execute the solution trajectory")
+    # visualize the solution
+    # foliated_planning_framework.visualizeSolutionTrajectory(solution_trajectory)
 
-    # set the start and goal
-    foliated_planning_framework.setStartAndGoal(
-        0,
-    0,
-        ManipulationIntersection(
-            action="start",
-            motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
-            active_joints=motion_planner.move_group.get_active_joints(),
-        ),
-        0,
-        9,
-        ManipulationIntersection(
-            action="goal",
-            motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
-            active_joints=motion_planner.move_group.get_active_joints(),
-        ),
-    )
+    motion_planner.move_to_start_robot_state(start_robot_state)
 
-    # foliated_planning_framework.setStartAndGoal(
-    #     0, 10,
-    #     ManipulationIntersection(action='start', motion=[[ 0.38, -1.28, 1.51, 0.35, 1.81, 1.47, 0.0]], active_joints=motion_planner.move_group.get_active_joints()),
-    #     0, 11,
-    #     ManipulationIntersection(action='goal', motion=[[ 0.38, -1.28, 1.51, 0.35, 1.81, 1.47, 0.0]], active_joints=motion_planner.move_group.get_active_joints())
-    # )
+    # Loop to allow for repeated execution based on user input
+    while True:
+        with open('/root/catkin_ws/src/jiaming_manipulation/task_planner/problems/dev/open_drawer_1.pkl', 'rb') as f:
+            solution_trajectory = pickle.load(f)
 
-    # solve the problem
-    found_solution, solution_trajectory = foliated_planning_framework.solve()
+        motion_planner.execute(solution_trajectory)
 
-    if found_solution:
-        print("found solution")
-        # visualize the solution
-        with open('/root/catkin_ws/src/jiaming_manipulation/task_planner/problems/dev/solution_trajectory.pkl', 'wb') as f:
-            pickle.dump(solution_trajectory, f)
-        foliated_planning_framework.visualizeSolutionTrajectory(solution_trajectory)
-        
-        
-    else:
-        print("no solution found")
+        # Ask the user if they want to continue
+        user_input = raw_input("Do you want to execute the trajectory again? (yes/no): ")
+        if user_input.strip().lower() != "yes":
+            break  # Exit the loop if the user does not want to continue
+
 
     # shutdown the planning framework
     foliated_planning_framework.shutdown()
