@@ -29,7 +29,7 @@ environment:
     - [0, 0, 0, 1]
 
 grasp:
-  num_samples: 40
+  num_samples: 50
   rotated_matrix:
     - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]

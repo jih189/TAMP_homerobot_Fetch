@@ -45,7 +45,7 @@ if __name__ == "__main__":
     # get the current robot state
     start_robot_state = RobotState()
     start_robot_state.joint_state.name = ['torso_lift_joint', 'shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'forearm_roll_joint', 'wrist_flex_joint', 'wrist_roll_joint']
-    start_robot_state.joint_state.position = [0.36, -1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]
+    start_robot_state.joint_state.position = [0.38, -1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]
 
     # initialize the foliated planning framework, and set the task planner and motion planner
     foliated_planning_framework = FoliatedPlanningFramework()
@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     # Loop to allow for repeated execution based on user input
     while True:
-        with open('/root/catkin_ws/src/jiaming_manipulation/task_planner/problems/dev/open_drawer_1.pkl', 'rb') as f:
+        with open('/root/catkin_ws/src/jiaming_manipulation/task_planner/problems/dev/open_drawer_6.pkl', 'rb') as f:
             solution_trajectory = pickle.load(f)
 
         motion_planner.execute(solution_trajectory)

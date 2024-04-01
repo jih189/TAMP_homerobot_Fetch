@@ -24,7 +24,7 @@ environment:
     orientation: [0.0, 0.0, 0.7071, -0.7071]
 
 grasp:
-  num_samples: 120
+  num_samples: 150
   rotated_matrix:
     - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]
@@ -70,6 +70,6 @@ placement:
       position_tolerance: [ 0.0009, 2000, 2000 ]
       reference_pose_position: [0.75, 0.05, 0.78]
       reference_pose_orientation: [0.0, 0.0, 0.0]
-      placement_position: [0.75, 0.05, 0.78]
+      placement_position: [0.75, 0.12, 0.78]
       placement_orientation: [0, 0, 0]
       intersect_with: ["regrasp"]

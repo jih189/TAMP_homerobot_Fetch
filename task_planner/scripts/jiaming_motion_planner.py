@@ -298,10 +298,10 @@ class MoveitMotionPlanner(BaseMotionPlanner):
 
             if action_name == "release":
                 # prompt the user to choose an option for opening the gripper
-                user_input = raw_input("Open gripper? (1 for yes, 2 for no): ")
-                if user_input.strip() == "1":
-                    print "open gripper"
-                    self.open_gripper()
+                # user_input = raw_input("Open gripper? (1 for yes, 2 for no): ")
+                # if user_input.strip() == "1":
+                #     print "open gripper"
+                self.open_gripper()
 
             # set the current joint to the first point of the trajectory, so it will not cause the tolerance error.
             motion_trajectory.joint_trajectory.points[0].positions = self.move_group.get_current_joint_values()
@@ -310,10 +310,10 @@ class MoveitMotionPlanner(BaseMotionPlanner):
 
             if action_name == "grasp":
                 # prompt the user to choose an option for closing the gripper
-                user_input = raw_input("Close gripper? (1 for yes, 2 for no): ")
-                if user_input.strip() == "1":
-                    print "close gripper"
-                    self.close_gripper()
+                # user_input = raw_input("Close gripper? (1 for yes, 2 for no): ")
+                # if user_input.strip() == "1":
+                #    print "close gripper"
+                self.close_gripper()
 
     def shutdown_planner(self):
         moveit_commander.roscpp_shutdown()

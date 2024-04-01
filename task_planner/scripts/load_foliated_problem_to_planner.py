@@ -17,7 +17,7 @@ from jiaming_visualizer import MoveitVisualizer
 import rospy
 import rospkg
 import pickle
-# from moveit_msgs.msg import RobotState
+from moveit_msgs.msg import RobotState
 
 
 if __name__ == "__main__":
@@ -43,9 +43,9 @@ if __name__ == "__main__":
     motion_planner = MoveitMotionPlanner()
 
     # # get the current robot state
-    # robot_state = RobotState()
-    # robot_state.joint_state.name = ['torso_lift_joint', 'shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'wrist_flex_joint', 'l_gripper_finger_joint', 'r_gripper_finger_joint']
-    # robot_state.joint_state.position = [0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
+    robot_state = RobotState()
+    robot_state.joint_state.name = ['torso_lift_joint', 'shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'wrist_flex_joint', 'l_gripper_finger_joint', 'r_gripper_finger_joint']
+    robot_state.joint_state.position = [0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
 
     # initialize the foliated planning framework, and set the task planner and motion planner
     foliated_planning_framework = FoliatedPlanningFramework()
@@ -82,7 +82,7 @@ if __name__ == "__main__":
             active_joints=motion_planner.move_group.get_active_joints(),
         ),
         0,
-        9,
+        7,
         ManipulationIntersection(
             action="goal",
             motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
