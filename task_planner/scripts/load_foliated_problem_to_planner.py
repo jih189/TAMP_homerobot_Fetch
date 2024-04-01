@@ -8,6 +8,7 @@ from foliated_planning_framework import FoliatedPlanningFramework
 from jiaming_GMM import GMM
 from jiaming_task_planner import (
     MTGTaskPlanner,
+    ALEFTaskPlanner,
     MTGTaskPlannerWithGMM,
     MTGTaskPlannerWithAtlas,
 )
@@ -53,10 +54,11 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     # task_planner = MTGTaskPlanner()
+    task_planner = ALEFTaskPlanner()
     # task_planner = MTGTaskPlannerWithGMM(gmm)
-    task_planner = MTGTaskPlannerWithAtlas(
-          gmm, motion_planner.move_group.get_current_state()
-    )  # need to provide the current robot state as the default robot state.
+    # task_planner = MTGTaskPlannerWithAtlas(
+    #       gmm, motion_planner.move_group.get_current_state()
+    # )  # need to provide the current robot state as the default robot state.
     foliated_planning_framework.setTaskPlanner(task_planner)
     foliated_planning_framework.setMaxAttemptTime(30)
 
@@ -82,7 +84,7 @@ if __name__ == "__main__":
             active_joints=motion_planner.move_group.get_active_joints(),
         ),
         0,
-        5,
+        1,
         ManipulationIntersection(
             action="goal",
             motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
