@@ -10,6 +10,7 @@ from jiaming_task_planner import (
     MTGTaskPlanner,
     MTGTaskPlannerWithGMM,
     MTGTaskPlannerWithAtlas,
+    ALEFTaskPlanner,
     DynamicMTGTaskPlannerWithGMM,
     DynamicMTGPlannerWithAtlas,
 )
@@ -97,6 +98,7 @@ if __name__ == "__main__":
     # load it into the task planner.
     task_planners = [
         MTGTaskPlanner(),
+        ALEFTaskPlanner(),
         MTGTaskPlannerWithGMM(gmm),
         MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
         # DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
