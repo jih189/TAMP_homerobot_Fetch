@@ -116,29 +116,42 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         distribution_sequence = []
 
         for node_id, node_distribution, related_node_data in related_experience:
-            distribution = SamplingDistribution()
-            distribution.distribution_mean = node_distribution.mean.tolist()
-            distribution.distribution_convariance = (
-                node_distribution.covariance.flatten().tolist()
-            )
-            distribution.foliation_id = node_id[0]
-            distribution.co_parameter_id = node_id[1]
-            distribution.distribution_id = node_id[2]
-            distribution.related_co_parameter_index = []
-            distribution.related_beta = []
-            distribution.related_similarity = []
-            for (
-                related_co_parameter_index,
-                related_beta,
-                related_similarity,
-            ) in related_node_data:
-                distribution.related_co_parameter_index.append(
-                    related_co_parameter_index
-                )
-                distribution.related_beta.append(related_beta)
-                distribution.related_similarity.append(related_similarity)
+            if node_id is None: # used for ALEF
+                distribution = SamplingDistribution()
+                distribution.distribution_mean = node_distribution # this is only a configuration. It is ugly to do so. pain
+                distribution.distribution_convariance = [0.0] * len(node_distribution) * len(node_distribution)
+                distribution.foliation_id = -1
+                distribution.co_parameter_id = -1
+                distribution.distribution_id = -1
+                distribution.related_co_parameter_index = []
+                distribution.related_beta = []
+                distribution.related_similarity = []
+                distribution_sequence.append(distribution)
 
-            distribution_sequence.append(distribution)
+            else:
+                distribution = SamplingDistribution()
+                distribution.distribution_mean = node_distribution.mean.tolist()
+                distribution.distribution_convariance = (
+                    node_distribution.covariance.flatten().tolist()
+                )
+                distribution.foliation_id = node_id[0]
+                distribution.co_parameter_id = node_id[1]
+                distribution.distribution_id = node_id[2]
+                distribution.related_co_parameter_index = []
+                distribution.related_beta = []
+                distribution.related_similarity = []
+                for (
+                    related_co_parameter_index,
+                    related_beta,
+                    related_similarity,
+                ) in related_node_data:
+                    distribution.related_co_parameter_index.append(
+                        related_co_parameter_index
+                    )
+                    distribution.related_beta.append(related_beta)
+                    distribution.related_similarity.append(related_similarity)
+
+                distribution_sequence.append(distribution)
 
         self.move_group.set_distribution(distribution_sequence)
         self.move_group.set_clean_planning_context_flag(True)
@@ -205,6 +218,7 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         return (
             motion_plan_result[0],
             ManipulationTaskMotion(
+                'arm_motion',
                 planned_motion=motion_plan_result[1],
                 has_object_in_hand=foliation_constraints["is_object_in_hand"],
                 object_pose=co_parameter,

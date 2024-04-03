@@ -82,6 +82,7 @@ class ManipulationIntersection(BaseIntersection):
 
     def get_task_motion(self):
         return ManipulationTaskMotion(
+            self.action,
             planned_motion=convert_joint_values_to_robot_trajectory(
                 self.motion, self.active_joints
             ),

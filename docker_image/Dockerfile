@@ -292,6 +292,9 @@ RUN apt-get install python-tk -y
 RUN python -m pip install networkx scikit-learn tqdm trimesh==3.21.0 joblib
 RUN python -m pip install python-fcl --upgrade
 
+# install kdtree for SPARS used for ALEF
+RUN python -m pip install kdtree
+
 # put the script to prepare the workspace
 COPY prepare_workspace.sh $HOME
 
