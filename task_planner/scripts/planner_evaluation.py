@@ -24,6 +24,7 @@ import os
 import uuid
 import time
 import redis
+import socket
 
 """
 On the side, for each foliation problem, we need to provide the possible start and goal manifolds.
@@ -90,7 +91,7 @@ if __name__ == "__main__":
     redis_connection = init_redis_connection()
     
     number_of_tasks = 50
-    max_attempt_time = 1
+    max_attempt_time = 50
 
     ########################################
 
@@ -114,10 +115,12 @@ if __name__ == "__main__":
 
     task_uuid = str(uuid.uuid4())
     task_timestamp = time.time()
+    hostname = socket.gethostname()
+    print hostname
 
     # set the result file path
     result_file_path = package_path + "/" + task_name + selected_problem + "_" + str(task_timestamp) + "_" + task_uuid + ".json"
-    result_key = selected_problem + ":" + str(task_timestamp) + "_" + task_uuid
+    result_key = selected_problem + ":" + hostname + ":" + str(task_timestamp) + "_" + task_uuid
 
     # sampled random start and goal
     sampled_start_and_goal_list = [
