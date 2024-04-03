@@ -20,6 +20,10 @@ import rospy
 import rospkg
 from tqdm import tqdm
 import json
+import os
+import uuid
+import time
+import redis
 
 """
 On the side, for each foliation problem, we need to provide the possible start and goal manifolds.
@@ -44,10 +48,49 @@ for planner in planner_list:
     save the result to a file.
 """
 
+def select_problem_from_directory(directory):
+    problems = [d for d in os.listdir(directory) if os.path.isdir(os.path.join(directory, d))]
+    print "Please select a problem from the list:"
+    for i, problem in enumerate(problems):
+        print "{}: {}".format(i + 1, problem)
+    selection = int(raw_input("Enter the number of the problem you wish to select: "))
+    return problems[selection - 1]
+
 
 if __name__ == "__main__":
-    number_of_tasks = 50  # number of tasks to be sampled
-    max_attempt_time = 50  # maximum attempt time for each task
+    
+    redis_host = "rss.redis.cache.windows.net"
+    redis_port = 6379
+    redis_password = "AQouyZ83AaEt7lBhgpLCAhBLip3ygGHfZAzCaM3IaqI="
+    redis_db = 0
+    redis_retry_on_timeout = True
+    redis_socket_timeout = 5
+    
+    def init_redis_connection():
+        for i in range(5):
+            try:
+                r = redis.StrictRedis(
+                    host=redis_host,
+                    port=redis_port,
+                    password=redis_password,
+                    db=redis_db,
+                    socket_timeout=redis_socket_timeout,
+                    retry_on_timeout=redis_retry_on_timeout
+                )
+                r.ping() 
+                return r
+            except redis.ConnectionError as e:
+                if i < 4: 
+                    print("Redis connection failed. Retrying...")
+                    time.sleep(1)
+                else:
+                    print("Failed to connect to Redis after several attempts: {}".format(e))
+                    return None
+
+    redis_connection = init_redis_connection()
+    
+    number_of_tasks = 50
+    max_attempt_time = 1
 
     ########################################
 
@@ -60,18 +103,21 @@ if __name__ == "__main__":
     # Get the path of the desired package
     package_path = rospack.get_path("task_planner")
 
-    problem_file_path = package_path + "/" + task_name + "/check"
+    problems_directory = os.path.join(package_path, "problems/pre_generated_probs")
+    selected_problem = select_problem_from_directory(problems_directory)
+    problem_file_path = os.path.join(problems_directory, selected_problem)
 
     # load the foliated problem
     loaded_foliated_problem = FoliatedProblem.load(
         ManipulationFoliation, ManipulationIntersection, problem_file_path
     )
 
-    # set the result file path
-    result_file_path = package_path + "/" + task_name + "/result.json"
+    task_uuid = str(uuid.uuid4())
+    task_timestamp = time.time()
 
-    print "problem file path: ", problem_file_path
-    print "result file path: ", result_file_path
+    # set the result file path
+    result_file_path = package_path + "/" + task_name + selected_problem + "_" + str(task_timestamp) + "_" + task_uuid + ".json"
+    result_key = selected_problem + ":" + str(task_timestamp) + "_" + task_uuid
 
     # sampled random start and goal
     sampled_start_and_goal_list = [
@@ -97,17 +143,18 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     task_planners = [
-        MTGTaskPlanner(),
         ALEFTaskPlanner(),
+        MTGTaskPlanner(),
         MTGTaskPlannerWithGMM(gmm),
         MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
-        # DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
-        # DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_25.0", threshold=25.0),
-        # DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_50.0", threshold=50.0),
-        # DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=50.0),
-        # DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_75.0", threshold=75.0),
-        # DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_75.0", threshold=75.0),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
+        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_25.0", threshold=25.0),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_50.0", threshold=50.0),
+        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=50.0),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_75.0", threshold=75.0),
+        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_75.0", threshold=75.0),
     ]
+
 
     with open(result_file_path, "w") as result_file:
         for task_planner in task_planners:
@@ -161,9 +208,24 @@ if __name__ == "__main__":
                         "updating_time": updating_time,
                         "solution_length": solution_length,
                         "num_attempts": num_attempts,
+                        "task_uuid": task_uuid,
+                        "task_timestamp": task_timestamp,
                     }
-                    json.dump(result_data, result_file)
-                    result_file.write("\n")
+ 
+ 
+                    if redis_connection:
+                        try:
+                            redis_connection.rpush(result_key, json.dumps(result_data))
+                        except Exception as e:
+                            print("Failed to publish data to Redis: {}".format(e))
+
+                    try:
+                        json.dump(result_data, result_file)
+                        result_file.write("\n")
+                        result_file.flush()
+                    except Exception as e:
+                        print("Failed to write data to file: {}".format(e))
+ 
                 else:
                     result_data = {
                         "planner_name": task_planner.planner_name,
@@ -177,9 +239,23 @@ if __name__ == "__main__":
                         "updating_time": -1,
                         "solution_length": -1,
                         "num_attempts": -1,
+                        "task_uuid": task_uuid,
+                        "task_timestamp": task_timestamp,
                     }
-                    json.dump(result_data, result_file)
-                    result_file.write("\n")
+
+
+                    if redis_connection:
+                        try:
+                            redis_connection.rpush(result_key, json.dumps(result_data))
+                        except Exception as e:
+                            print("Failed to publish data to Redis: {}".format(e))
+
+                    try:
+                        json.dump(result_data, result_file)
+                        result_file.write("\n")
+                        result_file.flush()
+                    except Exception as e:
+                        print("Failed to write data to file: {}".format(e))
 
     # shutdown the planning framework
     foliated_planning_framework.shutdown()

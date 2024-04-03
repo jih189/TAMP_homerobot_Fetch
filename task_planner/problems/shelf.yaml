@@ -24,7 +24,7 @@ environment:
     orientation: [0.0, 0.0, 0.7071, -0.7071]
 
 grasp:
-  num_samples: 40
+  num_samples: 150
   rotated_matrix:
     - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]
