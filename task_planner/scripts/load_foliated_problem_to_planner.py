@@ -18,7 +18,16 @@ from jiaming_visualizer import MoveitVisualizer
 import rospy
 import rospkg
 import pickle
+import os
 from moveit_msgs.msg import RobotState
+
+def select_problem_from_directory(directory):
+    problems = [d for d in os.listdir(directory) if os.path.isdir(os.path.join(directory, d))]
+    print "Please select a problem from the list:"
+    for i, problem in enumerate(problems):
+        print "{}: {}".format(i + 1, problem)
+    selection = int(raw_input("Enter the number of the problem you wish to select: "))
+    return problems[selection - 1]
 
 
 if __name__ == "__main__":
@@ -29,9 +38,14 @@ if __name__ == "__main__":
     # Get the path of the desired package
     package_path = rospack.get_path("task_planner")
 
+    problems_directory = os.path.join(package_path, "problems/pre_generated_probs")
+    trajectory_directory = os.path.join(package_path, "problems/trajectorys")
+    selected_problem = select_problem_from_directory(problems_directory)
+    problem_file_path = os.path.join(problems_directory, selected_problem)
+
     # load the foliated problem
     loaded_foliated_problem = FoliatedProblem.load(
-        ManipulationFoliation, ManipulationIntersection, package_path + "/check"
+        ManipulationFoliation, ManipulationIntersection, problem_file_path
     )
 
     # load the gmm
@@ -84,7 +98,7 @@ if __name__ == "__main__":
             active_joints=motion_planner.move_group.get_active_joints(),
         ),
         0,
-        1,
+        8,
         ManipulationIntersection(
             action="goal",
             motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
@@ -105,7 +119,7 @@ if __name__ == "__main__":
     if found_solution:
         print("found solution")
         # visualize the solution
-        with open('/root/catkin_ws/src/jiaming_manipulation/task_planner/problems/dev/solution_trajectory.pkl', 'wb') as f:
+        with open(trajectory_directory + '/solution_trajectory.pkl', 'wb') as f:
             pickle.dump(solution_trajectory, f)
         foliated_planning_framework.visualizeSolutionTrajectory(solution_trajectory)
         

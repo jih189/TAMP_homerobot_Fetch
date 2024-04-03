@@ -105,6 +105,7 @@ if __name__ == "__main__":
     package_path = rospack.get_path("task_planner")
 
     problems_directory = os.path.join(package_path, "problems/pre_generated_probs")
+    results_directory = os.path.join(package_path, "problems/results")
     selected_problem = select_problem_from_directory(problems_directory)
     problem_file_path = os.path.join(problems_directory, selected_problem)
 
@@ -116,16 +117,33 @@ if __name__ == "__main__":
     task_uuid = str(uuid.uuid4())
     task_timestamp = time.time()
     hostname = socket.gethostname()
-    print hostname
-
+    
     # set the result file path
-    result_file_path = package_path + "/" + task_name + selected_problem + "_" + str(task_timestamp) + "_" + task_uuid + ".json"
+    result_file_path = os.path.join(results_directory, task_name + selected_problem + "_" + str(task_timestamp) + "_" + task_uuid + ".json")
     result_key = selected_problem + ":" + hostname + ":" + str(task_timestamp) + "_" + task_uuid
 
+
+    # Set the path for the config file
+    config_file_path = os.path.join(problems_directory, task_name + selected_problem + "_config.json")
+
     # sampled random start and goal
-    sampled_start_and_goal_list = [
-        loaded_foliated_problem.sampleStartAndGoal() for _ in range(number_of_tasks)
-    ]
+    sampled_start_and_goal_list = []
+
+    # check if the config file exists
+    if os.path.isfile(config_file_path):
+        # load the sampled_start_and_goal_list from the file
+        with open(config_file_path, 'r') as config_file:
+            sampled_start_and_goal_list = json.load(config_file)
+        print("Loaded start and goal configurations from the existing config file")
+    else:
+        # sample a new start and goal list and save to the config file
+        sampled_start_and_goal_list = [
+            loaded_foliated_problem.sampleStartAndGoal() for _ in range(number_of_tasks)
+        ]
+        with open(config_file_path, 'w') as config_file:
+            json.dump(sampled_start_and_goal_list, config_file)
+        print("Generated and saved new start and goal configurations to the config file")
+
 
     # load the gmm
     gmm_dir_path = package_path + "/computed_gmms_dir/dpgmm/"
