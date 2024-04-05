@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from sklearn import mixture
 import pickle
 import glob
@@ -9,9 +11,9 @@ from tqdm import tqdm
 
 # edit the following
 generated_configs_dir_path = (
-    "/root/catkin_ws/src/jiaming_manipulation/task_planner/empty_world_trajectory_data/"
+    "/root/catkin_ws/src/jiaming_manipulation/task_planner/empty_world_trajectory_data_ur5/"
 )
-use_dirichlet = False
+use_dirichlet = True
 
 
 def _get_all_paths_from_environment(directory):
@@ -108,7 +110,7 @@ def convert_all_trajectories_to_numpy(motions):
     return np.array([config for motion in motions for config in motion])
 
 
-def fit_distribution(X, num_components, use_dirichlet=False):
+def fit_distribution(X, num_components, use_dirichlet=True):
     """
     Returns a GMM or DPGMM fit to the given paths
     Args:
@@ -196,13 +198,16 @@ def main():
     all_configurations = convert_all_trajectories_to_numpy(motions)
 
     print(all_configurations.shape)
+    print(num_components)
+    
+    num_components = 10
 
     gmm = fit_distribution(all_configurations, int(num_components * 10), use_dirichlet)
     edge_information = compute_distribution_edge_information(motions, gmm)
     save_distribution_to_file(
         gmm,
         edge_information,
-        "/root/catkin_ws/src/jiaming_manipulation/task_planner/gmm_related/computed_gmm_directory/",
+        "/root/catkin_ws/src/jiaming_manipulation/task_planner/computed_gmms_dir/temp",
     )
 
 

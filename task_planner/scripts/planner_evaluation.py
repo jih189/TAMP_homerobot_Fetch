@@ -57,6 +57,13 @@ def select_problem_from_directory(directory):
     selection = int(raw_input("Enter the number of the problem you wish to select: "))
     return problems[selection - 1]
 
+def select_gmm_from_directory(directory):
+    gmms = [d for d in os.listdir(directory) if os.path.isdir(os.path.join(directory, d))]
+    print "Please select a GMM from the list:"
+    for i, gmm in enumerate(gmms):
+        print "{}: {}".format(i + 1, gmm)
+    selection = int(raw_input("Enter the number of the GMM you wish to select: "))
+    return gmms[selection - 1]
 
 if __name__ == "__main__":
     
@@ -106,6 +113,8 @@ if __name__ == "__main__":
 
     problems_directory = os.path.join(package_path, "problems/pre_generated_probs")
     results_directory = os.path.join(package_path, "problems/results")
+    gmms_directory = os.path.join(package_path, "computed_gmms_dir")
+    
     selected_problem = select_problem_from_directory(problems_directory)
     problem_file_path = os.path.join(problems_directory, selected_problem)
 
@@ -116,11 +125,23 @@ if __name__ == "__main__":
 
     task_uuid = str(uuid.uuid4())
     task_timestamp = time.time()
-    hostname = socket.gethostname()
+    hostname = "J_Apr_4" # Mofidy this to your unique identifier
+    
+    # load the gmm
+    # gmm_name = "dpgmm"
+    # gmm_dir_path = package_path + "/computed_gmms_dir/" + gmm_name + "/"
+    # gmm_dir_path = package_path + '/computed_gmms_dir/gmm/'
+    
+    gmm_name = select_gmm_from_directory(gmms_directory)
+    gmm_dir_path = os.path.join(gmms_directory, gmm_name) + "/"
+    print("Using GMM: " + gmm_name)
+
+    gmm = GMM()
+    gmm.load_distributions(gmm_dir_path)
     
     # set the result file path
     result_file_path = os.path.join(results_directory, task_name + selected_problem + "_" + str(task_timestamp) + "_" + task_uuid + ".json")
-    result_key = selected_problem + ":" + hostname + ":" + str(task_timestamp) + "_" + task_uuid
+    result_key = hostname + ":" + selected_problem + ":" + gmm_name + ":" + str(task_timestamp) + "_" + task_uuid
 
 
     # Set the path for the config file
@@ -143,13 +164,6 @@ if __name__ == "__main__":
         with open(config_file_path, 'w') as config_file:
             json.dump(sampled_start_and_goal_list, config_file)
         print("Generated and saved new start and goal configurations to the config file")
-
-
-    # load the gmm
-    gmm_dir_path = package_path + "/computed_gmms_dir/dpgmm/"
-    # gmm_dir_path = package_path + '/computed_gmms_dir/gmm/'
-    gmm = GMM()
-    gmm.load_distributions(gmm_dir_path)
 
     # initialize the motion planner
     motion_planner = MoveitMotionPlanner()
@@ -231,6 +245,7 @@ if __name__ == "__main__":
                         "num_attempts": num_attempts,
                         "task_uuid": task_uuid,
                         "task_timestamp": task_timestamp,
+                        "gmm_name": gmm_name,
                     }
  
  
@@ -262,6 +277,7 @@ if __name__ == "__main__":
                         "num_attempts": -1,
                         "task_uuid": task_uuid,
                         "task_timestamp": task_timestamp,
+                        "gmm_name": gmm_name,
                     }
 
 

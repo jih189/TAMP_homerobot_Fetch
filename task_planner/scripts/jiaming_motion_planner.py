@@ -30,6 +30,8 @@ from jiaming_helper import (
     get_no_constraint,
     construct_moveit_constraint,
     make_mesh,
+    END_EFFECTOR_LINK,
+    TOUCH_LINKS
 )
 from foliated_base_class import BaseMotionPlanner
 from jiaming_visualizer import ManipulationTaskMotion
@@ -173,7 +175,7 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         # if you have object in hand, then you need to set the object in hand pose
         if foliation_constraints["is_object_in_hand"]:
             current_object_pose_stamped = PoseStamped()
-            current_object_pose_stamped.header.frame_id = "wrist_roll_link"
+            current_object_pose_stamped.header.frame_id = END_EFFECTOR_LINK
             current_object_pose_stamped.pose = Pose()
             manipulated_object = make_mesh(
                 "object",
@@ -182,13 +184,9 @@ class MoveitMotionPlanner(BaseMotionPlanner):
             )
 
             attached_object = AttachedCollisionObject()
-            attached_object.link_name = "wrist_roll_link"
+            attached_object.link_name = END_EFFECTOR_LINK
             attached_object.object = manipulated_object
-            attached_object.touch_links = [
-                "l_gripper_finger_link",
-                "r_gripper_finger_link",
-                "gripper_link",
-            ]
+            attached_object.touch_links = TOUCH_LINKS
             attached_object.object.pose = msgify(Pose, np.linalg.inv(co_parameter))
             start_moveit_robot_state.attached_collision_objects.append(attached_object)
 

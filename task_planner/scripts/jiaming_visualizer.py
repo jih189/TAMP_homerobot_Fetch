@@ -5,7 +5,7 @@ from geometry_msgs.msg import Point, Pose, PoseStamped
 from std_msgs.msg import ColorRGBA
 import moveit_msgs.msg
 import trajectory_msgs.msg
-from jiaming_helper import convert_joint_values_to_robot_state, make_mesh
+from jiaming_helper import convert_joint_values_to_robot_state, make_mesh, END_EFFECTOR_LINK, TOUCH_LINKS
 from visualization_msgs.msg import Marker, MarkerArray
 from ros_numpy import msgify, numpify
 import numpy as np
@@ -109,16 +109,12 @@ class MoveitVisualizer(BaseVisualizer):
         self.whole_scene_marker_array.markers.append(self.obstacle_marker)
 
         self.current_object_pose_stamped = PoseStamped()
-        self.current_object_pose_stamped.header.frame_id = "wrist_roll_link"
+        self.current_object_pose_stamped.header.frame_id = END_EFFECTOR_LINK
         self.current_object_pose_stamped.pose = Pose()
 
         self.attached_object = moveit_msgs.msg.AttachedCollisionObject()
-        self.attached_object.link_name = "wrist_roll_link"
-        self.attached_object.touch_links = [
-            "l_gripper_finger_link",
-            "r_gripper_finger_link",
-            "gripper_link",
-        ]
+        self.attached_object.link_name = END_EFFECTOR_LINK
+        self.attached_object.touch_links = TOUCH_LINKS
 
     def visualize_for_debug(
         self,
@@ -151,7 +147,7 @@ class MoveitVisualizer(BaseVisualizer):
         # pass current robot state to compute fk service
         fk_request = GetPositionFKRequest()
         fk_request.header.frame_id = "base_link"
-        fk_request.fk_link_names = ["wrist_roll_link"]
+        fk_request.fk_link_names = [END_EFFECTOR_LINK]
         fk_request.robot_state = current_robot_state
 
         fk_response = self.compute_fk_srv(fk_request)

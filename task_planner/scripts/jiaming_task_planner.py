@@ -465,9 +465,22 @@ class ALEFTaskPlanner(BaseTaskPlanner):
                             # previous similarity score is 0, so we can skip this edge.
                             continue
                     else:
-                        previous_similarity_score = self.total_similiarity_table[
-                            previous_manifold_id[0]
-                        ][e_previous_manifold_id[1], previous_manifold_id[1]]
+                                            
+                        # print statement to check the indices
+                        print("e_previous_manifold_id[1]:", e_previous_manifold_id[1])
+                        print("previous_manifold_id[1]:", previous_manifold_id[1])
+                        print("total_similiarity_table shape:", self.total_similiarity_table[previous_manifold_id[0]].shape)
+
+                        # if indices are within the bounds
+                        if e_previous_manifold_id[1] >= self.total_similiarity_table[previous_manifold_id[0]].shape[0]:
+                            print("Index e_previous_manifold_id[1] is out of bounds!")
+                            
+                        if previous_manifold_id[1] >= self.total_similiarity_table[previous_manifold_id[0]].shape[1]:
+                            print("Index previous_manifold_id[1] is out of bounds!")
+
+
+                        # Now the problematic line
+                        previous_similarity_score = self.total_similiarity_table[previous_manifold_id[0]][e_previous_manifold_id[1], previous_manifold_id[1]]
 
                     if next_manifold_id == "goal" or e_next_manifold_id == "goal":
                         if next_manifold_id == e_next_manifold_id:

@@ -52,9 +52,15 @@ class TrajectoryGenerator:
         # Create a JointState message
         joint_state = JointState()
         joint_state.header.stamp = rospy.Time.now()
-        joint_state.name = ['shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'wrist_flex_joint']
-        joint_state.position = [-1.28, 1.52, 0.35, 1.81, 1.47]
-
+        
+        # For fetch
+        # joint_state.name = ['shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'wrist_flex_joint']
+        # joint_state.position = [-1.28, 1.52, 0.35, 1.81, 1.47]
+        
+        # For UR5
+        joint_state.name = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
+        joint_state.position = [0, 0, 0, 0, 0, 0]
+        
         rate = rospy.Rate(10)
         while(joint_state_publisher.get_num_connections() < 1): # need to wait until the publisher is ready.
             rate.sleep()
@@ -494,7 +500,7 @@ def main():
     moveit_commander.roscpp_initialize(sys.argv)
     trajectory_generator = TrajectoryGenerator(moveit_commander)
 
-    fileDir = 'empty_world_trajectory_data/'
+    fileDir = '/root/catkin_ws/src/jiaming_manipulation/task_planner/trajectories/empty_world_trajectory_data_ur5_new/'
 
     # if the directory does not exist, create it
     if not os.path.exists(fileDir):
@@ -532,10 +538,10 @@ def main():
             print "continuing scene ", env_num, " from index ", i, " / ", trajectory_count_per_scene, " trajectories"
 
         # use the env_num as the seed
-        # obstacle_meshes = trajectory_generator.generate_random_mesh(env_num)
-        # pointcloud = trajectory_generator.setObstaclesInScene(obstacle_meshes)
-        table_mesh = trajectory_generator.generate_table_mesh()
-        pointcloud = trajectory_generator.setObstaclesInScene([table_mesh])
+        obstacle_meshes = trajectory_generator.generate_random_mesh(env_num, 0.001)
+        pointcloud = trajectory_generator.setObstaclesInScene(obstacle_meshes)
+        # table_mesh = trajectory_generator.generate_table_mesh()
+        # pointcloud = trajectory_generator.setObstaclesInScene([table_mesh])
 
         write_ply(fileDir + "env_%06d/map_" % env_num + "%d.ply" % env_num, pointcloud)
 

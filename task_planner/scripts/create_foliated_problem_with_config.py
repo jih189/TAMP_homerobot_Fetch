@@ -395,7 +395,7 @@ class Sampler:
         # random set robot pose
         random_moveit_robot_state = self.robot.get_current_state()
         random_position_list = list(random_moveit_robot_state.joint_state.position)
-        for joint_name, joint_value in zip(self.move_group.get_joints(), self.move_group.get_random_joint_values()):
+        for joint_name, joint_value in zip(self.move_group.get_active_joints(), self.move_group.get_random_joint_values()):
             random_position_list[random_moveit_robot_state.joint_state.name.index(joint_name)] = joint_value
         random_moveit_robot_state.joint_state.position = tuple(random_position_list)
         ik_req.ik_request.robot_state = random_moveit_robot_state

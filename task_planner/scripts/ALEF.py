@@ -41,6 +41,8 @@ class AFS:
         distance = sum([node_diff[i] ** 2 for i in range(len(node_diff))]) ** 0.5
 
         return distance
+    
+    
 
     def findClosestNode(self, state):
         '''

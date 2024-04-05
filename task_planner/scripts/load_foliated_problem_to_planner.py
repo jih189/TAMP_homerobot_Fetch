@@ -30,6 +30,13 @@ def select_problem_from_directory(directory):
     return problems[selection - 1]
 
 
+def select_robot_model():
+    print "Please select a robot:"
+    print "1. Fetch"
+    print "2. UR5"
+    selection = int(raw_input("Enter the number of the problem you wish to select: "))
+    return selection
+
 if __name__ == "__main__":
     rospy.init_node("main_pipeline_node", anonymous=True)
 
@@ -37,8 +44,38 @@ if __name__ == "__main__":
 
     # Get the path of the desired package
     package_path = rospack.get_path("task_planner")
-
-    problems_directory = os.path.join(package_path, "problems/pre_generated_probs")
+    selected_roobt_model = select_robot_model()
+    if selected_roobt_model == 1:
+        problems_directory = os.path.join(package_path, "problems/pre_generated_probs")
+        joint_state_name = [
+            "torso_lift_joint",
+            "shoulder_pan_joint",
+            "shoulder_lift_joint",
+            "upperarm_roll_joint",
+            "elbow_flex_joint",
+            "wrist_flex_joint",
+            "l_gripper_finger_joint",
+            "r_gripper_finger_joint",
+    ]
+        joint_state_position = [0.3, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
+        default_motion = [-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]
+    elif selected_roobt_model == 2:
+        problems_directory = os.path.join(package_path, "problems/pre_generated_probs_ur5")
+        joint_state_name = [
+            "shoulder_pan_joint",
+            "shoulder_lift_joint", 
+            "elbow_joint", 
+            "wrist_1_joint", 
+            "wrist_2_joint",
+            "wrist_3_joint",
+            "hande_right_finger_joint", 
+            "hande_left_finger_joint"
+        ]
+        joint_state_position = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        default_motion = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    else:
+        print "Invalid robot model selected"
+        exit()
     trajectory_directory = os.path.join(package_path, "problems/trajectorys")
     selected_problem = select_problem_from_directory(problems_directory)
     problem_file_path = os.path.join(problems_directory, selected_problem)
@@ -59,8 +96,8 @@ if __name__ == "__main__":
 
     # # get the current robot state
     robot_state = RobotState()
-    robot_state.joint_state.name = ['torso_lift_joint', 'shoulder_pan_joint', 'shoulder_lift_joint', 'upperarm_roll_joint', 'elbow_flex_joint', 'wrist_flex_joint', 'l_gripper_finger_joint', 'r_gripper_finger_joint']
-    robot_state.joint_state.position = [0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
+    robot_state.joint_state.name = joint_state_name
+    robot_state.joint_state.position = joint_state_position
 
     # initialize the foliated planning framework, and set the task planner and motion planner
     foliated_planning_framework = FoliatedPlanningFramework()
@@ -94,14 +131,14 @@ if __name__ == "__main__":
     0,
         ManipulationIntersection(
             action="start",
-            motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
+            motion=[default_motion],
             active_joints=motion_planner.move_group.get_active_joints(),
         ),
         0,
-        8,
+        5,
         ManipulationIntersection(
             action="goal",
-            motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
+            motion=[default_motion],
             active_joints=motion_planner.move_group.get_active_joints(),
         ),
     )

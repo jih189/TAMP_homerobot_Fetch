@@ -21,6 +21,45 @@ except:
             "Failed to import pyassimp, see https://github.com/ros-planning/moveit/issues/86 for more info"
         )
 
+############################# CONSTANTS #############################
+# # Fetch robot constants
+GRIPPER_ROTATION = np.array([[1, 0, 0, -0.17], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+INIT_JOINT_NAMES = [
+        "torso_lift_joint",
+        "shoulder_pan_joint",
+        "shoulder_lift_joint",
+        "upperarm_roll_joint",
+        "elbow_flex_joint",
+        "wrist_flex_joint",
+        "l_gripper_finger_joint",
+        "r_gripper_finger_joint",
+    ]
+INIT_JOINT_POSITIONS = [0.3, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
+END_EFFECTOR_LINK = "wrist_roll_link"
+TOUCH_LINKS = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
+INIT_ACTIVE_JOINT_POSITIONS = [-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]
+FINGER_JOINTS = ["l_gripper_finger_joint", "r_gripper_finger_joint"]
+PRE_GRASP_POSE = np.array([[1, 0, 0, -0.05], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+
+# ur5 robot constants
+# GRIPPER_ROTATION = np.array([[0, 0, 1, -0.14], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
+# INIT_JOINT_NAMES = [
+#         "shoulder_pan_joint",
+#         "shoulder_lift_joint", 
+#         "elbow_joint", 
+#         "wrist_1_joint", 
+#         "wrist_2_joint",
+#         "wrist_3_joint",
+#         "hande_right_finger_joint", 
+#         "hande_left_finger_joint"
+#     ]
+# INIT_JOINT_POSITIONS = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+# END_EFFECTOR_LINK = "wrist_3_link"
+# TOUCH_LINKS = ["flange", "tool0", "robotiq_coupler", "hande_link", "hande_right_finger_link", "hande_left_finger_link", "hande_end"]
+# INIT_ACTIVE_JOINT_POSITIONS = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+# FINGER_JOINTS = ["hande_right_finger_joint", "hande_left_finger_joint"]
+# PRE_GRASP_POSE = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -0.08], [0, 0, 0, 1]])
+#####################################################################
 
 # convert a list of joint values to robotTrajectory
 def convert_joint_values_to_robot_trajectory(joint_values_list_, joint_names_):
@@ -43,7 +82,6 @@ def convert_joint_values_to_robot_trajectory(joint_values_list_, joint_names_):
 
     return robot_trajectory
 
-
 def convert_joint_values_to_robot_state(joint_values_list_, joint_names_, robot_):
     """
     convert a list of joint values to robotState
@@ -60,6 +98,18 @@ def convert_joint_values_to_robot_state(joint_values_list_, joint_names_, robot_
     moveit_robot_state.joint_state.position = tuple(position_list)
     return moveit_robot_state
 
+def get_joint_values_from_joint_state(joint_state_, joint_names_):
+    """
+    get joint values from joint state
+    joint_state_: a joint state
+    joint_names_: a list of joint names
+    """
+    joint_values = []
+    for joint_name in joint_names_:
+        joint_values.append(
+            joint_state_.position[joint_state_.name.index(joint_name)]
+        )
+    return joint_values
 
 def get_no_constraint():
     no_constraint = Constraints()
@@ -70,7 +120,7 @@ def get_no_constraint():
     oc.parameterization = OrientationConstraint.ROTATION_VECTOR
     oc.header.frame_id = "base_link"
     oc.header.stamp = rospy.Time(0)
-    oc.link_name = "wrist_roll_link"
+    oc.link_name = END_EFFECTOR_LINK
     constrained_quaternion = Quaternion()
     constrained_quaternion.x = 0.0
     constrained_quaternion.y = 0.0
@@ -96,10 +146,7 @@ def get_no_constraint():
     no_constraint.in_hand_pose = in_hand_pose
     return no_constraint
 
-
-def construct_moveit_constraint(
-    in_hand_pose_, constraint_pose_, orientation_constraint_, position_constraint_
-):
+def construct_moveit_constraint(in_hand_pose_, constraint_pose_, orientation_constraint_, position_constraint_):
     moveit_quaternion = tf_trans.quaternion_from_matrix(
         constraint_pose_
     )  # return x, y z, w
@@ -115,7 +162,7 @@ def construct_moveit_constraint(
     oc.parameterization = OrientationConstraint.ROTATION_VECTOR
     oc.header.frame_id = "base_link"
     oc.header.stamp = rospy.Time(0)
-    oc.link_name = "wrist_roll_link"
+    oc.link_name = END_EFFECTOR_LINK
     constrained_quaternion = Quaternion()
     constrained_quaternion.x = moveit_quaternion[0]
     constrained_quaternion.y = moveit_quaternion[1]
@@ -133,7 +180,7 @@ def construct_moveit_constraint(
     pc = PositionConstraint()
     pc.header.frame_id = "base_link"
     pc.header.stamp = rospy.Time(0)
-    pc.link_name = "wrist_roll_link"
+    pc.link_name = END_EFFECTOR_LINK
     pc.target_point_offset.x = moveit_translation[0]
     pc.target_point_offset.y = moveit_translation[1]
     pc.target_point_offset.z = moveit_translation[2]
@@ -192,7 +239,6 @@ def construct_moveit_constraint(
     moveit_constraint.in_hand_pose = in_hand_pose
 
     return moveit_constraint
-
 
 def make_mesh(name, pose, filename, scale=(1, 1, 1)):
     co = CollisionObject()
@@ -259,14 +305,12 @@ def convert_pose_stamped_to_matrix(pose_stamped):
     pose_matrix[2, 3] = pose_stamped.pose.position.z
     return pose_matrix
 
-
 def create_pose_stamped(pose_data):
     pose = create_pose_stamped_from_raw(pose_data['frame_id'], pose_data['position'][0], pose_data['position'][1],
                                         pose_data['position'][2], pose_data['orientation'][0],
                                         pose_data['orientation'][1], pose_data['orientation'][2],
                                         pose_data['orientation'][3])
     return pose
-
 
 def create_pose_stamped_from_raw(frame_id, x, y, z, o_x, o_y, o_z, o_w):
     pose = PoseStamped()
@@ -279,15 +323,6 @@ def create_pose_stamped_from_raw(frame_id, x, y, z, o_x, o_y, o_z, o_w):
     pose.pose.orientation.z = o_z
     pose.pose.orientation.w = o_w
     return pose
-
-
-def get_position_difference_between_poses(pose_1_, pose_2_):
-    '''
-    Get the position difference between two poses.
-    pose_1_ and pose_2_ are both 4x4 numpy matrices.
-    '''
-    return np.linalg.norm(pose_1_[:3, 3] - pose_2_[:3, 3])
-
 
 def gaussian_similarity(distance, max_distance, sigma=0.01):
     """
@@ -311,6 +346,27 @@ def gaussian_similarity(distance, max_distance, sigma=0.01):
 
     return score
 
+def generate_similarity_matrix(configuration_list, difference_function):
+    '''
+    based on the difference function to generate the similarity matrix for the configuration list
+    '''
+    different_matrix = np.zeros((len(configuration_list), len(configuration_list)))
+    for i in range(len(configuration_list)):
+        for j in range(len(configuration_list)):
+            if i == j:
+                different_matrix[i, j] = 0
+            different_matrix[i, j] = difference_function(
+                configuration_list[i], configuration_list[j]
+            )
+
+    similarity_matrix = np.zeros((len(configuration_list), len(configuration_list)))
+    max_distance = np.max(different_matrix)
+    for i in range(len(configuration_list)):
+        for j in range(len(configuration_list)):
+            similarity_matrix[i, j] = gaussian_similarity(
+                different_matrix[i, j], max_distance, sigma=0.01
+            )
+    return similarity_matrix
 
 def collision_check(collision_manager, obj_mesh, obj_pose):
     obj_mesh = trimesh.load_mesh(obj_mesh)
@@ -332,3 +388,11 @@ def create_rotation_matrix_from_euler(orientation, position):
     reference_pose[:3, 3] = position
 
     return reference_pose
+
+
+def get_position_difference_between_poses(pose_1_, pose_2_):
+    '''
+    Get the position difference between two poses.
+    pose_1_ and pose_2_ are both 4x4 numpy matrices.
+    '''
+    return np.linalg.norm(pose_1_[:3, 3] - pose_2_[:3, 3])
