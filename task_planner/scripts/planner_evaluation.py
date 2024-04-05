@@ -139,6 +139,13 @@ if __name__ == "__main__":
     gmm = GMM()
     gmm.load_distributions(gmm_dir_path)
     
+    # load the gmm
+    gmm_name = "dpgmm"
+    gmm_dir_path = package_path + "/computed_gmms_dir/" + gmm_name + "/"
+    # gmm_dir_path = package_path + '/computed_gmms_dir/gmm/'
+    gmm = GMM()
+    gmm.load_distributions(gmm_dir_path)
+    
     # set the result file path
     result_file_path = os.path.join(results_directory, task_name + selected_problem + "_" + str(task_timestamp) + "_" + task_uuid + ".json")
     result_key = hostname + ":" + selected_problem + ":" + gmm_name + ":" + str(task_timestamp) + "_" + task_uuid
