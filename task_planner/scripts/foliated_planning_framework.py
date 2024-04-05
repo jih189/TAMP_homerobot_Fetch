@@ -133,7 +133,7 @@ class FoliatedPlanningFramework:
             )
 
             if len(task_sequence) == 0:
-                return False, None, None, None, None
+                return False, None, None, None, None, None, None, None, None, None
 
             list_of_motion_plan = []
             found_solution = True
@@ -176,6 +176,11 @@ class FoliatedPlanningFramework:
             if not found_solution:
                 continue
             else:
+                task_graph_size = len(self.task_planner.task_graph.nodes())
+                if "Dynamic" in self.task_planner.planner_name:
+                    current_task_graph_size = len(self.task_planner.current_task_graph.nodes())
+                else:
+                    current_task_graph_size = task_graph_size
                 # get the length of the motion plan
                 path_length = sum(
                     [motion_plan.cost() for motion_plan in list_of_motion_plan]
@@ -189,9 +194,11 @@ class FoliatedPlanningFramework:
                     attempt_time + 1,
                     time.time() - total_solve_time_start,
                     set_start_and_goal_time,
+                    task_graph_size,
+                    current_task_graph_size,
                 )
 
-        return False, None, None, None, None, None, None, None
+        return False, None, None, None, None, None, None, None, None, None
 
     def solve(self):
         """

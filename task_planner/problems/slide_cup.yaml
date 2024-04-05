@@ -3,7 +3,7 @@ task_parameters:
   task_type: ""
   num_samples: 2000
   random_seed: 3897
-  save_path: "/check"
+  save_path: "/check/self_generated/slide_cup"
 
 initial_joint_state:
   torso_lift_joint: 0.38
@@ -25,7 +25,11 @@ environment:
     orientation: [0.0, 0.0, 0.7071, -0.7071]
 
 grasp:
+<<<<<<< HEAD
   num_samples: 150
+=======
+  num_samples: 200
+>>>>>>> dynamic_planner_new_dpgmm
   rotated_matrix:
     - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]

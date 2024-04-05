@@ -2,7 +2,11 @@ task_parameters:
   task_name: "open_bottle"
   task_type: ""
   num_samples: 5000
+<<<<<<< HEAD
   save_path: "/problems/pre_generated_probs/open_bottle"
+=======
+  save_path: "/check/self_generated/open_bottle"
+>>>>>>> dynamic_planner_new_dpgmm
 
 initial_joint_state:
   torso_lift_joint: 0.38
@@ -24,7 +28,11 @@ environment:
     orientation: [0.0, 0.0, 0.7071, -0.7071]
 
 grasp:
+<<<<<<< HEAD
   num_samples: 150
+=======
+  num_samples: 80
+>>>>>>> dynamic_planner_new_dpgmm
   rotated_matrix:
     - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]

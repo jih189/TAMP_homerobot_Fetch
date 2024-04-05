@@ -2,7 +2,12 @@ task_parameters:
   task_name: "open_drawer"
   task_type: ""
   num_samples: 5000
+<<<<<<< HEAD
   save_path: "/check"
+=======
+  random_seed: 3897
+  save_path: "/check/self_generated/open_drawer"
+>>>>>>> dynamic_planner_new_dpgmm
 
 initial_joint_state:
   torso_lift_joint: 0.38
@@ -39,7 +44,11 @@ placement:
       end_position: [0.1, -0.445, 0.8500]
       steps: 14
 grasp:
+<<<<<<< HEAD
   num_samples: 60
+=======
+  num_samples: 0
+>>>>>>> dynamic_planner_new_dpgmm
   rotated_matrix:
     - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]
