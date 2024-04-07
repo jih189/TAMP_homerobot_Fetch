@@ -1,8 +1,7 @@
 task_parameters:
   task_name: "pour_water"
   task_type: ""
-  num_samples: 5000
-  random_seed: 3897
+  num_samples: 3000
   save_path: "/problems/pre_generated_probs/pour_water_g_250"
 
 initial_joint_state:
@@ -60,7 +59,7 @@ placement:
       intersect_with: ["pour"]
     - name: "pour"
       type: "circular"
-      orientation_tolerance: [1.07, 0.01, 3.14]
+      orientation_tolerance: [3.14, 3.14, 3.14]
       position_tolerance: [0.0009, 0.0009, 0.0009]
       reference_pose_position: [0.68, 0.05, 0.9]
       reference_pose_orientation: [0.95, 0.0, 0.0]
@@ -78,13 +77,4 @@ placement:
       reference_pose_orientation: [1.9, 0.0, 0.0]
       placement_position: [0.8, 0.05, 0.9]
       placement_orientation: [1.9, 0, 0]
-      intersect_with: ["place_2"]
-    - name: "place_2"
-      type: "point"
-      orientation_tolerance: [ 3.14, 0.01, 0.01 ]
-      position_tolerance: [ 0.0009, 0.0009, 2000 ]
-      reference_pose_position: [0.8, 0.05, 0.78]
-      reference_pose_orientation: [0, 0, 0]
-      placement_position: [0.8, 0.05, 0.78]
-      placement_orientation: [0, 0, 0]
       intersect_with: ["regrasp"]

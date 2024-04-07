@@ -2,7 +2,6 @@ task_parameters:
   task_name: "open_door"
   task_type: ""
   num_samples: 5000
-  random_seed: 3897
   save_path: "/problems/pre_generated_probs/ur5/open_door_g_100"
 
 initial_joint_state:
@@ -19,7 +18,7 @@ environment:
   grasp_poses_file: "/mesh_dir/wardrobe_left_door_v3.npz"
   env_pose:
     frame_id: "base_link"
-    position: [1.78, 1.35, -0.32]
+    position: [1.58, 1.35, -0.32]
     orientation: [0.0, 0.0, 0.707, -0.707]
 
 grasp:
@@ -43,11 +42,11 @@ placement:
       orientation_tolerance: [ 0.0001, 0.0001, 6.28318530718 ]
       position_tolerance: [ 0.0002, 0.0008, 0.0002 ]
       reference_pose:
-        - [ 1, 0, 0, 1.18 ]
+        - [ 1, 0, 0, 0.98 ]
         - [ 0, 1, 0, -0.60 ]
         - [ 0, 0, 1, -0.2 ]
         - [ 0, 0, 0, 1 ]
-      placement_position: [1.18, -0.60, -0.2]
+      placement_position: [0.98, -0.60, -0.2]
       radius: 0
       start_angle_z: -0.2
       end_angle_z: -1.56

@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 import os
 
-if os.environ.get('ROBOT_TYPE', False):
-    print("ROBOT_TYPE already set to: {}".format(os.environ['ROBOT_TYPE']))
-else:
-    os.environ['ROBOT_TYPE'] = 'FETCH'
-
 from foliated_base_class import FoliatedProblem, FoliatedIntersection
 from manipulation_foliations_and_intersections import (
     ManipulationFoliation,
@@ -229,12 +224,12 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     task_planners = [
-        ALEFTaskPlanner(),
-        MTGTaskPlanner(),
         MTGTaskPlannerWithGMM(gmm),
         DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
         DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=50.0),
         MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
+        ALEFTaskPlanner(),
+        MTGTaskPlanner(),
     ]
 
 
