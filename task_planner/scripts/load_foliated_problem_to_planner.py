@@ -1,4 +1,25 @@
 #!/usr/bin/env python
+import os
+
+def select_robot_model():
+    print "Please select a robot:"
+    print "1. Fetch"
+    print "2. UR5"
+    selection = int(raw_input("Enter the robot you wish to select: "))
+    return selection
+
+selected_roobt_model = select_robot_model()
+
+if selected_roobt_model == 1:
+    os.environ['ROBOT_TYPE'] = 'FETCH'
+elif selected_roobt_model == 2:
+    os.environ['ROBOT_TYPE'] = 'UR5'
+
+if os.environ.get('ROBOT_TYPE', False):
+    print("ROBOT_TYPE already set to: {}".format(os.environ['ROBOT_TYPE']))
+else:
+    os.environ['ROBOT_TYPE'] = 'FETCH'
+
 from foliated_base_class import FoliatedProblem, FoliatedIntersection
 from manipulation_foliations_and_intersections import (
     ManipulationFoliation,
@@ -14,12 +35,19 @@ from jiaming_task_planner import (
 )
 from jiaming_motion_planner import MoveitMotionPlanner
 from jiaming_visualizer import MoveitVisualizer
-
+from jiaming_helper import INIT_JOINT_NAMES, INIT_JOINT_POSITIONS, INIT_ACTIVE_JOINT_POSITIONS
 import rospy
 import rospkg
 import pickle
-import os
 from moveit_msgs.msg import RobotState
+
+def select_gmm_from_directory(directory):
+    gmms = [d for d in os.listdir(directory) if os.path.isdir(os.path.join(directory, d))]
+    print "Please select a GMM from the list:"
+    for i, gmm in enumerate(gmms):
+        print "{}: {}".format(i + 1, gmm)
+    selection = int(raw_input("Enter the number of the GMM you wish to select: "))
+    return gmms[selection - 1]
 
 def select_problem_from_directory(directory):
     problems = [d for d in os.listdir(directory) if os.path.isdir(os.path.join(directory, d))]
@@ -29,13 +57,19 @@ def select_problem_from_directory(directory):
     selection = int(raw_input("Enter the number of the problem you wish to select: "))
     return problems[selection - 1]
 
-
-def select_robot_model():
-    print "Please select a robot:"
-    print "1. Fetch"
-    print "2. UR5"
-    selection = int(raw_input("Enter the number of the problem you wish to select: "))
+def select_planner():
+    print "Please select a planner:"
+    print "1. MTGTaskPlanner"
+    print "2. ALEFTaskPlanner"
+    print "3. MTGTaskPlannerWithGMM"
+    print "4. MTGTaskPlannerWithAtlas"
+    selection = int(raw_input("Enter the number of the planner you wish to select: "))
     return selection
+
+def set_start_goal():
+    start_manifold = int(raw_input("Enter the number of the start manifold you wish to set: "))
+    goal_manifold = int(raw_input("Enter the number of the goal manifold you wish to set: "))
+    return start_manifold, goal_manifold
 
 if __name__ == "__main__":
     rospy.init_node("main_pipeline_node", anonymous=True)
@@ -44,38 +78,20 @@ if __name__ == "__main__":
 
     # Get the path of the desired package
     package_path = rospack.get_path("task_planner")
-    selected_roobt_model = select_robot_model()
     if selected_roobt_model == 1:
-        problems_directory = os.path.join(package_path, "problems/pre_generated_probs")
-        joint_state_name = [
-            "torso_lift_joint",
-            "shoulder_pan_joint",
-            "shoulder_lift_joint",
-            "upperarm_roll_joint",
-            "elbow_flex_joint",
-            "wrist_flex_joint",
-            "l_gripper_finger_joint",
-            "r_gripper_finger_joint",
-    ]
-        joint_state_position = [0.3, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
-        default_motion = [-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]
+        os.environ['ROBOT_TYPE'] = 'FETCH'
+        problems_directory = os.path.join(package_path, "problems/pre_generated_probs/fetch")
     elif selected_roobt_model == 2:
-        problems_directory = os.path.join(package_path, "problems/pre_generated_probs_ur5")
-        joint_state_name = [
-            "shoulder_pan_joint",
-            "shoulder_lift_joint", 
-            "elbow_joint", 
-            "wrist_1_joint", 
-            "wrist_2_joint",
-            "wrist_3_joint",
-            "hande_right_finger_joint", 
-            "hande_left_finger_joint"
-        ]
-        joint_state_position = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        default_motion = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        os.environ['ROBOT_TYPE'] = 'UR5'
+        problems_directory = os.path.join(package_path, "problems/pre_generated_probs/ur5")
     else:
         print "Invalid robot model selected"
         exit()
+    
+    joint_state_name = INIT_JOINT_NAMES
+    joint_state_position = INIT_JOINT_POSITIONS
+    default_motion = INIT_ACTIVE_JOINT_POSITIONS
+    
     trajectory_directory = os.path.join(package_path, "problems/trajectorys")
     selected_problem = select_problem_from_directory(problems_directory)
     problem_file_path = os.path.join(problems_directory, selected_problem)
@@ -86,8 +102,10 @@ if __name__ == "__main__":
     )
 
     # load the gmm
-    gmm_dir_path = package_path + "/computed_gmms_dir/dpgmm/"
-    # gmm_dir_path = package_path + '/computed_gmms_dir/gmm/'
+    gmms_directory = os.path.join(package_path, "computed_gmms_dir")
+    gmm_name = select_gmm_from_directory(gmms_directory)
+    gmm_dir_path = os.path.join(gmms_directory, gmm_name) + "/"
+    
     gmm = GMM()
     gmm.load_distributions(gmm_dir_path)
 
@@ -104,12 +122,22 @@ if __name__ == "__main__":
     foliated_planning_framework.setMotionPlanner(motion_planner)
 
     # load it into the task planner.
-    # task_planner = MTGTaskPlanner()
-    task_planner = ALEFTaskPlanner()
-    # task_planner = MTGTaskPlannerWithGMM(gmm)
-    # task_planner = MTGTaskPlannerWithAtlas(
-    #       gmm, motion_planner.move_group.get_current_state()
-    # )  # need to provide the current robot state as the default robot state.
+    
+    planner_selection = select_planner()
+    if planner_selection == 1:
+        task_planner = MTGTaskPlanner()
+    elif planner_selection == 2:
+        task_planner = ALEFTaskPlanner()
+    elif planner_selection == 3:
+        task_planner = MTGTaskPlannerWithGMM(gmm)
+    elif planner_selection == 4:
+        task_planner = MTGTaskPlannerWithAtlas(
+            gmm, motion_planner.move_group.get_current_state()
+        )
+    else:
+        print "Invalid planner selected"
+        exit()
+
     foliated_planning_framework.setTaskPlanner(task_planner)
     foliated_planning_framework.setMaxAttemptTime(30)
 
@@ -125,17 +153,18 @@ if __name__ == "__main__":
     # set the foliated problem
     foliated_planning_framework.setFoliatedProblem(loaded_foliated_problem)
 
+    start, goal = set_start_goal()
     # set the start and goal
     foliated_planning_framework.setStartAndGoal(
         0,
-    0,
+        start,
         ManipulationIntersection(
             action="start",
             motion=[default_motion],
             active_joints=motion_planner.move_group.get_active_joints(),
         ),
         0,
-        5,
+        goal,
         ManipulationIntersection(
             action="goal",
             motion=[default_motion],

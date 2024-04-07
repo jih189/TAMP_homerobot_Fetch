@@ -5,7 +5,7 @@ from geometry_msgs.msg import Point, Pose, PoseStamped
 from std_msgs.msg import ColorRGBA
 import moveit_msgs.msg
 import trajectory_msgs.msg
-from jiaming_helper import convert_joint_values_to_robot_state, make_mesh, END_EFFECTOR_LINK, TOUCH_LINKS
+from jiaming_helper import convert_joint_values_to_robot_state, make_mesh, END_EFFECTOR_LINK, TOUCH_LINKS, FINGER_JOINTS
 from visualization_msgs.msg import Marker, MarkerArray
 from ros_numpy import msgify, numpify
 import numpy as np
@@ -466,7 +466,7 @@ class MoveitVisualizer(BaseVisualizer):
         need_to_break = False
 
         is_gripper_open = True 
-        gripper_joint_names = ["l_gripper_finger_joint", "r_gripper_finger_joint"]
+        gripper_joint_names = FINGER_JOINTS
 
         while not rospy.is_shutdown():
             for motion_plan in list_of_motion_plan:

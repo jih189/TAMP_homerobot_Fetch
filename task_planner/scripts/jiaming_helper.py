@@ -8,7 +8,7 @@ import trimesh
 from trimesh import transformations
 import numpy as np
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
-
+import os
 try:
     from pyassimp import pyassimp
 except:
@@ -23,23 +23,23 @@ except:
 
 ############################# CONSTANTS #############################
 # # Fetch robot constants
-GRIPPER_ROTATION = np.array([[1, 0, 0, -0.17], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-INIT_JOINT_NAMES = [
-        "torso_lift_joint",
-        "shoulder_pan_joint",
-        "shoulder_lift_joint",
-        "upperarm_roll_joint",
-        "elbow_flex_joint",
-        "wrist_flex_joint",
-        "l_gripper_finger_joint",
-        "r_gripper_finger_joint",
-    ]
-INIT_JOINT_POSITIONS = [0.3, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
-END_EFFECTOR_LINK = "wrist_roll_link"
-TOUCH_LINKS = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
-INIT_ACTIVE_JOINT_POSITIONS = [-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]
-FINGER_JOINTS = ["l_gripper_finger_joint", "r_gripper_finger_joint"]
-PRE_GRASP_POSE = np.array([[1, 0, 0, -0.05], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+# GRIPPER_ROTATION = np.array([[1, 0, 0, -0.17], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+# INIT_JOINT_NAMES = [
+#         "torso_lift_joint",
+#         "shoulder_pan_joint",
+#         "shoulder_lift_joint",
+#         "upperarm_roll_joint",
+#         "elbow_flex_joint",
+#         "wrist_flex_joint",
+#         "l_gripper_finger_joint",
+#         "r_gripper_finger_joint",
+#     ]
+# INIT_JOINT_POSITIONS = [0.3, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04]
+# END_EFFECTOR_LINK = "wrist_roll_link"
+# TOUCH_LINKS = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
+# INIT_ACTIVE_JOINT_POSITIONS = [-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]
+# FINGER_JOINTS = ["l_gripper_finger_joint", "r_gripper_finger_joint"]
+# PRE_GRASP_POSE = np.array([[1, 0, 0, -0.05], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
 
 # ur5 robot constants
 # GRIPPER_ROTATION = np.array([[0, 0, 1, -0.14], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
@@ -60,6 +60,66 @@ PRE_GRASP_POSE = np.array([[1, 0, 0, -0.05], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 
 # FINGER_JOINTS = ["hande_right_finger_joint", "hande_left_finger_joint"]
 # PRE_GRASP_POSE = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -0.08], [0, 0, 0, 1]])
 #####################################################################
+
+DEFAULT_ROBOT_TYPE = "FETCH"
+
+FETCH_CONFIG = {
+    'GRIPPER_ROTATION': np.array([[1, 0, 0, -0.17], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]),
+    'INIT_JOINT_NAMES': [
+        "torso_lift_joint",
+        "shoulder_pan_joint",
+        "shoulder_lift_joint",
+        "upperarm_roll_joint",
+        "elbow_flex_joint",
+        "wrist_flex_joint",
+        "l_gripper_finger_joint",
+        "r_gripper_finger_joint",
+    ],
+    'INIT_JOINT_POSITIONS': [0.38, -1.28, 1.52, 0.35, 1.81, 1.47, 0.04, 0.04],
+    'END_EFFECTOR_LINK': "wrist_roll_link",
+    'TOUCH_LINKS': ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"],
+    'INIT_ACTIVE_JOINT_POSITIONS': [-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0],
+    'FINGER_JOINTS': ["l_gripper_finger_joint", "r_gripper_finger_joint"],
+    'PRE_GRASP_POSE': np.array([[1, 0, 0, -0.05], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+}
+
+UR5_CONFIG = {
+    'GRIPPER_ROTATION': np.array([[0, 0, 1, -0.14], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]]),
+    'INIT_JOINT_NAMES': [
+        "shoulder_pan_joint",
+        "shoulder_lift_joint", 
+        "elbow_joint", 
+        "wrist_1_joint", 
+        "wrist_2_joint",
+        "wrist_3_joint",
+        "hande_right_finger_joint", 
+        "hande_left_finger_joint"
+    ],
+    'INIT_JOINT_POSITIONS': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    'END_EFFECTOR_LINK': "wrist_3_link",
+    'TOUCH_LINKS': ["flange", "tool0", "robotiq_coupler", "hande_link", "hande_right_finger_link", "hande_left_finger_link", "hande_end"],
+    'INIT_ACTIVE_JOINT_POSITIONS': [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    'FINGER_JOINTS': ["hande_right_finger_joint", "hande_left_finger_joint"],
+    'PRE_GRASP_POSE': np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -0.08], [0, 0, 0, 1]])
+}
+
+ROBOT_TYPE = os.environ.get('ROBOT_TYPE', DEFAULT_ROBOT_TYPE) 
+if ROBOT_TYPE == 'FETCH':
+    config = FETCH_CONFIG
+elif ROBOT_TYPE == 'UR5':
+    config = UR5_CONFIG
+else:
+    raise ValueError("Unsupported ROBOT_TYPE: {}".format(ROBOT_TYPE))
+
+GRIPPER_ROTATION = config['GRIPPER_ROTATION']
+INIT_JOINT_NAMES = config['INIT_JOINT_NAMES']
+INIT_JOINT_POSITIONS = config['INIT_JOINT_POSITIONS']
+END_EFFECTOR_LINK = config['END_EFFECTOR_LINK']
+TOUCH_LINKS = config['TOUCH_LINKS']
+INIT_ACTIVE_JOINT_POSITIONS = config['INIT_ACTIVE_JOINT_POSITIONS']
+FINGER_JOINTS = config['FINGER_JOINTS']
+PRE_GRASP_POSE = config['PRE_GRASP_POSE']
+
 
 # convert a list of joint values to robotTrajectory
 def convert_joint_values_to_robot_trajectory(joint_values_list_, joint_names_):

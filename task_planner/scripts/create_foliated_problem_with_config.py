@@ -197,34 +197,34 @@ class FoliatedBuilder(object):
         for foliation in foliations:
             foliation_name = foliation.get("name")
 
-            reference_pose = None
-            if foliation.get("reference_pose"):
-                reference_pose = np.array(foliation.get("reference_pose"))
-            elif foliation.get("reference_pose_position"):
-                reference_pose = np.array(create_rotation_matrix_from_euler(foliation.get("reference_pose_orientation"),
-                                                                            foliation.get("reference_pose_position")))
+            # If has foliation name, create foliation
+            if foliation_name:
+                reference_pose = None
+                if foliation.get("reference_pose"):
+                    reference_pose = np.array(foliation.get("reference_pose"))
+                elif foliation.get("reference_pose_position"):
+                    reference_pose = np.array(create_rotation_matrix_from_euler(foliation.get("reference_pose_orientation"),
+                                                                                foliation.get("reference_pose_position")))
 
-            orientation_tolerance = foliation.get("orientation_tolerance")
-            position_tolerance = foliation.get("position_tolerance")
-            foliation_placement = self._create_foliation(foliation_name, "base_link", reference_pose,
-                                                         orientation_tolerance,
-                                                         position_tolerance, self.feasible_grasps,
-                                                         self.sliding_similarity_matrix)
+                orientation_tolerance = foliation.get("orientation_tolerance")
+                position_tolerance = foliation.get("position_tolerance")
+                foliation_placement = self._create_foliation(foliation_name, "base_link", reference_pose,
+                                                            orientation_tolerance,
+                                                            position_tolerance, self.feasible_grasps,
+                                                            self.sliding_similarity_matrix)
 
-            self.foliation_dict[foliation_name] = foliation_placement
+                self.foliation_dict[foliation_name] = foliation_placement
 
-            intersect_with = foliation.get("intersect_with")
-            if not intersect_with:
-                self.sample_task_queue.append([foliation_placement, "default"])
-            else:
-                for intersect in intersect_with:
-                    self.sample_task_queue.append([foliation_placement, intersect])
+                intersect_with = foliation.get("intersect_with")
+                if not intersect_with:
+                    self.sample_task_queue.append([foliation_placement, "default"])
+                else:
+                    for intersect in intersect_with:
+                        self.sample_task_queue.append([foliation_placement, intersect])
 
             placement_type = foliation.get("type")
             if not placement_type:
                 placement_type = params.get("type")
-            if not placement_type:
-                print "no valid placement type detected"
 
             if placement_type == "rectangular":
                 self._placement_rectangular(foliation)
@@ -239,7 +239,7 @@ class FoliatedBuilder(object):
             else:
                 print("invalid placement type, check config: " + foliation_name)
 
-    def _handle_grasps(self, num_samples, rotated_matrix):
+    def _handle_grasps(self, num_samples, rotated_matrix, pre_grasp_pose_matrix):
         loaded_array = np.load(self.grasp_poses_file)
         if num_samples == 0:
             num_samples = len(loaded_array.files)
@@ -352,7 +352,7 @@ class Sampler:
         self.fraction = 1.0
         self.target_frame_id = "base_link"
         self.target_group_name = "arm"
-        self.grasp_pose_mat = [[1, 0, 0, -0.05], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+        self.grasp_pose_mat = config.get('grasp', 'pre_grasp_pose_matrix')
         self.placements = placements
 
         self.selected_co_param_grasp = {}
@@ -501,6 +501,36 @@ class Sampler:
         
         # print successful_placements
 
+        if not rospy.core.is_initialized():
+            rospy.init_node('placement_visualization', anonymous=True)
+
+        marker_pub = rospy.Publisher('visualization_marker_array', MarkerArray, queue_size=10)
+        marker_array = MarkerArray()
+        marker_id = 0
+        
+        for foliation_name, placements in successful_placements.items():
+            for placement in placements:
+                text_marker = Marker()
+                text_marker.header.frame_id = "base_link"
+                text_marker.header.stamp = rospy.Time.now()
+                text_marker.ns = foliation_name
+                text_marker.id = marker_id
+                marker_id += 1
+                text_marker.type = Marker.TEXT_VIEW_FACING
+                text_marker.action = Marker.ADD
+                text_marker.pose.position.x = placement[0, 3]
+                text_marker.pose.position.y = placement[1, 3]
+                text_marker.pose.position.z = placement[2, 3] + 0.1
+                text_marker.scale.z = 0.05
+                text_marker.color.a = 1.0
+                text_marker.color.r = 1.0 
+                text_marker.color.g = 1.0
+                text_marker.color.b = 1.0
+                text_marker.text = foliation_name
+                marker_array.markers.append(text_marker)
+
+        marker_pub.publish(marker_array)
+
         successful_placements_values = successful_placements.values()
         for array1 in successful_placements_values[0]:
             for array2 in successful_placements_values[1]:
@@ -640,7 +670,6 @@ class Pipeline:
             print "Foliation Name - {}, Target - {}".format(foliation.foliation_name, name)
 
     def _build_foliations(self):
-        # TODO: check why can't just use dict
         self.foliations = [self.foliated_builder.foliation_regrasp] + self.foliated_builder.foliation_placement_group
 
     @staticmethod

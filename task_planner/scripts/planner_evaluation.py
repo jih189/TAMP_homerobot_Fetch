@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+import os
+
+if os.environ.get('ROBOT_TYPE', False):
+    print("ROBOT_TYPE already set to: {}".format(os.environ['ROBOT_TYPE']))
+else:
+    os.environ['ROBOT_TYPE'] = 'FETCH'
+
 from foliated_base_class import FoliatedProblem, FoliatedIntersection
 from manipulation_foliations_and_intersections import (
     ManipulationFoliation,
@@ -15,16 +22,16 @@ from jiaming_task_planner import (
     DynamicMTGPlannerWithAtlas,
 )
 from jiaming_motion_planner import MoveitMotionPlanner
-
+from jiaming_helper import INIT_ACTIVE_JOINT_POSITIONS
 import rospy
 import rospkg
 from tqdm import tqdm
 import json
-import os
 import uuid
 import time
 import redis
 import socket
+import argparse
 
 """
 On the side, for each foliation problem, we need to provide the possible start and goal manifolds.
@@ -48,6 +55,16 @@ for planner in planner_list:
     print "planner: ", planner, " success rate: ", success_count / len(start_and_goal_list), " average planning time: ", planning_time / len(start_and_goal_list)
     save the result to a file.
 """
+
+def select_robot_model():
+    print "Please select a robot:"
+    print "1. Fetch"
+    print "2. UR5"
+    selection = int(raw_input("Enter the number of the problem you wish to select: "))
+    if selection == 1:
+        return "FETCH"
+    elif selection == 2:
+        return "UR5"
 
 def select_problem_from_directory(directory):
     problems = [d for d in os.listdir(directory) if os.path.isdir(os.path.join(directory, d))]
@@ -101,6 +118,14 @@ if __name__ == "__main__":
     max_attempt_time = 50
 
     ########################################
+    
+    
+    parser = argparse.ArgumentParser(description='Foliated planning framework evaluation.')
+    parser.add_argument('-model', '--model', help='The model of the robot to use.')
+    parser.add_argument('-prob', '--problem', help='The name of the foliation problem to use.')
+    parser.add_argument('-gmm', '--gmm_name', help='The name of the GMM to use.')
+    args = parser.parse_args()
+    
 
     rospy.init_node("evaluation_node", anonymous=True)
 
@@ -111,11 +136,32 @@ if __name__ == "__main__":
     # Get the path of the desired package
     package_path = rospack.get_path("task_planner")
 
-    problems_directory = os.path.join(package_path, "problems/pre_generated_probs")
+    if args.model:
+        selected_roobt_model = args.model
+        print("Using provided model: {}".format(selected_roobt_model))
+    else:
+        selected_roobt_model = select_robot_model()
+        
+    if selected_roobt_model == "FETCH":
+        os.environ['ROBOT_TYPE'] = 'FETCH'
+        problems_directory = os.path.join(package_path, "problems/pre_generated_probs/fetch")
+    elif selected_roobt_model == "UR5":
+        os.environ['ROBOT_TYPE'] = 'UR5'
+        problems_directory = os.path.join(package_path, "problems/pre_generated_probs/ur5")
+    else:
+        print "Invalid robot model selected"
+        exit()
+    
     results_directory = os.path.join(package_path, "problems/results")
     gmms_directory = os.path.join(package_path, "computed_gmms_dir")
     
-    selected_problem = select_problem_from_directory(problems_directory)
+    if args.problem:
+        selected_problem = args.problem
+        print("Using provided problem: {}".format(selected_problem))
+    else:
+        selected_problem = select_problem_from_directory(problems_directory)
+        
+    print selected_problem
     problem_file_path = os.path.join(problems_directory, selected_problem)
 
     # load the foliated problem
@@ -125,24 +171,22 @@ if __name__ == "__main__":
 
     task_uuid = str(uuid.uuid4())
     task_timestamp = time.time()
-    hostname = "J_Apr_4" # Mofidy this to your unique identifier
+    hostname = os.environ.get('EXP_NAME', 'unknown') 
     
     # load the gmm
     # gmm_name = "dpgmm"
     # gmm_dir_path = package_path + "/computed_gmms_dir/" + gmm_name + "/"
     # gmm_dir_path = package_path + '/computed_gmms_dir/gmm/'
     
-    gmm_name = select_gmm_from_directory(gmms_directory)
+    if args.gmm_name:
+        gmm_name = args.gmm_name
+        print("Using provided GMM: {}".format(gmm_name))
+    else:
+        gmm_name = select_gmm_from_directory(gmms_directory)
+        
     gmm_dir_path = os.path.join(gmms_directory, gmm_name) + "/"
     print("Using GMM: " + gmm_name)
 
-    gmm = GMM()
-    gmm.load_distributions(gmm_dir_path)
-    
-    # load the gmm
-    gmm_name = "dpgmm"
-    gmm_dir_path = package_path + "/computed_gmms_dir/" + gmm_name + "/"
-    # gmm_dir_path = package_path + '/computed_gmms_dir/gmm/'
     gmm = GMM()
     gmm.load_distributions(gmm_dir_path)
     
@@ -188,13 +232,9 @@ if __name__ == "__main__":
         ALEFTaskPlanner(),
         MTGTaskPlanner(),
         MTGTaskPlannerWithGMM(gmm),
-        MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
         DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
-        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_25.0", threshold=25.0),
-        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_50.0", threshold=50.0),
         DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=50.0),
-        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_75.0", threshold=75.0),
-        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_75.0", threshold=75.0),
+        MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
     ]
 
 
@@ -213,14 +253,14 @@ if __name__ == "__main__":
                     start[1],
                     ManipulationIntersection(
                         action="start",
-                        motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
+                        motion=[INIT_ACTIVE_JOINT_POSITIONS],
                         active_joints=motion_planner.move_group.get_active_joints(),
                     ),
                     goal[0],
                     goal[1],
                     ManipulationIntersection(
                         action="goal",
-                        motion=[[-1.28, 1.51, 0.35, 1.81, 0.0, 1.47, 0.0]],
+                        motion=[INIT_ACTIVE_JOINT_POSITIONS],
                         active_joints=motion_planner.move_group.get_active_joints(),
                     ),
                 )
@@ -235,7 +275,11 @@ if __name__ == "__main__":
                     num_attempts,
                     total_solve_time,
                     set_start_and_goal_time,
+                    task_graph_size,
+                    current_task_graph_size,
                 ) = foliated_planning_framework.evaluation()
+                
+                task_timestamp = time.time()
 
                 if success_flag:
                     result_data = {
@@ -253,6 +297,8 @@ if __name__ == "__main__":
                         "task_uuid": task_uuid,
                         "task_timestamp": task_timestamp,
                         "gmm_name": gmm_name,
+                        "task_graph_size": task_graph_size,
+                        "current_task_graph_size": current_task_graph_size,
                     }
  
  
@@ -270,6 +316,7 @@ if __name__ == "__main__":
                         print("Failed to write data to file: {}".format(e))
  
                 else:
+                    task_timestamp = time.time()
                     result_data = {
                         "planner_name": task_planner.planner_name,
                         "start": start,
@@ -285,6 +332,8 @@ if __name__ == "__main__":
                         "task_uuid": task_uuid,
                         "task_timestamp": task_timestamp,
                         "gmm_name": gmm_name,
+                        "task_graph_size": task_graph_size,
+                        "current_task_graph_size": current_task_graph_size,
                     }
 
 

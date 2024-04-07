@@ -2,7 +2,7 @@ task_parameters:
   task_name: "slide_cup"
   task_type: ""
   num_samples: 2000
-  save_path: "/check"
+  save_path: "/problems/pre_generated_probs/ur5/slide_cup_g_150"
 
 initial_joint_state:
   shoulder_pan_joint: 0
@@ -18,17 +18,22 @@ environment:
   grasp_poses_file: "/mesh_dir/cup.npz"
   env_pose:
     frame_id: "base_link"
-    position: [0.70, -0.4, -0.02]
+    position: [0.70, -0.1, -0.02]
     orientation: [0.0, 0.0, 0.7071, -0.7071]
 
 grasp:
   num_samples: 150
   rotated_matrix:
-    - [1, 0, 0, -0.17]
-    - [0, 1, 0, 0.0]
-    - [0, 0, 1, 0.0]
+    - [0, 0, 1, -0.14]
+    - [1, 0, 0, 0]
+    - [0, 1, 0, 0]
     - [0, 0, 0, 1]
-
+  pre_grasp_pose_matrix:
+    - [1, 0, 0, 0]
+    - [0, 1, 0, 0]
+    - [0, 0, 1, -0.08]
+    - [0, 0, 0, 1]
+  
 placement:
   similarity_sigma: 0.1
   foliations:
@@ -36,15 +41,15 @@ placement:
       type: "point"
       orientation_tolerance: [ 0.01, 0.01, 0.01 ]
       position_tolerance: [ 2000, 2000, 0.0009 ]
-      reference_pose_position: [ 0.75, -0.55, 0.78 ]
+      reference_pose_position: [ 0.75, -0.25, 0.78 ]
       reference_pose_orientation: [ 0.0, 0.0, 0.0 ]
-      placement_position: [ 0.75, -0.55, 0.78 ]
+      placement_position: [ 0.75, -0.25, 0.78 ]
       placement_orientation: [0, 0, 0]
     - name: "second"
       type: "point"
       orientation_tolerance: [ 0.01, 0.01, 0.01 ]
       position_tolerance: [ 2000, 2000, 0.0009 ]
-      reference_pose_position: [0.75, -0.15, 0.78]
+      reference_pose_position: [0.75, 0.15, 0.78]
       reference_pose_orientation: [0.0, 0.0, 0.0]
-      placement_position: [0.75, -0.15, 0.78]
+      placement_position: [0.75, 0.15, 0.78]
       placement_orientation: [0, 0, 0]
