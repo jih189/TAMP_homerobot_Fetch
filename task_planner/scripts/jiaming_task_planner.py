@@ -193,52 +193,82 @@ class MTGTaskPlanner(BaseTaskPlanner):
             ) in self.task_graph.edges.data("manifold_id"):
                 # find all the edges having the same foliation with the current task.
                 if current_manifold_id[0] == e_current_manifold_id[0]:
-                    # e_previous_manifold_id = self.task_graph.nodes[e_start_node][
-                    #     "previous_manifold_id"
-                    # ]
-                    # e_next_manifold_id = self.task_graph.nodes[e_goal_node][
-                    #     "next_manifold_id"
-                    # ]
+                    e_previous_manifold_id = self.task_graph.nodes[e_start_node][
+                        "previous_manifold_id"
+                    ]
+                    e_next_manifold_id = self.task_graph.nodes[e_goal_node][
+                        "next_manifold_id"
+                    ]
 
-                    # previous_similarity_score = 0
-                    # next_similarity_score = 0
+                    previous_similarity_score = 0
+                    next_similarity_score = 0
 
-                    # if (
-                    #     previous_manifold_id == "start"
-                    #     or e_previous_manifold_id == "start"
-                    # ):
-                    #     if previous_manifold_id == e_previous_manifold_id:
-                    #         previous_similarity_score = 1.0
-                    #     else:
-                    #         # previous similarity score is 0, so we can skip this edge.
-                    #         continue
-                    # else:
-                    #     previous_similarity_score = self.total_similiarity_table[
-                    #         previous_manifold_id[0]
-                    #     ][e_previous_manifold_id[1], previous_manifold_id[1]]
+                    if (
+                        previous_manifold_id == "start" or e_previous_manifold_id == "start"
+                        or next_manifold_id == "goal" or e_next_manifold_id == "goal"
+                    ):
+                        # need to handle the case when the previous manifold is the start
+                        # manifold or the next manifold is the goal manifold.
 
-                    # if next_manifold_id == "goal" or e_next_manifold_id == "goal":
-                    #     if next_manifold_id == e_next_manifold_id:
-                    #         next_similarity_score = 1.0
-                    #     else:
-                    #         # next similarity score is 0, so we can skip this edge.
-                    #         continue
-                    # else:
-                    #     next_similarity_score = self.total_similiarity_table[
-                    #         next_manifold_id[0]
-                    #     ][e_next_manifold_id[1], next_manifold_id[1]]
+                        if previous_manifold_id == "start" and e_previous_manifold_id == "start":
+                            # they are from the same foliation, then the similarity score is 1.
+                            previous_similarity_score = 1.0
+                        elif previous_manifold_id == "start" or e_previous_manifold_id == "start":
+                            # they are from different foliation, then we can skip this edge.
+                            continue
+                        elif previous_manifold_id[0] != e_previous_manifold_id[0]:
+                            # they are from different foliation, then we can skip this edge.
+                            continue
+                        else:
+                            previous_similarity_score = self.total_similiarity_table[
+                                previous_manifold_id[0]
+                            ][e_previous_manifold_id[1], previous_manifold_id[1]]
 
-                    current_similarity_score = self.total_similiarity_table[
-                        current_manifold_id[0]
-                    ][e_current_manifold_id[1], current_manifold_id[1]]
+                        if next_manifold_id == "goal" and e_next_manifold_id == "goal":
+                            # they are from the same foliation, then the similarity score is 1.
+                            next_similarity_score = 1.0
+                        elif next_manifold_id == "goal" or e_next_manifold_id == "goal":
+                            # they are from different foliation, then we can skip this edge.
+                            continue
+                        elif next_manifold_id[0] != e_next_manifold_id[0]:
+                            # they are from different foliation, then we can skip this edge.
+                            continue
+                        else:
+                            next_similarity_score = self.total_similiarity_table[
+                                next_manifold_id[0]
+                            ][e_next_manifold_id[1], next_manifold_id[1]]
 
-                    # total_similarity_score = (
-                    #     current_similarity_score
-                    #     * previous_similarity_score
-                    #     * next_similarity_score
-                    # )
+                    else:
+                        # correct the order
+                        if previous_manifold_id[0] == e_previous_manifold_id[0] and next_manifold_id[0] == e_next_manifold_id[0]:
+                            previous_similarity_score = self.total_similiarity_table[
+                                previous_manifold_id[0]
+                            ][e_previous_manifold_id[1], previous_manifold_id[1]]
+                            next_similarity_score = self.total_similiarity_table[
+                                next_manifold_id[0]
+                            ][e_next_manifold_id[1], next_manifold_id[1]]
 
-                    total_similarity_score = current_similarity_score
+                        elif previous_manifold_id[0] == e_next_manifold_id[0] and next_manifold_id[0] == e_previous_manifold_id[0]:
+                            previous_similarity_score = self.total_similiarity_table[
+                                previous_manifold_id[0]
+                            ][e_next_manifold_id[1], previous_manifold_id[1]]
+                            next_similarity_score = self.total_similiarity_table[
+                                next_manifold_id[0]
+                            ][e_previous_manifold_id[1], next_manifold_id[1]]
+
+                        else:
+                            # they are from different foliation, then we can skip this edge.
+                            continue
+
+                        previous_similarity_score = self.total_similiarity_table[
+                            previous_manifold_id[0]
+                        ][e_previous_manifold_id[1], previous_manifold_id[1]]
+
+                    total_similarity_score = (
+                        current_similarity_score
+                        * previous_similarity_score
+                        * next_similarity_score
+                    )
 
                     self.task_graph.edges[(e_start_node, e_goal_node)]["weight"] += (
                         1.0 * total_similarity_score
@@ -429,8 +459,6 @@ class ALEFTaskPlanner(BaseTaskPlanner):
                 self.local_roadmaps[self.task_graph.edges[task_graph_info_]["manifold_id"]] = SPARSdb(len(solution_path[0]))
             self.local_roadmaps[self.task_graph.edges[task_graph_info_]["manifold_id"]].addPathToRoadmap(solution_path)
         else:
-            # if current task is faled to solve, then we can increate the weight of the edge which is similar to the current task.
-            # the similarity is defined as the product of the similarity of the previous manifold, the next manifold, and the current similarity.
             # get the current manifold id, previous manifold id and next manifold id of the task.
             current_manifold_id = self.task_graph.edges[task_graph_info_]["manifold_id"]
             previous_manifold_id = self.task_graph.nodes[task_graph_info_[0]][
@@ -447,52 +475,82 @@ class ALEFTaskPlanner(BaseTaskPlanner):
             ) in self.task_graph.edges.data("manifold_id"):
                 # find all the edges having the same foliation with the current task.
                 if current_manifold_id[0] == e_current_manifold_id[0]:
-                    # e_previous_manifold_id = self.task_graph.nodes[e_start_node][
-                    #     "previous_manifold_id"
-                    # ]
-                    # e_next_manifold_id = self.task_graph.nodes[e_goal_node][
-                    #     "next_manifold_id"
-                    # ]
+                    e_previous_manifold_id = self.task_graph.nodes[e_start_node][
+                        "previous_manifold_id"
+                    ]
+                    e_next_manifold_id = self.task_graph.nodes[e_goal_node][
+                        "next_manifold_id"
+                    ]
 
-                    # previous_similarity_score = 0
-                    # next_similarity_score = 0
+                    previous_similarity_score = 0
+                    next_similarity_score = 0
 
-                    # if (
-                    #     previous_manifold_id == "start"
-                    #     or e_previous_manifold_id == "start"
-                    # ):
-                    #     if previous_manifold_id == e_previous_manifold_id:
-                    #         previous_similarity_score = 1.0
-                    #     else:
-                    #         # previous similarity score is 0, so we can skip this edge.
-                    #         continue
-                    # else:
-                    #     previous_similarity_score = self.total_similiarity_table[
-                    #         previous_manifold_id[0]
-                    #     ][e_previous_manifold_id[1], previous_manifold_id[1]]
+                    if (
+                        previous_manifold_id == "start" or e_previous_manifold_id == "start"
+                        or next_manifold_id == "goal" or e_next_manifold_id == "goal"
+                    ):
+                        # need to handle the case when the previous manifold is the start
+                        # manifold or the next manifold is the goal manifold.
 
-                    # if next_manifold_id == "goal" or e_next_manifold_id == "goal":
-                    #     if next_manifold_id == e_next_manifold_id:
-                    #         next_similarity_score = 1.0
-                    #     else:
-                    #         # next similarity score is 0, so we can skip this edge.
-                    #         continue
-                    # else:
-                    #     next_similarity_score = self.total_similiarity_table[
-                    #         next_manifold_id[0]
-                    #     ][e_next_manifold_id[1], next_manifold_id[1]]
+                        if previous_manifold_id == "start" and e_previous_manifold_id == "start":
+                            # they are from the same foliation, then the similarity score is 1.
+                            previous_similarity_score = 1.0
+                        elif previous_manifold_id == "start" or e_previous_manifold_id == "start":
+                            # they are from different foliation, then we can skip this edge.
+                            continue
+                        elif previous_manifold_id[0] != e_previous_manifold_id[0]:
+                            # they are from different foliation, then we can skip this edge.
+                            continue
+                        else:
+                            previous_similarity_score = self.total_similiarity_table[
+                                previous_manifold_id[0]
+                            ][e_previous_manifold_id[1], previous_manifold_id[1]]
 
-                    current_similarity_score = self.total_similiarity_table[
-                        current_manifold_id[0]
-                    ][e_current_manifold_id[1], current_manifold_id[1]]
+                        if next_manifold_id == "goal" and e_next_manifold_id == "goal":
+                            # they are from the same foliation, then the similarity score is 1.
+                            next_similarity_score = 1.0
+                        elif next_manifold_id == "goal" or e_next_manifold_id == "goal":
+                            # they are from different foliation, then we can skip this edge.
+                            continue
+                        elif next_manifold_id[0] != e_next_manifold_id[0]:
+                            # they are from different foliation, then we can skip this edge.
+                            continue
+                        else:
+                            next_similarity_score = self.total_similiarity_table[
+                                next_manifold_id[0]
+                            ][e_next_manifold_id[1], next_manifold_id[1]]
 
-                    # total_similarity_score = (
-                    #     current_similarity_score
-                    #     * previous_similarity_score
-                    #     * next_similarity_score
-                    # )
+                    else:
+                        # correct the order
+                        if previous_manifold_id[0] == e_previous_manifold_id[0] and next_manifold_id[0] == e_next_manifold_id[0]:
+                            previous_similarity_score = self.total_similiarity_table[
+                                previous_manifold_id[0]
+                            ][e_previous_manifold_id[1], previous_manifold_id[1]]
+                            next_similarity_score = self.total_similiarity_table[
+                                next_manifold_id[0]
+                            ][e_next_manifold_id[1], next_manifold_id[1]]
 
-                    total_similarity_score = current_similarity_score
+                        elif previous_manifold_id[0] == e_next_manifold_id[0] and next_manifold_id[0] == e_previous_manifold_id[0]:
+                            previous_similarity_score = self.total_similiarity_table[
+                                previous_manifold_id[0]
+                            ][e_next_manifold_id[1], previous_manifold_id[1]]
+                            next_similarity_score = self.total_similiarity_table[
+                                next_manifold_id[0]
+                            ][e_previous_manifold_id[1], next_manifold_id[1]]
+
+                        else:
+                            # they are from different foliation, then we can skip this edge.
+                            continue
+
+                        previous_similarity_score = self.total_similiarity_table[
+                            previous_manifold_id[0]
+                        ][e_previous_manifold_id[1], previous_manifold_id[1]]
+
+                    total_similarity_score = (
+                        current_similarity_score
+                        * previous_similarity_score
+                        * next_similarity_score
+                    )
 
                     self.task_graph.edges[(e_start_node, e_goal_node)]["weight"] += (
                         1.0 * total_similarity_score
