@@ -27,6 +27,7 @@ import time
 import redis
 import socket
 import argparse
+import psutil
 
 """
 On the side, for each foliation problem, we need to provide the possible start and goal manifolds.
@@ -76,6 +77,11 @@ def select_gmm_from_directory(directory):
         print "{}: {}".format(i + 1, gmm)
     selection = int(raw_input("Enter the number of the GMM you wish to select: "))
     return gmms[selection - 1]
+
+def check_memory_usage_below_threshold(threshold=85):
+    memory = psutil.virtual_memory()
+    print("Memory usage: {}%".format(memory.percent))
+    return memory.percent < threshold
 
 if __name__ == "__main__":
     
@@ -237,6 +243,10 @@ if __name__ == "__main__":
     with open(result_file_path, "w") as result_file:
         for task_planner in task_planners:
             print("=== Evaluate task planner ", task_planner.planner_name, " ===")
+            
+            while not check_memory_usage_below_threshold():
+                print("Memory usage exceeds 85%, pause loading new task_planner and wait for memory usage to decrease...")
+                time.sleep(5)
 
             foliated_planning_framework.setTaskPlanner(task_planner)
 
