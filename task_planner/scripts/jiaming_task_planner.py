@@ -607,6 +607,20 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
         self.parameter_dict = parameter_dict_
 
+    def shutdown(self):
+        # Delete all the objects to free memory
+        self.task_graph.clear()
+        self.manifold_info = None
+        self.task_graph = None
+        self.foliation_with_co_parameter_id = None
+        self.total_similiarity_table = None
+        self.graph_edges = None
+        
+        del self.task_graph
+        del self.manifold_info
+        del self.foliation_with_co_parameter_id
+        del self.total_similiarity_table
+        del self.graph_edges
 
     # MTGTaskPlannerWithGMM
     def reset_task_planner(self, hard_reset):
