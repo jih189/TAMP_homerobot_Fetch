@@ -7,7 +7,7 @@ MOVEIT_CONFIG="ur5_moveit_config" # fetch_moveit_config | ur5_moveit_config
 GMM_NAME="dpgmm_6dof_443" # dpgmm_7dof_262 | dpgmm_6dof_443 | dpgmm_6dof_186 | dpgmm_7dof_1310
 
 DOCKER_NAME_PREFIX="manipulation_apr9_ur5" # assign a unique prefix for each docker container
-IMAGE_NAME="rss2024_rebuttal_exp:apr9_v2" # image name for the evaluation container you commited before
+IMAGE_NAME="rss2024_rebuttal_exp:apr9_v3" # image name for the evaluation container you commited before
 
 # List of problems to evaluate, should be same as the problems in the pre_generated_problems folder
 declare -a problems=( 

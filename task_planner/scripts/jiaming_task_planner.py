@@ -28,6 +28,21 @@ class MTGTaskPlanner(BaseTaskPlanner):
         # super().__init__() # python 3
         self.planner_name = planner_name_
         self.parameter_dict = parameter_dict_
+        
+    def shutdown(self):
+        # Delete all the objects to free memory
+        self.task_graph.clear()
+        self.manifold_info = None
+        self.task_graph = None
+        self.foliation_with_co_parameter_id = None
+        self.total_similiarity_table = None
+        self.graph_edges = None
+        
+        del self.task_graph
+        del self.manifold_info
+        del self.foliation_with_co_parameter_id
+        del self.total_similiarity_table
+        del self.graph_edges
 
     # MTGTaskPlanner
     def reset_task_planner(self, hard_reset):
@@ -285,6 +300,21 @@ class ALEFTaskPlanner(BaseTaskPlanner):
         # super().__init__() # python 3
         self.planner_name = planner_name_
         self.parameter_dict = parameter_dict_
+
+    def shutdown(self):
+        # Delete all the objects to free memory
+        self.task_graph.clear()
+        self.manifold_info = None
+        self.task_graph = None
+        self.foliation_with_co_parameter_id = None
+        self.total_similiarity_table = None
+        self.graph_edges = None
+        
+        del self.task_graph
+        del self.manifold_info
+        del self.foliation_with_co_parameter_id
+        del self.total_similiarity_table
+        del self.graph_edges
 
     # ALEFTaskPlanner
     def reset_task_planner(self, hard_reset):
@@ -1024,6 +1054,21 @@ class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
         # super().__init__() # python 3
         self.exceed_threshold = threshold
 
+    def shutdown(self):
+        # Delete all the objects to free memory
+        self.task_graph.clear()
+        self.manifold_info = None
+        self.task_graph = None
+        self.foliation_with_co_parameter_id = None
+        self.total_similiarity_table = None
+        self.graph_edges = None
+        
+        del self.task_graph
+        del self.manifold_info
+        del self.foliation_with_co_parameter_id
+        del self.total_similiarity_table
+        del self.graph_edges
+
     def add_manifold(self, manifold_info_, manifold_id_):
 
         self.manifold_info[manifold_id_] = manifold_info_
@@ -1248,6 +1293,22 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         self.reset_atlas_service = rospy.ServiceProxy("/reset_atlas", ResetAtlas)
 
         self.max_valid_configuration_number_to_atlas = 100
+
+    # MTGTaskPlannerWithAtlas
+    def shutdown(self):
+        # Delete all the objects to free memory
+        self.task_graph.clear()
+        self.manifold_info = None
+        self.task_graph = None
+        self.foliation_with_co_parameter_id = None
+        self.total_similiarity_table = None
+        self.graph_edges = None
+        
+        del self.task_graph
+        del self.manifold_info
+        del self.foliation_with_co_parameter_id
+        del self.total_similiarity_table
+        del self.graph_edges
 
     # MTGTaskPlannerWithAtlas
     def reset_task_planner(self, hard_reset):
@@ -1867,7 +1928,21 @@ class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
         # super().__init__() # python 3
         self.exceed_threshold = threshold
 
-
+    def shutdown(self):
+        # Delete all the objects to free memory
+        self.task_graph.clear()
+        self.manifold_info = None
+        self.task_graph = None
+        self.foliation_with_co_parameter_id = None
+        self.total_similiarity_table = None
+        self.graph_edges = None
+        
+        del self.task_graph
+        del self.manifold_info
+        del self.foliation_with_co_parameter_id
+        del self.total_similiarity_table
+        del self.graph_edges
+        
     # MTGTaskPlannerWithAtlas
     def add_manifold(self, manifold_info_, manifold_id_):
         self.manifold_info[manifold_id_] = manifold_info_
