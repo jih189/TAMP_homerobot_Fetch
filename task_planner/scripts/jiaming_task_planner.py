@@ -260,9 +260,9 @@ class MTGTaskPlanner(BaseTaskPlanner):
                             # they are from different foliation, then we can skip this edge.
                             continue
 
-                        previous_similarity_score = self.total_similiarity_table[
-                            previous_manifold_id[0]
-                        ][e_previous_manifold_id[1], previous_manifold_id[1]]
+                    current_similarity_score = self.total_similiarity_table[
+                        current_manifold_id[0]
+                    ][e_current_manifold_id[1], current_manifold_id[1]]
 
                     total_similarity_score = (
                         current_similarity_score
@@ -542,10 +542,10 @@ class ALEFTaskPlanner(BaseTaskPlanner):
                             # they are from different foliation, then we can skip this edge.
                             continue
 
-                        previous_similarity_score = self.total_similiarity_table[
-                            previous_manifold_id[0]
-                        ][e_previous_manifold_id[1], previous_manifold_id[1]]
-
+                    current_similarity_score = self.total_similiarity_table[
+                        current_manifold_id[0]
+                    ][e_current_manifold_id[1], current_manifold_id[1]]
+                    
                     total_similarity_score = (
                         current_similarity_score
                         * previous_similarity_score
