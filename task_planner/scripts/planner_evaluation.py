@@ -225,9 +225,10 @@ if __name__ == "__main__":
     # load it into the task planner.
     task_planners = [
         MTGTaskPlannerWithGMM(gmm),
-        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
-        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=50.0),
         MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
+        DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
+        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=25.0),
+        DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=50.0),
         ALEFTaskPlanner(),
         MTGTaskPlanner(),
     ]
@@ -344,6 +345,7 @@ if __name__ == "__main__":
                         result_file.flush()
                     except Exception as e:
                         print("Failed to write data to file: {}".format(e))
+        del task_planner
 
     # shutdown the planning framework
     foliated_planning_framework.shutdown()

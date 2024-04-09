@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXP_NAME="Apr7_Fetch" # the name of the experiment, this will shown in the results script
+EXP_NAME="default" # the name of the experiment, this will shown in the results script
 
 MODEL_NAME="FETCH" # FETCH | UR5
 MOVEIT_CONFIG="fetch_moveit_config" # fetch_moveit_config | ur5_moveit_config

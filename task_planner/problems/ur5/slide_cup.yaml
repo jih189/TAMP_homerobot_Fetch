@@ -1,11 +1,11 @@
 task_parameters:
   task_name: "slide_cup"
   task_type: ""
-  num_samples: 2000
-  save_path: "/problems/pre_generated_probs/ur5/slide_cup_g_150"
+  num_samples: 5000
+  save_path: "/problems/pre_generated_probs/ur5/slide_cup_g_200"
 
 initial_joint_state:
-  shoulder_pan_joint: 0
+  shoulder_pan_joint: 0.78
   shoulder_lift_joint: 0
   elbow_joint: 0
   wrist_1_joint: 0
@@ -22,7 +22,7 @@ environment:
     orientation: [0.0, 0.0, 0.7071, -0.7071]
 
 grasp:
-  num_samples: 150
+  num_samples: 200
   rotated_matrix:
     - [0, 0, 1, -0.14]
     - [1, 0, 0, 0]
@@ -40,16 +40,11 @@ placement:
     - name: "first"
       type: "point"
       orientation_tolerance: [ 0.01, 0.01, 0.01 ]
-      position_tolerance: [ 2000, 2000, 0.0009 ]
+      position_tolerance: [ 2000, 2000, 2000 ]
       reference_pose_position: [ 0.75, -0.25, 0.78 ]
       reference_pose_orientation: [ 0.0, 0.0, 0.0 ]
       placement_position: [ 0.75, -0.25, 0.78 ]
       placement_orientation: [0, 0, 0]
-    - name: "second"
-      type: "point"
-      orientation_tolerance: [ 0.01, 0.01, 0.01 ]
-      position_tolerance: [ 2000, 2000, 0.0009 ]
-      reference_pose_position: [0.75, 0.15, 0.78]
-      reference_pose_orientation: [0.0, 0.0, 0.0]
+    - type: "point"
       placement_position: [0.75, 0.15, 0.78]
       placement_orientation: [0, 0, 0]

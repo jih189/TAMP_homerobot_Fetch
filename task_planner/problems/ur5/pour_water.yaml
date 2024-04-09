@@ -18,7 +18,7 @@ environment:
   grasp_poses_file: "/mesh_dir/cup.npz"
   env_pose:
     frame_id: "base_link"
-    position: [0.60, -0.2, -0.02]
+    position: [0.90, 0, -0.02]
     orientation: [0.0, 0.0, 0.7071, -0.7071]
 
 grasp:
@@ -39,40 +39,49 @@ placement:
   foliations:
     - name: "init"
       type: "point"
-      orientation_tolerance: [ 0.01, 0.01, 0.01 ]
+      orientation_tolerance: [ 3.14, 3.14, 3.14 ]
       position_tolerance: [ 2000, 0.0009, 0.0009 ]
-      reference_pose_position: [ 0.48, -0.35, 0.78 ]
+      reference_pose_position: [ 0.78, -0.15, 0.78 ]
       reference_pose_orientation: [ 0.0, 0.0, 0.0 ]
-      placement_position: [ 0.48, -0.35, 0.78 ]
+      placement_position: [ 0.78, -0.15, 0.78 ]
       placement_orientation: [0, 0, 0]
       intersect_with: ["regrasp", "pick"]
     - name: "pick"
       type: "point"
-      orientation_tolerance: [ 0.01, 0.01, 0.01 ]
+      orientation_tolerance: [ 3.14, 3.14, 3.14 ]
       position_tolerance: [ 0.0009, 2000, 2000 ]
-      reference_pose_position: [ 0.58, -0.35, 0.78 ]
+      reference_pose_position: [ 0.88, -0.15, 0.78 ]
       reference_pose_orientation: [ 0.0, 0.0, 0.0 ]
-      placement_position: [ 0.58, -0.35, 0.78 ]
+      placement_position: [ 0.88, -0.15, 0.78 ]
       placement_orientation: [0, 0, 0]
       intersect_with: ["pour"]
+    # - name: "pour"
+    #   type: "circular"
+    #   orientation_tolerance: [0.01, 0.01, 0.01]
+    #   position_tolerance: [0.0009, 0.0009, 0.0009]
+    #   reference_pose_position: [0.58, 0.25, 0.9]
+    #   reference_pose_orientation: [0.95, 0.0, 0.0]
+    #   placement_position: [0.58, 0.25, 0.9]
+    #   radius: 0
+    #   start_angle_x: 0.0
+    #   end_angle_x: 0.0
+    #   steps: 2
+    #   intersect_with: ["place_1"]
     - name: "pour"
-      type: "circular"
-      orientation_tolerance: [3.14, 3.14, 3.14]
-      position_tolerance: [0.0009, 0.0009, 0.0009]
-      reference_pose_position: [0.58, 0.25, 0.9]
-      reference_pose_orientation: [0.95, 0.0, 0.0]
-      placement_position: [0.58, 0.25, 0.9]
-      radius: 0
-      start_angle_x: 0.0
-      end_angle_x: 1.9
-      steps: 2
-      intersect_with: ["place_1"]
-    - name: "place_1"
       type: "point"
-      orientation_tolerance: [ 0.01, 0.01, 0.01 ]
-      position_tolerance: [ 2000, 0.0009, 0.0009 ]
-      reference_pose_position: [0.7, 0.25, 0.9]
-      reference_pose_orientation: [1.9, 0.0, 0.0]
-      placement_position: [0.7, 0.25, 0.9]
-      placement_orientation: [1.9, 0, 0]
+      orientation_tolerance: [3.14, 3.14, 3.14]
+      position_tolerance: [2000, 0.0009, 0.0009]
+      reference_pose_position: [0.88, 0.45, 0.9]
+      reference_pose_orientation: [0.0, 0.0, 0.0]
+      placement_position: [0.88, 0.45, 0.9]
+      placement_orientation: [0.0, 0, 0]
       intersect_with: ["regrasp"]
+    # - name: "place_1"
+    #   type: "point"
+    #   orientation_tolerance: [ 3.14, 3.14, 3.14 ]
+    #   position_tolerance: [ 2000, 0.0009, 0.0009]
+    #   reference_pose_position: [0.9, 0.45, 0.9]
+    #   reference_pose_orientation: [0.0, 0.0, 0.0]
+    #   placement_position: [0.9, 0.45, 0.9]
+    #   placement_orientation: [0.0, 0, 0]
+    #   intersect_with: ["regrasp"]
