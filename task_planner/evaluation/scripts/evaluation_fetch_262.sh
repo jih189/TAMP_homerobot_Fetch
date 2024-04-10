@@ -17,7 +17,7 @@ declare -a problems=(
     "slide_cup_g_200"
    "shelf_g_100"
    "open_bottle_g_80"
-    "pour_water_easy_g_250"
+    "pour_water_g_250"
 )
 
 # The evaluation script will run the evaluation for each problem in the list in background

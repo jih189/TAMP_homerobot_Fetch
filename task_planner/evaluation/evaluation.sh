@@ -8,7 +8,7 @@ fi
 
 MODEL_NAME="UR5" # FETCH | UR5
 MOVEIT_CONFIG="ur5_moveit_config" # fetch_moveit_config | ur5_moveit_config
-GMM_NAME="dpgmm_6dof_443" # dpgmm_7dof_262 | dpgmm_6dof_443 | dpgmm_7dof_1310
+GMM_NAME="dpgmm_6dof_443" # dpgmm_7dof_262 | dpgmm_7dof_1310 | dpgmm_6dof_443 | dpgmm_6dof_186
 
 DOCKER_NAME_PREFIX="manipulation_apr6_ur5" # assign a unique prefix for each docker container
 IMAGE_NAME="rss2024_rebuttal_exp:apr6_v2" # image name for the evaluation container you commited before
