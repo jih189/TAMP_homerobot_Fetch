@@ -230,8 +230,8 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     task_planners = [
-        MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
         MTGTaskPlannerWithGMM(gmm),
+        MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
         DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
         DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_25.0", threshold=25.0),
         DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=50.0),

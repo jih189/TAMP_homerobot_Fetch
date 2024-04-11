@@ -16,10 +16,12 @@ IMAGE_NAME="rss2024_rebuttal_exp:apr6_v2" # image name for the evaluation contai
 # List of problems to evaluate, should be same as the problems in the pre_generated_problems folder
 declare -a problems=( 
    "open_door_g_100"
-   "open_drawer_g_100"
+#   "open_drawer_g_100"
+   "open_drawer_harder_g_100"
    "maze_g_100"
     "slide_cup_g_200"
-   "shelf_g_100"
+#   "shelf_g_100"
+   "shelf_harder_g_100"
    "open_bottle_g_80"
     "pour_water_g_250"
 )
