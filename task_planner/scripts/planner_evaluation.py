@@ -116,7 +116,7 @@ if __name__ == "__main__":
     redis_connection = init_redis_connection()
     
     number_of_tasks = 50
-    max_attempt_time = 50
+    max_attempt_time = 10
 
     ########################################
     
@@ -230,8 +230,8 @@ if __name__ == "__main__":
 
     # load it into the task planner.
     task_planners = [
-        MTGTaskPlannerWithGMM(gmm),
         MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
+        MTGTaskPlannerWithGMM(gmm),
         DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
         DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_25.0", threshold=25.0),
         DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=50.0),

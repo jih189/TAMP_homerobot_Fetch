@@ -49,7 +49,7 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         self.move_group = moveit_commander.MoveGroupCommander("arm")
         self.move_group.set_planner_id("CDISTRIBUTIONRRTConfigDefault")
         # self.move_group.set_planner_id('RRTConnectkConfigDefault')
-        self.move_group.set_planning_time(4.0)
+        self.move_group.set_planning_time(1.0)
 
         # set initial joint state
         joint_state_publisher = rospy.Publisher(
