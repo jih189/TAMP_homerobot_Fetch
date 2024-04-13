@@ -61,7 +61,10 @@ except:
 # PRE_GRASP_POSE = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -0.08], [0, 0, 0, 1]])
 #####################################################################
 
-DEFAULT_ROBOT_TYPE = "FETCH"
+DEFAULT_ROBOT_TYPE = "UR5"
+
+def set_robot_type(ROBOT_TYPE):
+    DEFAULT_ROBOT_TYPE = ROBOT_TYPE
 
 FETCH_CONFIG = {
     'GRIPPER_ROTATION': np.array([[1, 0, 0, -0.17], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]),

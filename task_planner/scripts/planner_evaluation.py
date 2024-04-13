@@ -17,7 +17,7 @@ from jiaming_task_planner import (
     DynamicMTGPlannerWithAtlas,
 )
 from jiaming_motion_planner import MoveitMotionPlanner
-from jiaming_helper import INIT_ACTIVE_JOINT_POSITIONS
+from jiaming_helper import INIT_ACTIVE_JOINT_POSITIONS, set_robot_type
 import rospy
 import rospkg
 from tqdm import tqdm
@@ -58,8 +58,10 @@ def select_robot_model():
     print "2. UR5"
     selection = int(raw_input("Enter the number of the problem you wish to select: "))
     if selection == 1:
+        set_robot_type("FETCH")
         return "FETCH"
     elif selection == 2:
+        set_robot_type("UR5")
         return "UR5"
 
 def select_problem_from_directory(directory):
@@ -83,8 +85,7 @@ def check_memory_usage_below_threshold(threshold=85):
     print("Memory usage: {}%".format(memory.percent))
     return memory.percent < threshold
 
-if __name__ == "__main__":
-    
+def create_redis_connection():
     redis_host = "rss.redis.cache.windows.net"
     redis_port = 6379
     redis_password = "AQouyZ83AaEt7lBhgpLCAhBLip3ygGHfZAzCaM3IaqI="
@@ -114,28 +115,47 @@ if __name__ == "__main__":
                     return None
 
     redis_connection = init_redis_connection()
+    return redis_connection
     
-    number_of_tasks = 50
-    max_attempt_time = 10
-
-    ########################################
-    
-    
+def parse_args():
     parser = argparse.ArgumentParser(description='Foliated planning framework evaluation.')
     parser.add_argument('-model', '--model', help='The model of the robot to use.')
     parser.add_argument('-prob', '--problem', help='The name of the foliation problem to use.')
     parser.add_argument('-gmm', '--gmm_name', help='The name of the GMM to use.')
+    
+    # Change number_of_tasks and max_attempt_time as optional argument, if not set, set default 50 and 50
+    parser.add_argument('-n', '--number_of_tasks', help='Number of tasks to generate.', type=int)
+    parser.add_argument('-t', '--max_attempt_time', help='Maximum time to attempt a task.', type=int)
+    parser.add_argument('-tp', '--task_planner', help='The type of task planner to use.')
+    
     args = parser.parse_args()
     
+    return args
 
+if __name__ == "__main__":
+    # Define constants
     rospy.init_node("evaluation_node", anonymous=True)
-
     task_name = rospy.get_param("~task_name", "")
-
     rospack = rospkg.RosPack()
-
-    # Get the path of the desired package
     package_path = rospack.get_path("task_planner")
+    task_uuid = str(uuid.uuid4())
+    task_timestamp = time.time()
+    hostname = os.environ.get('EXP_NAME', 'unknown') 
+    redis_connection = create_redis_connection()
+    
+    # Parse the arguments
+    args = parse_args()
+    if args.number_of_tasks:
+        number_of_tasks = args.number_of_tasks
+        print("Using provided number of tasks: {}".format(number_of_tasks))
+    else:
+        number_of_tasks = 50
+        
+    if args.max_attempt_time:
+        max_attempt_time = args.max_attempt_time
+        print("Using provided max attempt time: {}".format(max_attempt_time))
+    else:
+        max_attempt_time = 50
 
     if args.model:
         selected_roobt_model = args.model
@@ -153,32 +173,19 @@ if __name__ == "__main__":
         print "Invalid robot model selected"
         exit()
     
-    results_directory = os.path.join(package_path, "problems/results")
-    gmms_directory = os.path.join(package_path, "computed_gmms_dir")
-    
     if args.problem:
         selected_problem = args.problem
         print("Using provided problem: {}".format(selected_problem))
     else:
         selected_problem = select_problem_from_directory(problems_directory)
-        
-    print selected_problem
+    
+    results_directory = os.path.join(package_path, "problems/results")
+    gmms_directory = os.path.join(package_path, "computed_gmms_dir")
     problem_file_path = os.path.join(problems_directory, selected_problem)
-
-    # load the foliated problem
     loaded_foliated_problem = FoliatedProblem.load(
         ManipulationFoliation, ManipulationIntersection, problem_file_path
     )
 
-    task_uuid = str(uuid.uuid4())
-    task_timestamp = time.time()
-    hostname = os.environ.get('EXP_NAME', 'unknown') 
-    
-    # load the gmm
-    # gmm_name = "dpgmm"
-    # gmm_dir_path = package_path + "/computed_gmms_dir/" + gmm_name + "/"
-    # gmm_dir_path = package_path + '/computed_gmms_dir/gmm/'
-    
     if args.gmm_name:
         gmm_name = args.gmm_name
         print("Using provided GMM: {}".format(gmm_name))
@@ -194,7 +201,6 @@ if __name__ == "__main__":
     # set the result file path
     result_file_path = os.path.join(results_directory, task_name + selected_problem + "_" + str(task_timestamp) + "_" + task_uuid + ".json")
     result_key = hostname + ":" + selected_problem + ":" + gmm_name + ":" + str(task_timestamp) + "_" + task_uuid
-
 
     # Set the path for the config file
     config_file_path = os.path.join(problems_directory, task_name + selected_problem + "_config.json")
@@ -228,8 +234,8 @@ if __name__ == "__main__":
     # set the foliated problem
     foliated_planning_framework.setFoliatedProblem(loaded_foliated_problem)
 
-    # load it into the task planner.
-    task_planners = [
+    # load task planner
+    task_planners_default = [
         MTGTaskPlannerWithGMM(gmm),
         MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()),
         DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0),
@@ -238,7 +244,31 @@ if __name__ == "__main__":
         ALEFTaskPlanner(),
         MTGTaskPlanner(),
     ]
+    task_planners = []
 
+    if args.task_planner:
+        task_planners_selected = args.task_planner.split(",")
+        print("Using provided task planners: {}".format(args.task_planner))
+        # map task_planners to the actual task planner objects
+        
+        if task_planners_selected:
+            if "MTGTaskPlannerWithGMM" in task_planners_selected:
+                task_planners.append(MTGTaskPlannerWithGMM(gmm))
+            if "MTGTaskPlannerWithAtlas" in task_planners_selected:
+                task_planners.append(MTGTaskPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state()))
+            if "DynamicMTGTaskPlannerWithGMM" in task_planners_selected:
+                task_planners.append(DynamicMTGTaskPlannerWithGMM(gmm, planner_name_="DynamicMTGTaskPlannerWithGMM_25.0", threshold=25.0))
+            if "DynamicMTGPlannerWithAtlas" in task_planners_selected:
+                task_planners.append(DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_25.0", threshold=25.0))
+                task_planners.append(DynamicMTGPlannerWithAtlas(gmm, motion_planner.move_group.get_current_state(), planner_name_="DynamicMTGPlannerWithAtlas_50.0", threshold=50.0))
+            if "ALEFTaskPlanner" in task_planners_selected:
+                task_planners.append(ALEFTaskPlanner())
+            if "MTGTaskPlanner" in task_planners_selected:
+                task_planners.append(MTGTaskPlanner())
+    else:
+        task_planners = task_planners_default
+        print("Using default task planners: {}".format(task_planners))
+    
 
     with open(result_file_path, "w") as result_file:
         for task_planner in task_planners:

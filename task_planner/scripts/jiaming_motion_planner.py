@@ -22,7 +22,7 @@ from sensor_msgs.msg import JointState
 from ros_numpy import numpify, msgify
 from geometry_msgs.msg import Quaternion, Point, Pose, PoseStamped, Point32
 import numpy as np
-
+import os
 from jiaming_helper import (
     convert_joint_values_to_robot_trajectory,
     convert_joint_values_to_robot_state,
@@ -49,7 +49,12 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         self.move_group = moveit_commander.MoveGroupCommander("arm")
         self.move_group.set_planner_id("CDISTRIBUTIONRRTConfigDefault")
         # self.move_group.set_planner_id('RRTConnectkConfigDefault')
-        self.move_group.set_planning_time(1.0)
+        
+        planning_time = 4.0
+        if "PLANNING_TIME" in os.environ:
+            print("Using PLANNING_TIME from system ENV: " + os.environ["PLANNING_TIME"])
+            planning_time = float(os.environ["PLANNING_TIME"])
+        self.move_group.set_planning_time(planning_time)
 
         # set initial joint state
         joint_state_publisher = rospy.Publisher(

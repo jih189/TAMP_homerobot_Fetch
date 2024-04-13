@@ -15,7 +15,7 @@ from sensor_msgs.msg import JointState
 from manipulation_foliations_and_intersections import ManipulationFoliation
 from foliated_base_class import FoliatedIntersection, FoliatedProblem
 from jiaming_helper import create_pose_stamped, get_position_difference_between_poses, gaussian_similarity, \
-    create_pose_stamped_from_raw, collision_check, convert_pose_stamped_to_matrix, create_rotation_matrix_from_euler
+    create_pose_stamped_from_raw, collision_check, convert_pose_stamped_to_matrix, create_rotation_matrix_from_euler, set_robot_type
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 from moveit_msgs.msg import MoveItErrorCodes
 from manipulation_foliations_and_intersections import ManipulationIntersection
@@ -42,6 +42,8 @@ class Config(object):
                 config_base = yaml.safe_load(yaml_file)
 
             problem_path = config_base["path"]
+            robot_type = config_base["type"]
+            set_robot_type(robot_type)
 
             with open(self.package_path + problem_path, 'r') as yaml_file:
                 self.config_data = yaml.safe_load(yaml_file)
