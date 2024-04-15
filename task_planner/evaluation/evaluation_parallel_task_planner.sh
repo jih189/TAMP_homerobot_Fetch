@@ -1,24 +1,24 @@
 #!/bin/bash
 
-EXP_NAME="Apr12_UR5_maze" # the name of the experiment, this will shown in the results script
+EXP_NAME="Apr14_UR5_door" # the name of the experiment, this will shown in the results script
 MODEL_NAME="UR5" # UR5 | Fetch
-GMM_NAME="dpgmm_6dof_127" # dpgmm_7dof_262 | dpgmm_6dof_443 | dpgmm_6dof_186 | dpgmm_7dof_1310
-PARALLEL_TASK_PLANNERS=true # set to true if you want to evaluate multiple task planners in parallel (very costly careful)
-IMAGE_NAME="rss2024_rebuttal_exp:apr12" # image name for the evaluation container you commited before
+GMM_NAME="dpgmm_6dof_186" # dpgmm_7dof_262 | dpgmm_6dof_443 | dpgmm_6dof_186 | dpgmm_7dof_1310
+PARALLEL_TASK_PLANNERS=true # set to true if you want to evaluate multiple task planners in parallel (very costly)
+IMAGE_NAME="rss2024_rebuttal_exp:apr14_v2" # image name for the evaluation container you commited before
 
-PLANNING_TIME=4.0
+PLANNING_TIME=6.0
 NUMBER_OF_TASKS=50
 MAX_ATTEMPT_TIME=50
 
 # List of problems to evaluate, should be same as the problems in the pre_generated_problems folder
 declare -a problems=( 
-#    "open_door_g_100"
-    "maze_g_100"
-#    "open_bottle_g_80"
-#    "shelf_g_100"
-#    "open_drawer_g_100"
-#    "slide_cup_g_200"
-#    "pour_water_g_250"
+    "open_door_harder_g_100"
+    #"maze_g_100"
+    # "open_bottle_g_80"
+    # "shelf_g_100"
+    #"open_drawer_harder_g_100"
+    # "slide_cup_g_200"
+    # "pour_water_g_250"
 )
 
 declare -a task_planners=(

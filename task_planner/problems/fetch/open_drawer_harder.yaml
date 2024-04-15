@@ -3,7 +3,7 @@ task_parameters:
   task_type: ""
   num_samples: 5000
   random_seed: 3897
-  save_path: "/problems/pre_generated_probs/open_drawer_harder_g_100"
+  save_path: "/problems/pre_generated_probs/open_drawer_harder_exp_g_100"
 
 initial_joint_state:
   torso_lift_joint: 0.38
@@ -38,9 +38,9 @@ placement:
       - [0, 0, 0, 1]
       start_position: [0.535, -0.445, 0.8500]
       end_position: [0.2, -0.445, 0.8500]
-      steps: 14
+      steps: 5
 grasp:
-  num_samples: 0
+  num_samples: 10
   rotated_matrix:
     - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]

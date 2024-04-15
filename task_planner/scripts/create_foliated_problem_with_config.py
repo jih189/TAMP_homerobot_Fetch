@@ -15,7 +15,7 @@ from sensor_msgs.msg import JointState
 from manipulation_foliations_and_intersections import ManipulationFoliation
 from foliated_base_class import FoliatedIntersection, FoliatedProblem
 from jiaming_helper import create_pose_stamped, get_position_difference_between_poses, gaussian_similarity, \
-    create_pose_stamped_from_raw, collision_check, convert_pose_stamped_to_matrix, create_rotation_matrix_from_euler, set_robot_type
+    create_pose_stamped_from_raw, collision_check, convert_pose_stamped_to_matrix, create_rotation_matrix_from_euler, set_robot_type, make_mesh
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 from moveit_msgs.msg import MoveItErrorCodes
 from manipulation_foliations_and_intersections import ManipulationIntersection
@@ -411,11 +411,24 @@ class Sampler:
         moveit_robot_state = self.robot.get_current_state()
         moveit_robot_state.joint_state.position = ik_res.solution.joint_state.position
 
+        # add the object as collision object into the scene.
+        object_pose_stamped = PoseStamped()
+        object_pose_stamped.header.frame_id = "base_link"
+        object_pose_stamped.pose = msgify(Pose, placement)
+
+        collision_object = make_mesh("object", object_pose_stamped, self.manipulated_object_mesh_path)
+        self.scene.add_object(collision_object)
+        while "object" not in self.scene.get_known_object_names():
+            rospy.sleep(0.0001)
+
         self.move_group.set_start_state(moveit_robot_state)
         (planned_motion, fraction) = self.move_group.compute_cartesian_path(
-            [msgify(geometry_msgs.msg.Pose, pre_grasp_pose_mat)], 0.0005, 5.0)
+            [msgify(geometry_msgs.msg.Pose, pre_grasp_pose_mat)], 0.01, 0.0)
 
-        if fraction != self.fraction:
+        # remove the object from the scene
+        self.scene.remove_world_object("object")
+
+        if fraction < self.fraction:
             return False, None
 
         intersection_motion = np.array([p.positions for p in planned_motion.joint_trajectory.points])

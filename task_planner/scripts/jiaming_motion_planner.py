@@ -85,6 +85,8 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         related_experience,
         use_atlas=False,
     ):
+        # print("start_configuration: ", start_configuration)
+        # print("goal_configuration: ", goal_configuration)
         
         # reset the motion planner
         self.scene.clear()
@@ -168,13 +170,13 @@ class MoveitMotionPlanner(BaseMotionPlanner):
                 current_object_pose_stamped,
                 foliation_constraints["object_mesh_path"],
             )
-
             attached_object = AttachedCollisionObject()
             attached_object.link_name = END_EFFECTOR_LINK
             attached_object.object = manipulated_object
             attached_object.touch_links = TOUCH_LINKS
             attached_object.object.pose = msgify(Pose, np.linalg.inv(co_parameter))
             start_moveit_robot_state.attached_collision_objects.append(attached_object)
+
 
             # need to add the constraint
             manifold_constraint = construct_moveit_constraint(
