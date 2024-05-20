@@ -21,6 +21,7 @@ from joblib import Parallel, delayed, cpu_count
 
 from ALEF import SPARSdb, AFS
 
+
 class MTGTaskPlanner(BaseTaskPlanner):
     def __init__(self, planner_name_="MTGTaskPlanner", parameter_dict_={}):
         # Constructor
@@ -133,7 +134,9 @@ class MTGTaskPlanner(BaseTaskPlanner):
             )
 
         for i in self.incomming_manifold_intersections[goal_manifold_id_]:
-            self.task_graph.add_edge(i, "goal", weight=0.0, manifold_id=goal_manifold_id_)
+            self.task_graph.add_edge(
+                i, "goal", weight=0.0, manifold_id=goal_manifold_id_
+            )
 
     # MTGTaskPlanner
     def generate_task_sequence(self):
@@ -242,6 +245,7 @@ class MTGTaskPlanner(BaseTaskPlanner):
                         1.0 * total_similarity_score
                     )
 
+
 class ALEFTaskPlanner(BaseTaskPlanner):
     def __init__(self, planner_name_="ALEFTaskPlanner", parameter_dict_={}):
         # Constructor
@@ -271,7 +275,7 @@ class ALEFTaskPlanner(BaseTaskPlanner):
             # for edge in self.task_graph.edges:
             #     self.task_graph.edges[edge]["weight"] = 0.0
             nx.set_edge_attributes(self.task_graph, 0.0, "weight")
-        
+
         # reset the AFS roadmap in each leaf manifold.
         self.local_roadmaps = {}
 
@@ -357,7 +361,9 @@ class ALEFTaskPlanner(BaseTaskPlanner):
             )
 
         for i in self.incomming_manifold_intersections[goal_manifold_id_]:
-            self.task_graph.add_edge(i, "goal", weight=0.0, manifold_id=goal_manifold_id_)
+            self.task_graph.add_edge(
+                i, "goal", weight=0.0, manifold_id=goal_manifold_id_
+            )
 
     # ALEFTaskPlanner
     def generate_task_sequence(self):
@@ -393,22 +399,33 @@ class ALEFTaskPlanner(BaseTaskPlanner):
             task.set_task_graph_info((node1, node2))
 
             # Based on the current manifold id, find all similar manifolds
-            thistaskfoliationid, thistaskcoparameterid = self.task_graph.edges[node1, node2]["manifold_id"]
+            thistaskfoliationid, thistaskcoparameterid = self.task_graph.edges[
+                node1, node2
+            ]["manifold_id"]
             # find similar manifold ids from the total similarity table.
             similar_manifold_ids = []
             for c in range(self.total_similiarity_table[thistaskfoliationid].shape[0]):
-                if self.total_similiarity_table[thistaskfoliationid][c, thistaskcoparameterid] > 0.7:
-                    similar_manifold_ids.append((thistaskfoliationid,c))
+                if (
+                    self.total_similiarity_table[thistaskfoliationid][
+                        c, thistaskcoparameterid
+                    ]
+                    > 0.7
+                ):
+                    similar_manifold_ids.append((thistaskfoliationid, c))
 
             # load the local roadmap of those similar manifolds and merge them
             similar_roadmaps = []
             for similar_manifold_id in similar_manifold_ids:
                 if similar_manifold_id in self.local_roadmaps:
-                    similar_roadmaps.append(self.local_roadmaps[similar_manifold_id].getRoadmap())
+                    similar_roadmaps.append(
+                        self.local_roadmaps[similar_manifold_id].getRoadmap()
+                    )
             afs = AFS(similar_roadmaps)
 
             # search for a path in the merged roadmap.
-            experience = afs.retrieveExperience(task.start_configuration, task.goal_configuration)
+            experience = afs.retrieveExperience(
+                task.start_configuration, task.goal_configuration
+            )
 
             task.related_experience = [(None, e, None) for e in experience]
 
@@ -418,14 +435,20 @@ class ALEFTaskPlanner(BaseTaskPlanner):
 
     # ALEFTaskPlanner
     def update(self, task_graph_info_, plan_, manifold_constraint_):
-        
         if plan_[0]:
             # if current task is solved, so we need to add it to the ALEF roadmap.
             solution_path = [p.positions for p in plan_[1].joint_trajectory.points]
-            if not self.task_graph.edges[task_graph_info_]["manifold_id"] in self.local_roadmaps:
+            if (
+                not self.task_graph.edges[task_graph_info_]["manifold_id"]
+                in self.local_roadmaps
+            ):
                 # if this manifold is not explored, then we need to create a new local roadmap for it.
-                self.local_roadmaps[self.task_graph.edges[task_graph_info_]["manifold_id"]] = SPARSdb(len(solution_path[0]))
-            self.local_roadmaps[self.task_graph.edges[task_graph_info_]["manifold_id"]].addPathToRoadmap(solution_path)
+                self.local_roadmaps[
+                    self.task_graph.edges[task_graph_info_]["manifold_id"]
+                ] = SPARSdb(len(solution_path[0]))
+            self.local_roadmaps[
+                self.task_graph.edges[task_graph_info_]["manifold_id"]
+            ].addPathToRoadmap(solution_path)
         else:
             # if current task is faled to solve, then we can increate the weight of the edge which is similar to the current task.
             # the similarity is defined as the product of the similarity of the previous manifold, the next manifold, and the current similarity.
@@ -494,6 +517,7 @@ class ALEFTaskPlanner(BaseTaskPlanner):
                         1.0 * total_similarity_score
                     )
 
+
 class MTGTaskPlannerWithGMM(BaseTaskPlanner):
     def __init__(self, gmm, planner_name_="MTGTaskPlannerWithGMM", parameter_dict_={}):
         # Constructor
@@ -505,7 +529,6 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         self.planner_name = planner_name_
 
         self.parameter_dict = parameter_dict_
-
 
     # MTGTaskPlannerWithGMM
     def reset_task_planner(self, hard_reset):
@@ -548,7 +571,6 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 intersection=None,
                 weight=0.0,
             )
-
 
     # MTGTaskPlannerWithGMM
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
@@ -710,7 +732,7 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
 
     #     for sampled_data in plan_[4].verified_motions:
     #         if (
-    #             sampled_data.sampled_state_tag == 0 
+    #             sampled_data.sampled_state_tag == 0
     #             or sampled_data.sampled_state_tag == 5
     #         ):
     #             collision_free_sampled_data.append(sampled_data.sampled_state)
@@ -795,7 +817,6 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
     #     return sampled_data_distribution_tag_table
 
     def _generate_sampled_distribution_tag_table(self, plan_):
-
         # if sampled data is empty, then skip it.
         if len(plan_[4].verified_motions) == 0:
             print("sampled data is empty.")
@@ -838,7 +859,9 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][3] += 1
         return sampled_data_distribution_tag_table
 
-    def _update_node_weight(self, n, current_manifold_id, sampled_data_distribution_tag_table):
+    def _update_node_weight(
+        self, n, current_manifold_id, sampled_data_distribution_tag_table
+    ):
         """
         Update the weight of a node in the task graph.
         Args:
@@ -864,7 +887,9 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         ]
 
         success_score = (
-            current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][0] * 0.01
+            current_similarity_score
+            * sampled_data_distribution_tag_table[node_gmm_id][0]
+            * 0.01
         )
 
         arm_env_collision_score = (
@@ -898,7 +923,6 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
                 if v != "start" and v != "goal" and v[0] == current_manifold_id[0]:
                     edge_attr["weight"] += weight_value
 
-
     # MTGTaskPlannerWithGMM
     def update(self, task_graph_info_, plan_, manifold_constraint_):
         """
@@ -930,14 +954,17 @@ class MTGTaskPlannerWithGMM(BaseTaskPlanner):
         # 9: obj-env collision before project
 
         current_manifold_id = task_graph_info_
-        sampled_data_distribution_tag_table = self._generate_sampled_distribution_tag_table(plan_)
+        sampled_data_distribution_tag_table = (
+            self._generate_sampled_distribution_tag_table(plan_)
+        )
         if sampled_data_distribution_tag_table is None:
             return
 
         # only update the weight of nodes in the same manifold with the current task.
         for n in self.task_graph.nodes():
-            self._update_node_weight(n, current_manifold_id, sampled_data_distribution_tag_table)
-
+            self._update_node_weight(
+                n, current_manifold_id, sampled_data_distribution_tag_table
+            )
 
 
 class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
@@ -949,12 +976,13 @@ class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
         parameter_dict_={},
     ):
         # Constructor
-        super(DynamicMTGTaskPlannerWithGMM, self).__init__(gmm, planner_name_, parameter_dict_)
+        super(DynamicMTGTaskPlannerWithGMM, self).__init__(
+            gmm, planner_name_, parameter_dict_
+        )
         # super().__init__() # python 3
         self.exceed_threshold = threshold
 
     def add_manifold(self, manifold_info_, manifold_id_):
-
         self.manifold_info[manifold_id_] = manifold_info_
         # construct a set of nodes represented by a tuple (foliation id, manifold id, GMM id)
         for i in range(len(self.gmm_.distributions)):
@@ -1041,8 +1069,12 @@ class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
         nx.set_node_attributes(self.task_graph, np.inf, "dist_to_goal")
 
         # include start and goal configurations in the task graph
-        self.task_graph.add_node("start", weight=0.0, dist_to_start=0.0, dist_to_goal=np.inf)
-        self.task_graph.add_node("goal", weight=0.0, dist_to_start=np.inf, dist_to_goal=0.0)
+        self.task_graph.add_node(
+            "start", weight=0.0, dist_to_start=0.0, dist_to_goal=np.inf
+        )
+        self.task_graph.add_node(
+            "goal", weight=0.0, dist_to_start=np.inf, dist_to_goal=0.0
+        )
 
         configuration_of_start, _ = start_intersection_.get_edge_configurations()
         self.task_graph.add_edge(
@@ -1111,7 +1143,6 @@ class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
 
         return self._generate_task_sequence_from_shortest_path(shortest_path)
 
-
     # DynamicMTGTaskPlannerWithGMM
     def update(self, task_graph_info_, plan_, manifold_constraint_):
         """
@@ -1143,13 +1174,17 @@ class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
         # 9: obj-env collision before project
 
         current_manifold_id = task_graph_info_
-        sampled_data_distribution_tag_table = self._generate_sampled_distribution_tag_table(plan_)
+        sampled_data_distribution_tag_table = (
+            self._generate_sampled_distribution_tag_table(plan_)
+        )
         if sampled_data_distribution_tag_table is None:
             return
 
         # only update the weight of nodes in the same manifold with the current task.
         for n in self.current_task_graph.nodes():
-            self._update_node_weight(n, current_manifold_id, sampled_data_distribution_tag_table)
+            self._update_node_weight(
+                n, current_manifold_id, sampled_data_distribution_tag_table
+            )
         self.expand_current_task_graph(self.current_graph_distance_radius)
 
 
@@ -1195,15 +1230,18 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             # if the task graph is none, then raise an error.
             if self.task_graph is None:
                 raise ValueError("task graph is None.")
-            
 
             nx.set_node_attributes(self.task_graph, 0.0, "weight")
             nx.set_node_attributes(self.task_graph, False, "has_atlas")
-            nx.set_node_attributes(self.task_graph, 0.0, "valid_configuration_before_project")
-            nx.set_node_attributes(self.task_graph, 0.0, "invalid_configuration_before_project")
+            nx.set_node_attributes(
+                self.task_graph, 0.0, "valid_configuration_before_project"
+            )
+            nx.set_node_attributes(
+                self.task_graph, 0.0, "invalid_configuration_before_project"
+            )
 
             nx.set_edge_attributes(self.task_graph, 0.0, "weight")
-            
+
         # reset the atlas
         self.reset_atlas_service.call(ResetAtlasRequest())
 
@@ -1235,7 +1273,6 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 weight=0.0,
             )
 
-
             # need to add the inverse edge
             self.task_graph.add_edge(
                 (manifold_id_[0], manifold_id_[1], edge[1]),
@@ -1244,7 +1281,6 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 intersection=None,
                 weight=0.0,
             )
-
 
     # MTGTaskPlannerWithAtlas
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
@@ -1337,7 +1373,6 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         return self._generate_task_sequence_from_shortest_path(shortest_path)
 
     def _generate_task_sequence_from_shortest_path(self, shortest_path):
-
         task_sequence = []
 
         task_start_configuration = self.current_start_configuration
@@ -1442,148 +1477,148 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         return result
 
     # def _generate_sampled_distribution_tag_table_and_construct_atlas(self, plan_, task_graph_info_, manifold_constraint_):
-        # # if sampled data is empty, then skip it.
-        # if len(plan_[4].verified_motions) == 0:
-        #     print("sampled data is empty.")
-        #     return
-        
-        # # the task graph info here is the manifold id(foliatino id and co-parameter id) of the current task.
-        # current_manifold_id = task_graph_info_
+    # # if sampled data is empty, then skip it.
+    # if len(plan_[4].verified_motions) == 0:
+    #     print("sampled data is empty.")
+    #     return
 
-        # construct_atlas_request = ConstructAtlasRequest()
-        # construct_atlas_request.group_name = "arm"
-        # construct_atlas_request.foliation_id = task_graph_info_[0]
-        # construct_atlas_request.co_parameter_id = task_graph_info_[1]
-        # construct_atlas_request.list_of_configuration_with_info = []
-        # construct_atlas_request.default_state = self.default_robot_state_
-        # construct_atlas_request.constraints = manifold_constraint_
+    # # the task graph info here is the manifold id(foliatino id and co-parameter id) of the current task.
+    # current_manifold_id = task_graph_info_
 
-        # after_project_collision_free_sampled_data = []
-        # after_project_arm_env_collision_sampled_data = []
-        # after_project_path_constraint_violation_sampled_data = []
-        # after_project_obj_env_collision_sampled_data = []
-        # pre_project_collision_free_sampled_data = []
-        # pre_project_arm_env_collision_sampled_data = []
-        # pre_project_path_constraint_violation_sampled_data = []
-        # pre_project_obj_env_collision_sampled_data = []
+    # construct_atlas_request = ConstructAtlasRequest()
+    # construct_atlas_request.group_name = "arm"
+    # construct_atlas_request.foliation_id = task_graph_info_[0]
+    # construct_atlas_request.co_parameter_id = task_graph_info_[1]
+    # construct_atlas_request.list_of_configuration_with_info = []
+    # construct_atlas_request.default_state = self.default_robot_state_
+    # construct_atlas_request.constraints = manifold_constraint_
 
-        # for sampled_data in plan_[4].verified_motions:
-        #     if sampled_data.sampled_state_tag == 0:
-        #         after_project_collision_free_sampled_data.append(sampled_data.sampled_state)
-        #     elif sampled_data.sampled_state_tag == 1:
-        #         after_project_arm_env_collision_sampled_data.append(sampled_data.sampled_state)
-        #     elif sampled_data.sampled_state_tag == 2:
-        #         after_project_path_constraint_violation_sampled_data.append(sampled_data.sampled_state)
-        #     elif sampled_data.sampled_state_tag == 4:
-        #         after_project_obj_env_collision_sampled_data.append(sampled_data.sampled_state)
-        #     elif sampled_data.sampled_state_tag == 5:
-        #         pre_project_collision_free_sampled_data.append(sampled_data.sampled_state)
-        #     elif sampled_data.sampled_state_tag == 6:
-        #         pre_project_arm_env_collision_sampled_data.append(sampled_data.sampled_state)
-        #     elif sampled_data.sampled_state_tag == 7:
-        #         pre_project_path_constraint_violation_sampled_data.append(sampled_data.sampled_state)
-        #     elif sampled_data.sampled_state_tag == 9:
-        #         pre_project_obj_env_collision_sampled_data.append(sampled_data.sampled_state)
+    # after_project_collision_free_sampled_data = []
+    # after_project_arm_env_collision_sampled_data = []
+    # after_project_path_constraint_violation_sampled_data = []
+    # after_project_obj_env_collision_sampled_data = []
+    # pre_project_collision_free_sampled_data = []
+    # pre_project_arm_env_collision_sampled_data = []
+    # pre_project_path_constraint_violation_sampled_data = []
+    # pre_project_obj_env_collision_sampled_data = []
 
-        # # (n_samples, n_distribution) <- (n_samples, n_features)
-        # if len(after_project_collision_free_sampled_data) > 0:
-        #     after_project_collision_free_sampled_data_numpy = np.array(after_project_collision_free_sampled_data)
-        #     after_project_collision_free_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(after_project_collision_free_sampled_data_numpy)
-        #     after_project_collision_free_density_of_each_component_sum = np.sum(after_project_collision_free_density_of_each_component, axis=0)
-        # else:
-        #     after_project_collision_free_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+    # for sampled_data in plan_[4].verified_motions:
+    #     if sampled_data.sampled_state_tag == 0:
+    #         after_project_collision_free_sampled_data.append(sampled_data.sampled_state)
+    #     elif sampled_data.sampled_state_tag == 1:
+    #         after_project_arm_env_collision_sampled_data.append(sampled_data.sampled_state)
+    #     elif sampled_data.sampled_state_tag == 2:
+    #         after_project_path_constraint_violation_sampled_data.append(sampled_data.sampled_state)
+    #     elif sampled_data.sampled_state_tag == 4:
+    #         after_project_obj_env_collision_sampled_data.append(sampled_data.sampled_state)
+    #     elif sampled_data.sampled_state_tag == 5:
+    #         pre_project_collision_free_sampled_data.append(sampled_data.sampled_state)
+    #     elif sampled_data.sampled_state_tag == 6:
+    #         pre_project_arm_env_collision_sampled_data.append(sampled_data.sampled_state)
+    #     elif sampled_data.sampled_state_tag == 7:
+    #         pre_project_path_constraint_violation_sampled_data.append(sampled_data.sampled_state)
+    #     elif sampled_data.sampled_state_tag == 9:
+    #         pre_project_obj_env_collision_sampled_data.append(sampled_data.sampled_state)
 
-        # if len(after_project_arm_env_collision_sampled_data) > 0:
-        #     after_project_arm_env_collision_sampled_data_numpy = np.array(after_project_arm_env_collision_sampled_data)
-        #     after_project_arm_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(after_project_arm_env_collision_sampled_data_numpy)
-        #     after_project_arm_env_collision_density_of_each_component_sum = np.sum(after_project_arm_env_collision_density_of_each_component, axis=0)
-        # else:
-        #     after_project_arm_env_collision_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+    # # (n_samples, n_distribution) <- (n_samples, n_features)
+    # if len(after_project_collision_free_sampled_data) > 0:
+    #     after_project_collision_free_sampled_data_numpy = np.array(after_project_collision_free_sampled_data)
+    #     after_project_collision_free_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(after_project_collision_free_sampled_data_numpy)
+    #     after_project_collision_free_density_of_each_component_sum = np.sum(after_project_collision_free_density_of_each_component, axis=0)
+    # else:
+    #     after_project_collision_free_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
 
-        # if len(after_project_path_constraint_violation_sampled_data) > 0:
-        #     after_project_path_constraint_violation_sampled_data_numpy = np.array(after_project_path_constraint_violation_sampled_data)
-        #     after_project_path_constraint_violation_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(after_project_path_constraint_violation_sampled_data_numpy)
-        #     after_project_path_constraint_violation_density_of_each_component_sum = np.sum(after_project_path_constraint_violation_density_of_each_component, axis=0)
-        # else:
-        #     after_project_path_constraint_violation_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+    # if len(after_project_arm_env_collision_sampled_data) > 0:
+    #     after_project_arm_env_collision_sampled_data_numpy = np.array(after_project_arm_env_collision_sampled_data)
+    #     after_project_arm_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(after_project_arm_env_collision_sampled_data_numpy)
+    #     after_project_arm_env_collision_density_of_each_component_sum = np.sum(after_project_arm_env_collision_density_of_each_component, axis=0)
+    # else:
+    #     after_project_arm_env_collision_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
 
-        # if len(after_project_obj_env_collision_sampled_data) > 0:
-        #     after_project_obj_env_collision_sampled_data_numpy = np.array(after_project_obj_env_collision_sampled_data)
-        #     after_project_obj_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(after_project_obj_env_collision_sampled_data_numpy)
-        #     after_project_obj_env_collision_density_of_each_component_sum = np.sum(after_project_obj_env_collision_density_of_each_component, axis=0)
-        # else:
-        #     after_project_obj_env_collision_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+    # if len(after_project_path_constraint_violation_sampled_data) > 0:
+    #     after_project_path_constraint_violation_sampled_data_numpy = np.array(after_project_path_constraint_violation_sampled_data)
+    #     after_project_path_constraint_violation_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(after_project_path_constraint_violation_sampled_data_numpy)
+    #     after_project_path_constraint_violation_density_of_each_component_sum = np.sum(after_project_path_constraint_violation_density_of_each_component, axis=0)
+    # else:
+    #     after_project_path_constraint_violation_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
 
-        # if len(pre_project_collision_free_sampled_data) > 0:
-        #     pre_project_collision_free_sampled_data_numpy = np.array(pre_project_collision_free_sampled_data)
-        #     pre_project_collision_free_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(pre_project_collision_free_sampled_data_numpy)
-        #     pre_project_collision_free_density_of_each_component_sum = np.sum(pre_project_collision_free_density_of_each_component, axis=0)
-        # else:
-        #     pre_project_collision_free_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+    # if len(after_project_obj_env_collision_sampled_data) > 0:
+    #     after_project_obj_env_collision_sampled_data_numpy = np.array(after_project_obj_env_collision_sampled_data)
+    #     after_project_obj_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(after_project_obj_env_collision_sampled_data_numpy)
+    #     after_project_obj_env_collision_density_of_each_component_sum = np.sum(after_project_obj_env_collision_density_of_each_component, axis=0)
+    # else:
+    #     after_project_obj_env_collision_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
 
-        # if len(pre_project_arm_env_collision_sampled_data) > 0:
-        #     pre_project_arm_env_collision_sampled_data_numpy = np.array(pre_project_arm_env_collision_sampled_data)
-        #     pre_project_arm_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(pre_project_arm_env_collision_sampled_data_numpy)
-        #     pre_project_arm_env_collision_density_of_each_component_sum = np.sum(pre_project_arm_env_collision_density_of_each_component, axis=0)
-        # else:
-        #     pre_project_arm_env_collision_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+    # if len(pre_project_collision_free_sampled_data) > 0:
+    #     pre_project_collision_free_sampled_data_numpy = np.array(pre_project_collision_free_sampled_data)
+    #     pre_project_collision_free_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(pre_project_collision_free_sampled_data_numpy)
+    #     pre_project_collision_free_density_of_each_component_sum = np.sum(pre_project_collision_free_density_of_each_component, axis=0)
+    # else:
+    #     pre_project_collision_free_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
 
-        # if len(pre_project_path_constraint_violation_sampled_data) > 0:
-        #     pre_project_path_constraint_violation_sampled_data_numpy = np.array(pre_project_path_constraint_violation_sampled_data)
-        #     pre_project_path_constraint_violation_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(pre_project_path_constraint_violation_sampled_data_numpy)
-        #     pre_project_path_constraint_violation_density_of_each_component_sum = np.sum(pre_project_path_constraint_violation_density_of_each_component, axis=0)
-        # else:
-        #     pre_project_path_constraint_violation_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+    # if len(pre_project_arm_env_collision_sampled_data) > 0:
+    #     pre_project_arm_env_collision_sampled_data_numpy = np.array(pre_project_arm_env_collision_sampled_data)
+    #     pre_project_arm_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(pre_project_arm_env_collision_sampled_data_numpy)
+    #     pre_project_arm_env_collision_density_of_each_component_sum = np.sum(pre_project_arm_env_collision_density_of_each_component, axis=0)
+    # else:
+    #     pre_project_arm_env_collision_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
 
-        # if len(pre_project_obj_env_collision_sampled_data) > 0:
-        #     pre_project_obj_env_collision_sampled_data_numpy = np.array(pre_project_obj_env_collision_sampled_data)
-        #     pre_project_obj_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(pre_project_obj_env_collision_sampled_data_numpy)
-        #     pre_project_obj_env_collision_density_of_each_component_sum = np.sum(pre_project_obj_env_collision_density_of_each_component, axis=0)
-        # else:
-        #     pre_project_obj_env_collision_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
+    # if len(pre_project_path_constraint_violation_sampled_data) > 0:
+    #     pre_project_path_constraint_violation_sampled_data_numpy = np.array(pre_project_path_constraint_violation_sampled_data)
+    #     pre_project_path_constraint_violation_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(pre_project_path_constraint_violation_sampled_data_numpy)
+    #     pre_project_path_constraint_violation_density_of_each_component_sum = np.sum(pre_project_path_constraint_violation_density_of_each_component, axis=0)
+    # else:
+    #     pre_project_path_constraint_violation_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
 
-        # if len(after_project_collision_free_sampled_data) > 0:
-        #     after_project_collision_free_density_of_each_component_max = np.max(after_project_collision_free_density_of_each_component, axis=1)
-        #     for j in range(len(self.gmm_.distributions)):
-        #         current_added_node_to_atlas = 0
-        #         for i in range(len(after_project_collision_free_sampled_data)):
-        #             if current_added_node_to_atlas > self.max_valid_configuration_number_to_atlas:
-        #                 break
-        #             if after_project_collision_free_density_of_each_component[i][j] >= (after_project_collision_free_density_of_each_component_max[i] / len(self.gmm_.distributions)):
-        #                 current_added_node_to_atlas += 1
-        #                 configuration_with_info = ConfigurationWithInfo()
-        #                 configuration_with_info.joint_configuration = (
-        #                     after_project_collision_free_sampled_data[i]
-        #                 )
-        #                 configuration_with_info.distribution_id = j
-        #                 construct_atlas_request.list_of_configuration_with_info.append(configuration_with_info)
-        #                 self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], j)]['has_atlas'] = True
+    # if len(pre_project_obj_env_collision_sampled_data) > 0:
+    #     pre_project_obj_env_collision_sampled_data_numpy = np.array(pre_project_obj_env_collision_sampled_data)
+    #     pre_project_obj_env_collision_density_of_each_component = self.gmm_._sklearn_gmm.predict_proba(pre_project_obj_env_collision_sampled_data_numpy)
+    #     pre_project_obj_env_collision_density_of_each_component_sum = np.sum(pre_project_obj_env_collision_density_of_each_component, axis=0)
+    # else:
+    #     pre_project_obj_env_collision_density_of_each_component_sum = np.zeros(len(self.gmm_.distributions))
 
-        # sampled_data_distribution_tag_table = np.vstack((
-        #     after_project_collision_free_density_of_each_component_sum,
-        #     after_project_arm_env_collision_density_of_each_component_sum,
-        #     after_project_path_constraint_violation_density_of_each_component_sum,
-        #     after_project_obj_env_collision_density_of_each_component_sum,
-        #     pre_project_collision_free_density_of_each_component_sum,
-        #     pre_project_arm_env_collision_density_of_each_component_sum,
-        #     pre_project_path_constraint_violation_density_of_each_component_sum,
-        #     pre_project_obj_env_collision_density_of_each_component_sum
-        # )).T
+    # if len(after_project_collision_free_sampled_data) > 0:
+    #     after_project_collision_free_density_of_each_component_max = np.max(after_project_collision_free_density_of_each_component, axis=1)
+    #     for j in range(len(self.gmm_.distributions)):
+    #         current_added_node_to_atlas = 0
+    #         for i in range(len(after_project_collision_free_sampled_data)):
+    #             if current_added_node_to_atlas > self.max_valid_configuration_number_to_atlas:
+    #                 break
+    #             if after_project_collision_free_density_of_each_component[i][j] >= (after_project_collision_free_density_of_each_component_max[i] / len(self.gmm_.distributions)):
+    #                 current_added_node_to_atlas += 1
+    #                 configuration_with_info = ConfigurationWithInfo()
+    #                 configuration_with_info.joint_configuration = (
+    #                     after_project_collision_free_sampled_data[i]
+    #                 )
+    #                 configuration_with_info.distribution_id = j
+    #                 construct_atlas_request.list_of_configuration_with_info.append(configuration_with_info)
+    #                 self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], j)]['has_atlas'] = True
 
-        # if len(construct_atlas_request.list_of_configuration_with_info) != 0:
-        #     self.atlas_service.call(construct_atlas_request)
+    # sampled_data_distribution_tag_table = np.vstack((
+    #     after_project_collision_free_density_of_each_component_sum,
+    #     after_project_arm_env_collision_density_of_each_component_sum,
+    #     after_project_path_constraint_violation_density_of_each_component_sum,
+    #     after_project_obj_env_collision_density_of_each_component_sum,
+    #     pre_project_collision_free_density_of_each_component_sum,
+    #     pre_project_arm_env_collision_density_of_each_component_sum,
+    #     pre_project_path_constraint_violation_density_of_each_component_sum,
+    #     pre_project_obj_env_collision_density_of_each_component_sum
+    # )).T
 
-        # # if there are some projected valid configuration, then there must be an atlas.
-        # for distribution_index in range(len(self.gmm_.distributions)):
-        #     self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['valid_configuration_before_project'] += sampled_data_distribution_tag_table[distribution_index][4]
-        #     invalid_configuration_number_before_project = sampled_data_distribution_tag_table[distribution_index][5] + sampled_data_distribution_tag_table[distribution_index][6] + sampled_data_distribution_tag_table[distribution_index][7]
-        #     self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['invalid_configuration_before_project'] += invalid_configuration_number_before_project
+    # if len(construct_atlas_request.list_of_configuration_with_info) != 0:
+    #     self.atlas_service.call(construct_atlas_request)
 
-        # return sampled_data_distribution_tag_table
-        
+    # # if there are some projected valid configuration, then there must be an atlas.
+    # for distribution_index in range(len(self.gmm_.distributions)):
+    #     self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['valid_configuration_before_project'] += sampled_data_distribution_tag_table[distribution_index][4]
+    #     invalid_configuration_number_before_project = sampled_data_distribution_tag_table[distribution_index][5] + sampled_data_distribution_tag_table[distribution_index][6] + sampled_data_distribution_tag_table[distribution_index][7]
+    #     self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['invalid_configuration_before_project'] += invalid_configuration_number_before_project
 
-    def _generate_sampled_distribution_tag_table_and_construct_atlas(self, plan_, task_graph_info_, manifold_constraint_):    
+    # return sampled_data_distribution_tag_table
 
+    def _generate_sampled_distribution_tag_table_and_construct_atlas(
+        self, plan_, task_graph_info_, manifold_constraint_
+    ):
         # if sampled data is empty, then skip it.
         if len(plan_[4].verified_motions) == 0:
             print("sampled data is empty.")
@@ -1617,7 +1652,9 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         # tag in column 5: invalid configuration due to arm-env collision or out of joint limit before project
         # tag in column 6: invalid configuration due to path constraint violation before project
         # tag in column 7: invalid configuration due to obj-env collision before project
-        sampled_data_distribution_tag_table = np.zeros((len(self.gmm_.distributions), 8))
+        sampled_data_distribution_tag_table = np.zeros(
+            (len(self.gmm_.distributions), 8)
+        )
 
         construct_atlas_request = ConstructAtlasRequest()
         construct_atlas_request.group_name = "arm"
@@ -1635,15 +1672,20 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             if sampled_data_tag == 0:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][0] += 1
 
-                # in some cases. the number of valid configuration is too large, so we need to constrain the number of valid 
+                # in some cases. the number of valid configuration is too large, so we need to constrain the number of valid
                 # configuration to atlas for each node of the current manifold.
-                if sampled_data_distribution_tag_table[sampled_data_gmm_id][0] < self.max_valid_configuration_number_to_atlas:
+                if (
+                    sampled_data_distribution_tag_table[sampled_data_gmm_id][0]
+                    < self.max_valid_configuration_number_to_atlas
+                ):
                     configuration_with_info = ConfigurationWithInfo()
                     configuration_with_info.joint_configuration = (
                         plan_[4].verified_motions[i].sampled_state
                     )
                     configuration_with_info.distribution_id = sampled_data_gmm_id
-                    construct_atlas_request.list_of_configuration_with_info.append(configuration_with_info)
+                    construct_atlas_request.list_of_configuration_with_info.append(
+                        configuration_with_info
+                    )
 
             elif sampled_data_tag == 1:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][1] += 1
@@ -1659,23 +1701,42 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][6] += 1
             elif sampled_data_tag == 9:
                 sampled_data_distribution_tag_table[sampled_data_gmm_id][7] += 1
-        
+
         if len(construct_atlas_request.list_of_configuration_with_info) != 0:
             self.atlas_service.call(construct_atlas_request)
 
         # if there are some projected valid configuration, then there must be an atlas.
         for distribution_index in range(len(self.gmm_.distributions)):
-            self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['valid_configuration_before_project'] += sampled_data_distribution_tag_table[distribution_index][4]
-            invalid_configuration_number_before_project = sampled_data_distribution_tag_table[distribution_index][5] + sampled_data_distribution_tag_table[distribution_index][6] + sampled_data_distribution_tag_table[distribution_index][7]
-            self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['invalid_configuration_before_project'] += invalid_configuration_number_before_project
+            self.task_graph.nodes[
+                (current_manifold_id[0], current_manifold_id[1], distribution_index)
+            ][
+                "valid_configuration_before_project"
+            ] += sampled_data_distribution_tag_table[
+                distribution_index
+            ][
+                4
+            ]
+            invalid_configuration_number_before_project = (
+                sampled_data_distribution_tag_table[distribution_index][5]
+                + sampled_data_distribution_tag_table[distribution_index][6]
+                + sampled_data_distribution_tag_table[distribution_index][7]
+            )
+            self.task_graph.nodes[
+                (current_manifold_id[0], current_manifold_id[1], distribution_index)
+            ][
+                "invalid_configuration_before_project"
+            ] += invalid_configuration_number_before_project
             # if there are some projected valid configuration, then there must be an atlas.
             if sampled_data_distribution_tag_table[distribution_index][0] > 0:
-                self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], distribution_index)]['has_atlas'] = True
+                self.task_graph.nodes[
+                    (current_manifold_id[0], current_manifold_id[1], distribution_index)
+                ]["has_atlas"] = True
 
         return sampled_data_distribution_tag_table
 
-
-    def _update_node_weight(self, n, current_manifold_id, sampled_data_distribution_tag_table):
+    def _update_node_weight(
+        self, n, current_manifold_id, sampled_data_distribution_tag_table
+    ):
         if n == "start" or n == "goal":
             return
 
@@ -1686,44 +1747,102 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         node_foliation_id = n[0]
         node_co_parameter_id = n[1]
         node_gmm_id = n[2]
-        current_similarity_score = self.total_similiarity_table[node_foliation_id][node_co_parameter_id, current_manifold_id[1]]
+        current_similarity_score = self.total_similiarity_table[node_foliation_id][
+            node_co_parameter_id, current_manifold_id[1]
+        ]
 
-        related_node_invalid_configuration_before_project = self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], node_gmm_id)]['invalid_configuration_before_project']
-        related_node_valid_configuration_before_project = self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], node_gmm_id)]['valid_configuration_before_project']
-        has_atlas = self.task_graph.nodes[(current_manifold_id[0], current_manifold_id[1], node_gmm_id)]['has_atlas']
+        related_node_invalid_configuration_before_project = self.task_graph.nodes[
+            (current_manifold_id[0], current_manifold_id[1], node_gmm_id)
+        ]["invalid_configuration_before_project"]
+        related_node_valid_configuration_before_project = self.task_graph.nodes[
+            (current_manifold_id[0], current_manifold_id[1], node_gmm_id)
+        ]["valid_configuration_before_project"]
+        has_atlas = self.task_graph.nodes[
+            (current_manifold_id[0], current_manifold_id[1], node_gmm_id)
+        ]["has_atlas"]
 
         beta_value = 0.0
         # the beta value is a indicator of whether the motion planner should use the atlas or not.
-        if not has_atlas: 
-            if(related_node_invalid_configuration_before_project + related_node_valid_configuration_before_project == 0):
+        if not has_atlas:
+            if (
+                related_node_invalid_configuration_before_project
+                + related_node_valid_configuration_before_project
+                == 0
+            ):
                 # this local region does not have both atlas and any sampled configuration before project, then skip it.
                 return
             else:
                 # this local region does not have an atlas, then the beta value is 0.
                 beta_value = 0.0
         else:
-            if(related_node_invalid_configuration_before_project + related_node_valid_configuration_before_project == 0):
+            if (
+                related_node_invalid_configuration_before_project
+                + related_node_valid_configuration_before_project
+                == 0
+            ):
                 # if this local region does not have any sampled configuration before project but an atlas, then the beta value is 1.
                 beta_value = 1.0
             else:
                 # if this local region has both atlas and sampled configuration before project, then the beta value is the ratio of invalid configuration before project.
-                beta_value = 1.0 * related_node_invalid_configuration_before_project / (related_node_invalid_configuration_before_project + related_node_valid_configuration_before_project)
+                beta_value = (
+                    1.0
+                    * related_node_invalid_configuration_before_project
+                    / (
+                        related_node_invalid_configuration_before_project
+                        + related_node_valid_configuration_before_project
+                    )
+                )
 
-        arm_env_collision_score_after_project = sampled_data_distribution_tag_table[node_gmm_id][1] * 1.0
-        path_constraint_violation_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][2] * 1.0
-        obj_env_collision_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][3] * 1.0
-        success_score_after_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][0] * 0.01
-
-        arm_env_collision_score_before_project = sampled_data_distribution_tag_table[node_gmm_id][5] * 1.0
-        path_constraint_violation_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][6] * 1.0
-        obj_env_collision_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][7] * 1.0
-        success_score_before_project = current_similarity_score * sampled_data_distribution_tag_table[node_gmm_id][4] * 0.01
-
-        weight_value = (
-            (1.0 - beta_value) * (success_score_before_project + arm_env_collision_score_before_project + path_constraint_violation_score_before_project + obj_env_collision_score_before_project ) + 
-            beta_value * (success_score_after_project + arm_env_collision_score_after_project + path_constraint_violation_score_after_project + obj_env_collision_score_after_project)
+        arm_env_collision_score_after_project = (
+            sampled_data_distribution_tag_table[node_gmm_id][1] * 1.0
         )
-        self.task_graph.nodes[n]['weight'] += weight_value
+        path_constraint_violation_score_after_project = (
+            current_similarity_score
+            * sampled_data_distribution_tag_table[node_gmm_id][2]
+            * 1.0
+        )
+        obj_env_collision_score_after_project = (
+            current_similarity_score
+            * sampled_data_distribution_tag_table[node_gmm_id][3]
+            * 1.0
+        )
+        success_score_after_project = (
+            current_similarity_score
+            * sampled_data_distribution_tag_table[node_gmm_id][0]
+            * 0.01
+        )
+
+        arm_env_collision_score_before_project = (
+            sampled_data_distribution_tag_table[node_gmm_id][5] * 1.0
+        )
+        path_constraint_violation_score_before_project = (
+            current_similarity_score
+            * sampled_data_distribution_tag_table[node_gmm_id][6]
+            * 1.0
+        )
+        obj_env_collision_score_before_project = (
+            current_similarity_score
+            * sampled_data_distribution_tag_table[node_gmm_id][7]
+            * 1.0
+        )
+        success_score_before_project = (
+            current_similarity_score
+            * sampled_data_distribution_tag_table[node_gmm_id][4]
+            * 0.01
+        )
+
+        weight_value = (1.0 - beta_value) * (
+            success_score_before_project
+            + arm_env_collision_score_before_project
+            + path_constraint_violation_score_before_project
+            + obj_env_collision_score_before_project
+        ) + beta_value * (
+            success_score_after_project
+            + arm_env_collision_score_after_project
+            + path_constraint_violation_score_after_project
+            + obj_env_collision_score_after_project
+        )
+        self.task_graph.nodes[n]["weight"] += weight_value
         if weight_value > 0.0:
             for u, _, edge_attr in self.task_graph.in_edges(n, data=True):
                 if u != "start" and u != "goal":
@@ -1732,7 +1851,6 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
             for _, v, edge_attr in self.task_graph.out_edges(n, data=True):
                 if v != "start" and v != "goal":
                     edge_attr["weight"] += weight_value
-
 
     # MTGTaskPlannerWithAtlas
     def update(self, task_graph_info_, plan_, manifold_constraint_):
@@ -1764,17 +1882,22 @@ class MTGTaskPlannerWithAtlas(BaseTaskPlanner):
         # 7: path constraint violation before project
         # 8: infeasble state, you should ignore this before project
         # 9: obj-env collision before project
-        sampled_data_distribution_tag_table = self._generate_sampled_distribution_tag_table_and_construct_atlas(plan_, task_graph_info_, manifold_constraint_)
+        sampled_data_distribution_tag_table = (
+            self._generate_sampled_distribution_tag_table_and_construct_atlas(
+                plan_, task_graph_info_, manifold_constraint_
+            )
+        )
         if sampled_data_distribution_tag_table is None:
             return
-        
 
         # the task graph info here is the manifold id(foliatino id and co-parameter id) of the current task.
         current_manifold_id = task_graph_info_
 
         # only update the weight of nodes in the same manifold with the current task.
         for n in self.task_graph.nodes():
-            self._update_node_weight(n, current_manifold_id, sampled_data_distribution_tag_table)
+            self._update_node_weight(
+                n, current_manifold_id, sampled_data_distribution_tag_table
+            )
 
         # for u, v in self.task_graph.edges():
         #     self.task_graph.edges[u, v]['weight'] = self.task_graph.nodes[v]['weight'] + self.task_graph.nodes[u]['weight']
@@ -1792,10 +1915,11 @@ class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
         parameter_dict_={},
     ):
         # Constructor
-        super(DynamicMTGPlannerWithAtlas, self).__init__(gmm, default_robot_state, planner_name_, parameter_dict_)
+        super(DynamicMTGPlannerWithAtlas, self).__init__(
+            gmm, default_robot_state, planner_name_, parameter_dict_
+        )
         # super().__init__() # python 3
         self.exceed_threshold = threshold
-
 
     # MTGTaskPlannerWithAtlas
     def add_manifold(self, manifold_info_, manifold_id_):
@@ -1824,7 +1948,7 @@ class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
                     self.gmm_.distributions[edge[0]].mean,
                     self.gmm_.distributions[edge[1]].mean,
                 )
-            )            
+            )
             self.task_graph.add_edge(
                 (manifold_id_[0], manifold_id_[1], edge[0]),
                 (manifold_id_[0], manifold_id_[1], edge[1]),
@@ -1833,7 +1957,6 @@ class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
                 edge_dist=dist_between_two_distributions,
                 weight=0.0,
             )
-
 
             # need to add the inverse edge
             self.task_graph.add_edge(
@@ -1844,7 +1967,6 @@ class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
                 edge_dist=dist_between_two_distributions,
                 weight=0.0,
             )
-
 
     # MTGTaskPlannerWithAtlas
     def add_intersection(self, manifold_id1_, manifold_id2_, intersection_detail_):
@@ -1874,7 +1996,6 @@ class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
             intersection=intersection_detail_,
             weight=0.0,
             edge_dist=dist_between_edges,
-
         )
 
     # MTGTaskPlannerWithAtlas
@@ -1970,7 +2091,6 @@ class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
 
         return self._generate_task_sequence_from_shortest_path(shortest_path)
 
-
     def update(self, task_graph_info_, plan_, manifold_constraint_):
         """
         After planning a motion task in a foliated manifold M(f', c'), we receive a set of configuration with its status.
@@ -2000,19 +2120,23 @@ class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
         # 7: path constraint violation before project
         # 8: infeasble state, you should ignore this before project
         # 9: obj-env collision before project
-        sampled_data_distribution_tag_table = self._generate_sampled_distribution_tag_table_and_construct_atlas(plan_, task_graph_info_, manifold_constraint_)
+        sampled_data_distribution_tag_table = (
+            self._generate_sampled_distribution_tag_table_and_construct_atlas(
+                plan_, task_graph_info_, manifold_constraint_
+            )
+        )
         if sampled_data_distribution_tag_table is None:
             return
-        
 
         # the task graph info here is the manifold id(foliatino id and co-parameter id) of the current task.
         current_manifold_id = task_graph_info_
 
         # only update the weight of nodes in the same manifold with the current task.
         for n in self.current_task_graph.nodes():
-            self._update_node_weight(n, current_manifold_id, sampled_data_distribution_tag_table)
+            self._update_node_weight(
+                n, current_manifold_id, sampled_data_distribution_tag_table
+            )
         self.expand_current_task_graph(self.current_graph_distance_radius)
-
 
 
 # class DynamicMTGTaskPlannerWithGMM(MTGTaskPlannerWithGMM):
@@ -2030,21 +2154,20 @@ class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
 
 
 #     def set_start_and_goal(
-#             self, 
-#             start_manifold_id_, 
-#             start_intersection_, 
-#             goal_manifold_id_, 
+#             self,
+#             start_manifold_id_,
+#             start_intersection_,
+#             goal_manifold_id_,
 #             goal_intersection_
 #         ):
-        
+
 #         super(DynamicMTGTaskPlannerWithGMM, self).set_start_and_goal(
-#             start_manifold_id_, 
-#             start_intersection_, 
-#             goal_manifold_id_, 
+#             start_manifold_id_,
+#             start_intersection_,
+#             goal_manifold_id_,
 #             goal_intersection_
 #             )
 #         self.setup_dynamic_planner()
-
 
 
 #     # DynamicMTGTaskPlannerWithGMM
@@ -2130,17 +2253,17 @@ class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
 #         self.exceed_threshold = threshold
 
 #     def set_start_and_goal(
-#             self, 
-#             start_manifold_id_, 
-#             start_intersection_, 
-#             goal_manifold_id_, 
+#             self,
+#             start_manifold_id_,
+#             start_intersection_,
+#             goal_manifold_id_,
 #             goal_intersection_
 #         ):
-        
+
 #         super(DynamicMTGPlannerWithAtlas, self).set_start_and_goal(
-#             start_manifold_id_, 
-#             start_intersection_, 
-#             goal_manifold_id_, 
+#             start_manifold_id_,
+#             start_intersection_,
+#             goal_manifold_id_,
 #             goal_intersection_
 #             )
 #         self.setup_dynamic_planner()
@@ -2204,7 +2327,7 @@ class DynamicMTGPlannerWithAtlas(MTGTaskPlannerWithAtlas):
 #         sampled_data_distribution_tag_table = self._generate_sampled_distribution_tag_table_and_construct_atlas(plan_, task_graph_info_, manifold_constraint_)
 #         if sampled_data_distribution_tag_table is None:
 #             return
-        
+
 
 #         # the task graph info here is the manifold id(foliatino id and co-parameter id) of the current task.
 #         current_manifold_id = task_graph_info_

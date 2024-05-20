@@ -116,10 +116,12 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         distribution_sequence = []
 
         for node_id, node_distribution, related_node_data in related_experience:
-            if node_id is None: # used for ALEF
+            if node_id is None:  # used for ALEF
                 distribution = SamplingDistribution()
-                distribution.distribution_mean = node_distribution # this is only a configuration. It is ugly to do so. pain
-                distribution.distribution_convariance = [0.0] * len(node_distribution) * len(node_distribution)
+                distribution.distribution_mean = node_distribution  # this is only a configuration. It is ugly to do so. pain
+                distribution.distribution_convariance = (
+                    [0.0] * len(node_distribution) * len(node_distribution)
+                )
                 distribution.foliation_id = -1
                 distribution.co_parameter_id = -1
                 distribution.distribution_id = -1
@@ -218,7 +220,7 @@ class MoveitMotionPlanner(BaseMotionPlanner):
         return (
             motion_plan_result[0],
             ManipulationTaskMotion(
-                'arm_motion',
+                "arm_motion",
                 planned_motion=motion_plan_result[1],
                 has_object_in_hand=foliation_constraints["is_object_in_hand"],
                 object_pose=co_parameter,

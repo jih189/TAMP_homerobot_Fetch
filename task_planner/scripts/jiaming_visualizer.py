@@ -469,7 +469,7 @@ class MoveitVisualizer(BaseVisualizer):
 
         need_to_break = False
 
-        is_gripper_open = True 
+        is_gripper_open = True
         gripper_joint_names = ["l_gripper_finger_joint", "r_gripper_finger_joint"]
 
         while not rospy.is_shutdown():
@@ -508,7 +508,9 @@ class MoveitVisualizer(BaseVisualizer):
                     else:
                         gripper_positions = [0.0, 0.0]
                     current_robot_state_msg.state = convert_joint_values_to_robot_state(
-                        list(p.positions) + gripper_positions, self.active_joints + gripper_joint_names, self.robot
+                        list(p.positions) + gripper_positions,
+                        self.active_joints + gripper_joint_names,
+                        self.robot,
                     )
 
                     # if not manipulated object, then does not need to publish the object

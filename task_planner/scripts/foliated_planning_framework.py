@@ -178,7 +178,9 @@ class FoliatedPlanningFramework:
             else:
                 task_graph_size = len(self.task_planner.task_graph.nodes())
                 if "Dynamic" in self.task_planner.planner_name:
-                    current_task_graph_size = len(self.task_planner.current_task_graph.nodes())
+                    current_task_graph_size = len(
+                        self.task_planner.current_task_graph.nodes()
+                    )
                 else:
                     current_task_graph_size = task_graph_size
                 # get the length of the motion plan
@@ -291,8 +293,10 @@ class FoliatedPlanningFramework:
                     task.task_graph_info, experience, manifold_constraint
                 )
 
-                print "Task Progress: {}/{}".format(task_index + 1, len(task_sequence)),
-                print "Success: " + ("True" if success_flag else "False")
+                print(
+                    "Task Progress: {}/{}".format(task_index + 1, len(task_sequence)),
+                )
+                print("Success: " + ("True" if success_flag else "False"))
 
                 if success_flag:
                     list_of_motion_plan.append(motion_plan_result)
