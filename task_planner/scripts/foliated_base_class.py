@@ -6,6 +6,7 @@ from tqdm import tqdm
 from abc import ABCMeta, abstractmethod
 import networkx as nx
 
+
 # user needs to implement this function
 class BaseIntersection:
     __metaclass__ = ABCMeta
@@ -160,9 +161,7 @@ class FoliatedIntersection:
             co_parameter1_index,
             co_parameter2_index,
             sampled_intersection,
-        ) = self.sampling_function(
-            self.foliation1, self.foliation2
-        )
+        ) = self.sampling_function(self.foliation1, self.foliation2)
 
         if not isinstance(success_flag, bool):
             raise Exception(
@@ -572,7 +571,12 @@ class BaseVisualizer(object):
 
 class Task:
     def __init__(
-        self, manifold_detail_, start_configuration_, goal_configuration_, next_motion_, use_atlas
+        self,
+        manifold_detail_,
+        start_configuration_,
+        goal_configuration_,
+        next_motion_,
+        use_atlas,
     ):
         # Constructor
         self.manifold_detail = manifold_detail_
@@ -721,7 +725,6 @@ class BaseTaskPlanner:
         """
         self.total_similiarity_table[foliation_id_] = similarity_matrix_
 
-
     # def add_edge_distance_for_all_edges(self):
     #     nx.set_edge_attributes(self.task_graph, 0.0, "edge_dist")
     #     for node1, node2 in self.task_graph.edges():
@@ -733,11 +736,11 @@ class BaseTaskPlanner:
     #                     self.gmm_.distributions[dist2].mean,
     #                 )
     #             )
-    #             self.task_graph.edges[node1, node2]["edge_dist"] = dist_between_two_distributions 
+    #             self.task_graph.edges[node1, node2]["edge_dist"] = dist_between_two_distributions
 
     # def setup_dynamic_planner(self):
 
-    #     self.add_edge_distance_for_all_edges()        
+    #     self.add_edge_distance_for_all_edges()
     #     nx.set_node_attributes(self.task_graph, np.inf, "dist_to_start")
     #     nx.set_node_attributes(self.task_graph, np.inf, "dist_to_goal")
     #     self.task_graph.nodes["start"]["dist_to_start"] = 0.0
@@ -762,7 +765,11 @@ class BaseTaskPlanner:
         """
         Get the subset of nodes that are within the distance .
         """
-        subset_of_nodes_fast = [node for node, dist in self.total_start_goal_distance_per_node if dist <= distance]
+        subset_of_nodes_fast = [
+            node
+            for node, dist in self.total_start_goal_distance_per_node
+            if dist <= distance
+        ]
         self.current_task_graph = self.task_graph.subgraph(subset_of_nodes_fast)
 
     def compute_distance_to_start_and_goal(self):
@@ -783,7 +790,11 @@ class BaseTaskPlanner:
                 self.task_graph.nodes[node]["dist_to_goal"] = lengths_to_goal[node]
 
             self.total_start_goal_distance_per_node.append(
-                (node, self.task_graph.nodes[node]["dist_to_start"] + self.task_graph.nodes[node]["dist_to_goal"])
+                (
+                    node,
+                    self.task_graph.nodes[node]["dist_to_start"]
+                    + self.task_graph.nodes[node]["dist_to_goal"],
+                )
             )
 
     #########################################################################################

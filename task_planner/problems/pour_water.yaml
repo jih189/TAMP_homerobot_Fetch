@@ -3,7 +3,7 @@ task_parameters:
   task_type: ""
   num_samples: 2000
   random_seed: 3897
-  save_path: "/check"
+  save_path: "/check/self_generated/pour_water"
 
 initial_joint_state:
   torso_lift_joint: 0.38
@@ -25,7 +25,7 @@ environment:
     orientation: [0.0, 0.0, 0.7071, -0.7071]
 
 grasp:
-  num_samples: 120
+  num_samples: 250
   rotated_matrix:
     - [1, 0, 0, -0.17]
     - [0, 1, 0, 0.0]

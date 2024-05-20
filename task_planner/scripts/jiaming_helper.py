@@ -1,7 +1,15 @@
 import rospy
 from moveit_msgs.msg import RobotTrajectory
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from moveit_msgs.msg import CollisionObject, RobotState, Constraints, OrientationConstraint, PositionConstraint, BoundingVolume, MoveItErrorCodes
+from moveit_msgs.msg import (
+    CollisionObject,
+    RobotState,
+    Constraints,
+    OrientationConstraint,
+    PositionConstraint,
+    BoundingVolume,
+    MoveItErrorCodes,
+)
 import tf.transformations as tf_trans
 from shape_msgs.msg import SolidPrimitive, Mesh, MeshTriangle
 import trimesh
@@ -249,11 +257,16 @@ def make_mesh(name, pose, filename, scale=(1, 1, 1)):
     pyassimp.release(scene)
     return co
 
+
 def convert_pose_stamped_to_matrix(pose_stamped):
-    pose_matrix = transformations.quaternion_matrix([pose_stamped.pose.orientation.w,
-                                                     pose_stamped.pose.orientation.x,
-                                                     pose_stamped.pose.orientation.y,
-                                                     pose_stamped.pose.orientation.z])
+    pose_matrix = transformations.quaternion_matrix(
+        [
+            pose_stamped.pose.orientation.w,
+            pose_stamped.pose.orientation.x,
+            pose_stamped.pose.orientation.y,
+            pose_stamped.pose.orientation.z,
+        ]
+    )
     pose_matrix[0, 3] = pose_stamped.pose.position.x
     pose_matrix[1, 3] = pose_stamped.pose.position.y
     pose_matrix[2, 3] = pose_stamped.pose.position.z
@@ -261,10 +274,16 @@ def convert_pose_stamped_to_matrix(pose_stamped):
 
 
 def create_pose_stamped(pose_data):
-    pose = create_pose_stamped_from_raw(pose_data['frame_id'], pose_data['position'][0], pose_data['position'][1],
-                                        pose_data['position'][2], pose_data['orientation'][0],
-                                        pose_data['orientation'][1], pose_data['orientation'][2],
-                                        pose_data['orientation'][3])
+    pose = create_pose_stamped_from_raw(
+        pose_data["frame_id"],
+        pose_data["position"][0],
+        pose_data["position"][1],
+        pose_data["position"][2],
+        pose_data["orientation"][0],
+        pose_data["orientation"][1],
+        pose_data["orientation"][2],
+        pose_data["orientation"][3],
+    )
     return pose
 
 
@@ -282,10 +301,10 @@ def create_pose_stamped_from_raw(frame_id, x, y, z, o_x, o_y, o_z, o_w):
 
 
 def get_position_difference_between_poses(pose_1_, pose_2_):
-    '''
+    """
     Get the position difference between two poses.
     pose_1_ and pose_2_ are both 4x4 numpy matrices.
-    '''
+    """
     return np.linalg.norm(pose_1_[:3, 3] - pose_2_[:3, 3])
 
 
@@ -302,8 +321,8 @@ def gaussian_similarity(distance, max_distance, sigma=0.01):
         return 1.0
 
     # Calculate the similarity score using Gaussian function
-    score = np.exp(-(distance ** 2) / (2 * sigma ** 2))
-    max_score = np.exp(-(max_distance ** 2) / (2 * sigma ** 2))
+    score = np.exp(-(distance**2) / (2 * sigma**2))
+    max_score = np.exp(-(max_distance**2) / (2 * sigma**2))
     score = (score - max_score) / (1 - max_score)
 
     if score < 0.001:
@@ -315,17 +334,20 @@ def gaussian_similarity(distance, max_distance, sigma=0.01):
 def collision_check(collision_manager, obj_mesh, obj_pose):
     obj_mesh = trimesh.load_mesh(obj_mesh)
     obj_mesh.apply_transform(convert_pose_stamped_to_matrix(obj_pose))
-    collision_manager.add_object('obj', obj_mesh)
+    collision_manager.add_object("obj", obj_mesh)
 
     if not collision_manager.in_collision_internal():
-        collision_manager.remove_object('obj')
+        collision_manager.remove_object("obj")
         return True
 
-    collision_manager.remove_object('obj')
+    collision_manager.remove_object("obj")
     return False
 
+
 def create_rotation_matrix_from_euler(orientation, position):
-    rotation_matrix = tf_trans.euler_matrix(orientation[0], orientation[1], orientation[2])[:3, :3]
+    rotation_matrix = tf_trans.euler_matrix(
+        orientation[0], orientation[1], orientation[2]
+    )[:3, :3]
 
     reference_pose = np.identity(4)
     reference_pose[:3, :3] = rotation_matrix

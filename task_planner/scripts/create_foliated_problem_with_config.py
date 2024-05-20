@@ -14,8 +14,16 @@ import tf.transformations as tf_trans
 from sensor_msgs.msg import JointState
 from manipulation_foliations_and_intersections import ManipulationFoliation
 from foliated_base_class import FoliatedIntersection, FoliatedProblem
-from jiaming_helper import create_pose_stamped, get_position_difference_between_poses, gaussian_similarity, \
-    create_pose_stamped_from_raw, collision_check, convert_pose_stamped_to_matrix, create_rotation_matrix_from_euler, make_mesh
+from jiaming_helper import (
+    create_pose_stamped,
+    get_position_difference_between_poses,
+    gaussian_similarity,
+    create_pose_stamped_from_raw,
+    collision_check,
+    convert_pose_stamped_to_matrix,
+    create_rotation_matrix_from_euler,
+    make_mesh,
+)
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 from moveit_msgs.msg import MoveItErrorCodes
 from manipulation_foliations_and_intersections import ManipulationIntersection
@@ -34,19 +42,21 @@ class Config(object):
 
     def load_config(self, package_name):
         rospack = rospkg.RosPack()
-        package_path = rospack.get_path('task_planner')
+        package_path = rospack.get_path("task_planner")
         self.package_path = package_path
 
         try:
-            with open(self.package_path + '/problems/config.yaml', 'r') as yaml_file:
+            with open(self.package_path + "/problems/config.yaml", "r") as yaml_file:
                 config_base = yaml.safe_load(yaml_file)
 
             problem_path = config_base["path"]
 
-            with open(self.package_path + problem_path, 'r') as yaml_file:
+            with open(self.package_path + problem_path, "r") as yaml_file:
                 self.config_data = yaml.safe_load(yaml_file)
 
-            random_seed = self.config_data.get('task_parameters', {}).get('random_seed', None)
+            random_seed = self.config_data.get("task_parameters", {}).get(
+                "random_seed", None
+            )
             if random_seed is not None:
                 random.seed(random_seed)
                 print("Random seed has been set to: " + str(random_seed))
@@ -74,24 +84,29 @@ class Config(object):
 class FoliatedBuilder(object):
     def __init__(self, config):
         self.package_path = config.package_path
-        self.env_mesh_path = self.package_path + config.get('environment', 'env_mesh_path')
-        self.manipulated_object_mesh_path = self.package_path + config.get('environment',
-                                                                           'manipulated_object_mesh_path')
-        self.grasp_poses_file = self.package_path + config.get('environment', 'grasp_poses_file')
-        self.env_pose = create_pose_stamped(config.get('environment', 'env_pose'))
-        self.ref_pose = np.array(config.get('environment', 'ref_pose'))
+        self.env_mesh_path = self.package_path + config.get(
+            "environment", "env_mesh_path"
+        )
+        self.manipulated_object_mesh_path = self.package_path + config.get(
+            "environment", "manipulated_object_mesh_path"
+        )
+        self.grasp_poses_file = self.package_path + config.get(
+            "environment", "grasp_poses_file"
+        )
+        self.env_pose = create_pose_stamped(config.get("environment", "env_pose"))
+        self.ref_pose = np.array(config.get("environment", "ref_pose"))
 
         self.foliation_regrasp = None
         self.foliation_dict = {}
         self.sliding_similarity_matrix = None
-        self.similarity_sigma = config.get('placement', 'similarity_sigma')
+        self.similarity_sigma = config.get("placement", "similarity_sigma")
         self.env_mesh = None
         self.collision_manager = None
         self.feasible_placements = []
         self.feasible_grasps = []
 
-        self.placement_parameters = config.get('placement')
-        self.grasp_parameters = config.get('grasp')
+        self.placement_parameters = config.get("placement")
+        self.grasp_parameters = config.get("grasp")
 
         self.sample_task_queue = []
         self.foliation_placement_group = []
@@ -109,7 +124,7 @@ class FoliatedBuilder(object):
         self.env_mesh = trimesh.load_mesh(self.env_mesh_path)
         self.env_mesh.apply_transform(convert_pose_stamped_to_matrix(self.env_pose))
         self.collision_manager = trimesh.collision.CollisionManager()
-        self.collision_manager.add_object('env', self.env_mesh)
+        self.collision_manager.add_object("env", self.env_mesh)
 
     def _placement_rectangular(self, foliation):
         size_row = foliation.get("size_row")
@@ -123,28 +138,49 @@ class FoliatedBuilder(object):
 
             for i in range(size_row):
                 for j in range(size_col):
-                    obj_pose = create_pose_stamped_from_raw("base_link",
-                                                            i * 0.1 - size_row * 0.1 / 2 + x_shift + 0.05,
-                                                            j * 0.1 - size_col * 0.1 / 2 + y_shift + 0.05,
-                                                            z_shift,
-                                                            0, 0, 0, 1)
+                    obj_pose = create_pose_stamped_from_raw(
+                        "base_link",
+                        i * 0.1 - size_row * 0.1 / 2 + x_shift + 0.05,
+                        j * 0.1 - size_col * 0.1 / 2 + y_shift + 0.05,
+                        z_shift,
+                        0,
+                        0,
+                        0,
+                        1,
+                    )
 
-                    if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
-                        self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+                    if collision_check(
+                        self.collision_manager,
+                        self.manipulated_object_mesh_path,
+                        obj_pose,
+                    ):
+                        self.feasible_placements.append(
+                            convert_pose_stamped_to_matrix(obj_pose)
+                        )
 
     def _placement_point(self, foliation):
         position = np.array(foliation.get("placement_position"))
         euler = np.array(foliation.get("placement_orientation"))
 
         orientation = tf_trans.quaternion_from_euler(euler[0], euler[1], euler[2])
-        obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2], orientation[0],
-                                                orientation[1], orientation[2], orientation[3])
+        obj_pose = create_pose_stamped_from_raw(
+            "base_link",
+            position[0],
+            position[1],
+            position[2],
+            orientation[0],
+            orientation[1],
+            orientation[2],
+            orientation[3],
+        )
 
-        if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
+        if collision_check(
+            self.collision_manager, self.manipulated_object_mesh_path, obj_pose
+        ):
             self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
         else:
             foliation_name = foliation.get("name")
-            print "no placement added for: " + foliation_name
+            print("no placement added for: " + foliation_name)
 
     def _placement_circular(self, foliation):
         center_position = np.array(foliation.get("placement_position"))
@@ -168,11 +204,23 @@ class FoliatedBuilder(object):
                 y = center_position[1] + radius * np.sin(angle_z)
                 z = center_position[2]
                 orientation = tf_trans.quaternion_from_euler(angle_x, angle_y, angle_z)
-                obj_pose = create_pose_stamped_from_raw("base_link", x, y, z,
-                                                        orientation[0], orientation[1], orientation[2], orientation[3])
+                obj_pose = create_pose_stamped_from_raw(
+                    "base_link",
+                    x,
+                    y,
+                    z,
+                    orientation[0],
+                    orientation[1],
+                    orientation[2],
+                    orientation[3],
+                )
 
-                if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
-                    self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+                if collision_check(
+                    self.collision_manager, self.manipulated_object_mesh_path, obj_pose
+                ):
+                    self.feasible_placements.append(
+                        convert_pose_stamped_to_matrix(obj_pose)
+                    )
 
     def _placement_linear(self, foliation):
         start_position = np.array(foliation.get("start_position"))
@@ -182,15 +230,22 @@ class FoliatedBuilder(object):
         if num_steps:
             positions_to_place = [start_position]
             for step in range(1, num_steps):
-                current_position = start_position + (end_position - start_position) * (float(step) / num_steps)
+                current_position = start_position + (end_position - start_position) * (
+                    float(step) / num_steps
+                )
                 positions_to_place.append(current_position)
             positions_to_place.append(end_position)
             for position in positions_to_place:
-                obj_pose = create_pose_stamped_from_raw("base_link", position[0], position[1], position[2],
-                                                        0, 0, 0, 1)
+                obj_pose = create_pose_stamped_from_raw(
+                    "base_link", position[0], position[1], position[2], 0, 0, 0, 1
+                )
 
-                if collision_check(self.collision_manager, self.manipulated_object_mesh_path, obj_pose):
-                    self.feasible_placements.append(convert_pose_stamped_to_matrix(obj_pose))
+                if collision_check(
+                    self.collision_manager, self.manipulated_object_mesh_path, obj_pose
+                ):
+                    self.feasible_placements.append(
+                        convert_pose_stamped_to_matrix(obj_pose)
+                    )
 
     def _handle_placements(self, params):
         foliations = params.get("foliations")
@@ -201,15 +256,24 @@ class FoliatedBuilder(object):
             if foliation.get("reference_pose"):
                 reference_pose = np.array(foliation.get("reference_pose"))
             elif foliation.get("reference_pose_position"):
-                reference_pose = np.array(create_rotation_matrix_from_euler(foliation.get("reference_pose_orientation"),
-                                                                            foliation.get("reference_pose_position")))
+                reference_pose = np.array(
+                    create_rotation_matrix_from_euler(
+                        foliation.get("reference_pose_orientation"),
+                        foliation.get("reference_pose_position"),
+                    )
+                )
 
             orientation_tolerance = foliation.get("orientation_tolerance")
             position_tolerance = foliation.get("position_tolerance")
-            foliation_placement = self._create_foliation(foliation_name, "base_link", reference_pose,
-                                                         orientation_tolerance,
-                                                         position_tolerance, self.feasible_grasps,
-                                                         self.sliding_similarity_matrix)
+            foliation_placement = self._create_foliation(
+                foliation_name,
+                "base_link",
+                reference_pose,
+                orientation_tolerance,
+                position_tolerance,
+                self.feasible_grasps,
+                self.sliding_similarity_matrix,
+            )
 
             self.foliation_dict[foliation_name] = foliation_placement
 
@@ -224,7 +288,7 @@ class FoliatedBuilder(object):
             if not placement_type:
                 placement_type = params.get("type")
             if not placement_type:
-                print "no valid placement type detected"
+                print("no valid placement type detected")
 
             if placement_type == "rectangular":
                 self._placement_rectangular(foliation)
@@ -244,7 +308,9 @@ class FoliatedBuilder(object):
         if num_samples == 0:
             num_samples = len(loaded_array.files)
         for ind in random.sample(list(range(len(loaded_array.files))), num_samples):
-            self.feasible_grasps.append(np.dot(loaded_array[loaded_array.files[ind]], rotated_matrix))
+            self.feasible_grasps.append(
+                np.dot(loaded_array[loaded_array.files[ind]], rotated_matrix)
+            )
         random.shuffle(self.feasible_grasps)
 
     def _calc_similarity_matrix(self, feasible_grasps):
@@ -254,56 +320,71 @@ class FoliatedBuilder(object):
             for j, grasp in enumerate(feasible_grasps):
                 if i == j:
                     different_matrix[i, j] = 0
-                different_matrix[i, j] = get_position_difference_between_poses(feasible_grasps[i],
-                                                                               feasible_grasps[j])
+                different_matrix[i, j] = get_position_difference_between_poses(
+                    feasible_grasps[i], feasible_grasps[j]
+                )
 
-        sliding_similarity_matrix = np.zeros((len(feasible_grasps), len(feasible_grasps)))
+        sliding_similarity_matrix = np.zeros(
+            (len(feasible_grasps), len(feasible_grasps))
+        )
         max_distance = np.max(different_matrix)
         for i, grasp in enumerate(feasible_grasps):
             for j, grasp in enumerate(feasible_grasps):
-                sliding_similarity_matrix[i, j] = gaussian_similarity(different_matrix[i, j], max_distance,
-                                                                      sigma=self.similarity_sigma)
+                sliding_similarity_matrix[i, j] = gaussian_similarity(
+                    different_matrix[i, j], max_distance, sigma=self.similarity_sigma
+                )
 
         self.sliding_similarity_matrix = sliding_similarity_matrix
 
-    def _create_grasp_foliation(self, name='regrasp', frame_id="base_link"):
-        foliation_regrasp = ManipulationFoliation(foliation_name=name,
-                                                constraint_parameters={
-                                                    "frame_id": frame_id,
-                                                    "is_object_in_hand": False,
-                                                    "object_mesh_path": self.manipulated_object_mesh_path,
-                                                    "obstacle_mesh": self.env_mesh_path,
-                                                    "obstacle_pose": convert_pose_stamped_to_matrix(self.env_pose)
-                                                },
-                                                co_parameters=self.feasible_placements,
-                                                similarity_matrix=np.identity(len(self.feasible_placements)))
+    def _create_grasp_foliation(self, name="regrasp", frame_id="base_link"):
+        foliation_regrasp = ManipulationFoliation(
+            foliation_name=name,
+            constraint_parameters={
+                "frame_id": frame_id,
+                "is_object_in_hand": False,
+                "object_mesh_path": self.manipulated_object_mesh_path,
+                "obstacle_mesh": self.env_mesh_path,
+                "obstacle_pose": convert_pose_stamped_to_matrix(self.env_pose),
+            },
+            co_parameters=self.feasible_placements,
+            similarity_matrix=np.identity(len(self.feasible_placements)),
+        )
         self.foliation_dict["regrasp"] = foliation_regrasp
         self.foliation_dict["default"] = foliation_regrasp
         self.foliation_regrasp = foliation_regrasp
 
-    def _create_foliation(self, name, frame_id, reference_pose, orientation_tolerance, position_tolerance,
-                          co_parameters, similarity_matrix):
-
-        foliation_placement = ManipulationFoliation(foliation_name=name,
-                                                    constraint_parameters={
-                                                        "frame_id": frame_id,
-                                                        "is_object_in_hand": True,
-                                                        'object_mesh_path': self.manipulated_object_mesh_path,
-                                                        "obstacle_mesh": self.env_mesh_path,
-                                                        "obstacle_pose": convert_pose_stamped_to_matrix(self.env_pose),
-                                                        "reference_pose": reference_pose,
-                                                        "orientation_tolerance": orientation_tolerance,
-                                                        "position_tolerance": position_tolerance
-                                                    },
-                                                    co_parameters=co_parameters,
-                                                    similarity_matrix=similarity_matrix)
+    def _create_foliation(
+        self,
+        name,
+        frame_id,
+        reference_pose,
+        orientation_tolerance,
+        position_tolerance,
+        co_parameters,
+        similarity_matrix,
+    ):
+        foliation_placement = ManipulationFoliation(
+            foliation_name=name,
+            constraint_parameters={
+                "frame_id": frame_id,
+                "is_object_in_hand": True,
+                "object_mesh_path": self.manipulated_object_mesh_path,
+                "obstacle_mesh": self.env_mesh_path,
+                "obstacle_pose": convert_pose_stamped_to_matrix(self.env_pose),
+                "reference_pose": reference_pose,
+                "orientation_tolerance": orientation_tolerance,
+                "position_tolerance": position_tolerance,
+            },
+            co_parameters=co_parameters,
+            similarity_matrix=similarity_matrix,
+        )
         self.foliation_placement_group.append(foliation_placement)
         return foliation_placement
 
 
 class RobotScene(object):
     def __init__(self, config):
-        self.joint_state_dict = config.get('initial_joint_state')
+        self.joint_state_dict = config.get("initial_joint_state")
         self.robot = None
         self.scene = None
         self.move_group = None
@@ -313,7 +394,7 @@ class RobotScene(object):
 
     def initialize(self):
         moveit_commander.roscpp_initialize(sys.argv)
-        rospy.init_node('create_experiment_node', anonymous=True)
+        rospy.init_node("create_experiment_node", anonymous=True)
 
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
@@ -327,7 +408,9 @@ class RobotScene(object):
         self._set_initial_joint_state()
 
     def _set_initial_joint_state(self):
-        joint_state_publisher = rospy.Publisher('/move_group/fake_controller_joint_states', JointState, queue_size=1)
+        joint_state_publisher = rospy.Publisher(
+            "/move_group/fake_controller_joint_states", JointState, queue_size=1
+        )
         joint_state = JointState()
         joint_state.header.stamp = rospy.Time.now()
         joint_state.name = list(self.joint_state_dict.keys())
@@ -344,20 +427,30 @@ class Sampler:
         self.robot = robot_scene.robot
         self.move_group = robot_scene.move_group
         self.compute_ik_srv = robot_scene.compute_ik_srv
-        self.manipulated_object_mesh_path = config.package_path + config.get('environment',
-                                                                             'manipulated_object_mesh_path')
-        self.env_pose = create_pose_stamped(config.get('environment', 'env_pose'))
-        self.env_mesh_path = config.package_path + config.get('environment', 'env_mesh_path')
+        self.manipulated_object_mesh_path = config.package_path + config.get(
+            "environment", "manipulated_object_mesh_path"
+        )
+        self.env_pose = create_pose_stamped(config.get("environment", "env_pose"))
+        self.env_mesh_path = config.package_path + config.get(
+            "environment", "env_mesh_path"
+        )
         self.scene = robot_scene.scene
         self.fraction = 0.97
         self.target_frame_id = "base_link"
         self.target_group_name = "arm"
-        self.grasp_pose_mat = [[1, 0, 0, -0.05], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+        self.grasp_pose_mat = [
+            [1, 0, 0, -0.05],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1],
+        ]
         self.placements = placements
 
         self.selected_co_param_grasp = {}
 
-    def _check_tolerance(self, reference_pose, position_tolerance, orientation_tolerance, position):
+    def _check_tolerance(
+        self, reference_pose, position_tolerance, orientation_tolerance, position
+    ):
         ref_translation = reference_pose[:3, 3]
         pos_translation = position[:3, 3]
         translation_diff = np.abs(ref_translation - pos_translation)
@@ -372,7 +465,9 @@ class Sampler:
 
         relative_quaternion = tf_trans.quaternion_from_matrix(relative_transform)
         relative_euler_angles = tf_trans.euler_from_quaternion(relative_quaternion)
-        within_orientation_tolerance = np.all(np.abs(relative_euler_angles) <= orientation_tolerance)
+        within_orientation_tolerance = np.all(
+            np.abs(relative_euler_angles) <= orientation_tolerance
+        )
 
         return within_position_tolerance and within_orientation_tolerance
 
@@ -395,8 +490,12 @@ class Sampler:
         # random set robot pose
         random_moveit_robot_state = self.robot.get_current_state()
         random_position_list = list(random_moveit_robot_state.joint_state.position)
-        for joint_name, joint_value in zip(self.move_group.get_joints(), self.move_group.get_random_joint_values()):
-            random_position_list[random_moveit_robot_state.joint_state.name.index(joint_name)] = joint_value
+        for joint_name, joint_value in zip(
+            self.move_group.get_joints(), self.move_group.get_random_joint_values()
+        ):
+            random_position_list[
+                random_moveit_robot_state.joint_state.name.index(joint_name)
+            ] = joint_value
         random_moveit_robot_state.joint_state.position = tuple(random_position_list)
         ik_req.ik_request.robot_state = random_moveit_robot_state
 
@@ -414,14 +513,17 @@ class Sampler:
         object_pose_stamped.header.frame_id = "base_link"
         object_pose_stamped.pose = msgify(Pose, placement)
 
-        collision_object = make_mesh("object", object_pose_stamped, self.manipulated_object_mesh_path)
+        collision_object = make_mesh(
+            "object", object_pose_stamped, self.manipulated_object_mesh_path
+        )
         self.scene.add_object(collision_object)
         while "object" not in self.scene.get_known_object_names():
             rospy.sleep(0.0001)
 
         self.move_group.set_start_state(moveit_robot_state)
         (planned_motion, fraction) = self.move_group.compute_cartesian_path(
-            [msgify(geometry_msgs.msg.Pose, pre_grasp_pose_mat)], 0.01, 0.0)
+            [msgify(geometry_msgs.msg.Pose, pre_grasp_pose_mat)], 0.01, 0.0
+        )
 
         # remove the object from the scene
         self.scene.remove_world_object("object")
@@ -429,12 +531,18 @@ class Sampler:
         if fraction < self.fraction:
             return False, None
 
-        intersection_motion = np.array([p.positions for p in planned_motion.joint_trajectory.points])
+        intersection_motion = np.array(
+            [p.positions for p in planned_motion.joint_trajectory.points]
+        )
         return True, intersection_motion
 
-    def _sample_co_param(self, foliation_co_param_grasp, foliation_co_param_placement,
-                         selected_co_parameters1_index=None, selected_co_parameters2_index=None):
-
+    def _sample_co_param(
+        self,
+        foliation_co_param_grasp,
+        foliation_co_param_placement,
+        selected_co_parameters1_index=None,
+        selected_co_parameters2_index=None,
+    ):
         co_parameters1 = foliation_co_param_grasp.co_parameters
 
         if isinstance(foliation_co_param_placement, list):
@@ -457,13 +565,21 @@ class Sampler:
             placement = None
             found_valid_sample = False
 
-            reference_pose = foliation_co_param_grasp.constraint_parameters.get("reference_pose")
-            position_tolerance = foliation_co_param_grasp.constraint_parameters.get("position_tolerance")
-            orientation_tolerance = foliation_co_param_grasp.constraint_parameters.get("orientation_tolerance")
+            reference_pose = foliation_co_param_grasp.constraint_parameters.get(
+                "reference_pose"
+            )
+            position_tolerance = foliation_co_param_grasp.constraint_parameters.get(
+                "position_tolerance"
+            )
+            orientation_tolerance = foliation_co_param_grasp.constraint_parameters.get(
+                "orientation_tolerance"
+            )
 
             for index in original_indices:
                 placement = co_parameters2[index]
-                tolerance = self._check_tolerance(reference_pose, position_tolerance, orientation_tolerance, placement)
+                tolerance = self._check_tolerance(
+                    reference_pose, position_tolerance, orientation_tolerance, placement
+                )
 
                 selected_co_parameters2_index = index
 
@@ -472,31 +588,60 @@ class Sampler:
                     break
 
             if not found_valid_sample:
-                print "can't sample any valid co_parameter, skip..."
-                return False, None, None, selected_co_parameters1_index, selected_co_parameters2_index
+                print("can't sample any valid co_parameter, skip...")
+                return (
+                    False,
+                    None,
+                    None,
+                    selected_co_parameters1_index,
+                    selected_co_parameters2_index,
+                )
         else:
             placement = co_parameters2[selected_co_parameters2_index]
 
-        check_result, intersection_motion = self._check_grasp_feasibility(placement, grasp)
+        check_result, intersection_motion = self._check_grasp_feasibility(
+            placement, grasp
+        )
 
-        return check_result, intersection_motion, placement, selected_co_parameters1_index, selected_co_parameters2_index
+        return (
+            check_result,
+            intersection_motion,
+            placement,
+            selected_co_parameters1_index,
+            selected_co_parameters2_index,
+        )
 
     def sampling_func_placement_grasp(self, foliation_1, foliation_2):
-        check_result, intersection_motion, placement, selected_co_parameters1_index, selected_co_parameters2_index = (
-            self._sample_co_param(foliation_1, foliation_2))
+        (
+            check_result,
+            intersection_motion,
+            placement,
+            selected_co_parameters1_index,
+            selected_co_parameters2_index,
+        ) = self._sample_co_param(foliation_1, foliation_2)
 
         if check_result:
-            return True, selected_co_parameters1_index, selected_co_parameters2_index, ManipulationIntersection(
-                'release',
-                intersection_motion,
-                self.move_group.get_active_joints(),
-                placement,
-                self.manipulated_object_mesh_path,
-                convert_pose_stamped_to_matrix(self.env_pose),
-                self.env_mesh_path
+            return (
+                True,
+                selected_co_parameters1_index,
+                selected_co_parameters2_index,
+                ManipulationIntersection(
+                    "release",
+                    intersection_motion,
+                    self.move_group.get_active_joints(),
+                    placement,
+                    self.manipulated_object_mesh_path,
+                    convert_pose_stamped_to_matrix(self.env_pose),
+                    self.env_mesh_path,
+                ),
             )
         else:
-            return False, selected_co_parameters1_index, selected_co_parameters2_index, None
+            return (
+                False,
+                selected_co_parameters1_index,
+                selected_co_parameters2_index,
+                None,
+            )
 
     def sampling_func_placement_placement(self, foliation_1, foliation_2):
         successful_placements = {}
@@ -504,14 +649,18 @@ class Sampler:
         for foliation_grasp in [foliation_1, foliation_2]:
             successful_placements[foliation_grasp.foliation_name] = []
             for placement_index, placement in enumerate(self.placements):
-                if self._check_tolerance(foliation_grasp.constraint_parameters.get("reference_pose"),
-                                         foliation_grasp.constraint_parameters.get("position_tolerance"),
-                                         foliation_grasp.constraint_parameters.get("orientation_tolerance"),
-                                         placement):
-                    successful_placements[foliation_grasp.foliation_name].append(placement)
+                if self._check_tolerance(
+                    foliation_grasp.constraint_parameters.get("reference_pose"),
+                    foliation_grasp.constraint_parameters.get("position_tolerance"),
+                    foliation_grasp.constraint_parameters.get("orientation_tolerance"),
+                    placement,
+                ):
+                    successful_placements[foliation_grasp.foliation_name].append(
+                        placement
+                    )
 
         common_placements = []
-        
+
         # print successful_placements
 
         successful_placements_values = successful_placements.values()
@@ -520,8 +669,10 @@ class Sampler:
                 if np.allclose(array1, array2, atol=1e-6):
                     common_placements.append(array1)
 
-        selected_common_placement = common_placements[random.randint(0, len(common_placements) - 1)]
-        
+        selected_common_placement = common_placements[
+            random.randint(0, len(common_placements) - 1)
+        ]
+
         placement_index = None
         for i, placement in enumerate(self.placements):
             # print i, placement
@@ -529,18 +680,38 @@ class Sampler:
                 placement_index = i
                 break
 
-        if self.selected_co_param_grasp.get(foliation_1.foliation_name) and self.selected_co_param_grasp.get(foliation_2.foliation_name):
-            if len(self.selected_co_param_grasp.get(foliation_1.foliation_name)) == len(self.selected_co_param_grasp.get(foliation_2.foliation_name)):
-                selected_co_parameters1_index = random.randint(0, len(foliation_1.co_parameters) - 1)
+        if self.selected_co_param_grasp.get(
+            foliation_1.foliation_name
+        ) and self.selected_co_param_grasp.get(foliation_2.foliation_name):
+            if len(self.selected_co_param_grasp.get(foliation_1.foliation_name)) == len(
+                self.selected_co_param_grasp.get(foliation_2.foliation_name)
+            ):
+                selected_co_parameters1_index = random.randint(
+                    0, len(foliation_1.co_parameters) - 1
+                )
             else:
-                temp_list = [item for item in self.selected_co_param_grasp.get(foliation_1.foliation_name) if item != -1]
+                temp_list = [
+                    item
+                    for item in self.selected_co_param_grasp.get(
+                        foliation_1.foliation_name
+                    )
+                    if item != -1
+                ]
                 selected_co_parameters1_index = random.choice(temp_list)
         else:
-            selected_co_parameters1_index = random.randint(0, len(foliation_1.co_parameters) - 1)
+            selected_co_parameters1_index = random.randint(
+                0, len(foliation_1.co_parameters) - 1
+            )
 
-        check_result, intersection_motion, placement, selected_co_parameters1_index, selected_co_parameters2_index = (
-            self._sample_co_param(foliation_1, self.placements,
-                                  selected_co_parameters1_index, placement_index))
+        (
+            check_result,
+            intersection_motion,
+            placement,
+            selected_co_parameters1_index,
+            selected_co_parameters2_index,
+        ) = self._sample_co_param(
+            foliation_1, self.placements, selected_co_parameters1_index, placement_index
+        )
 
         if check_result:
             # storage prev grasp pose
@@ -549,30 +720,50 @@ class Sampler:
             if foliation_2.foliation_name not in self.selected_co_param_grasp:
                 self.selected_co_param_grasp[foliation_2.foliation_name] = []
 
-            if selected_co_parameters1_index not in self.selected_co_param_grasp[foliation_1.foliation_name]:
-                self.selected_co_param_grasp[foliation_1.foliation_name].append(selected_co_parameters1_index)
+            if (
+                selected_co_parameters1_index
+                not in self.selected_co_param_grasp[foliation_1.foliation_name]
+            ):
+                self.selected_co_param_grasp[foliation_1.foliation_name].append(
+                    selected_co_parameters1_index
+                )
             else:
                 self.selected_co_param_grasp[foliation_1.foliation_name].append(-1)
 
-            if selected_co_parameters1_index not in self.selected_co_param_grasp[foliation_2.foliation_name]:
-                self.selected_co_param_grasp[foliation_2.foliation_name].append(selected_co_parameters1_index)
+            if (
+                selected_co_parameters1_index
+                not in self.selected_co_param_grasp[foliation_2.foliation_name]
+            ):
+                self.selected_co_param_grasp[foliation_2.foliation_name].append(
+                    selected_co_parameters1_index
+                )
             else:
                 self.selected_co_param_grasp[foliation_2.foliation_name].append(-1)
 
-            return True, selected_co_parameters1_index, selected_co_parameters1_index, ManipulationIntersection(
-                'release',
-                [intersection_motion[0]],
-                self.move_group.get_active_joints(),
-                placement,
-                self.manipulated_object_mesh_path,
-                convert_pose_stamped_to_matrix(self.env_pose),
-                self.env_mesh_path
+            return (
+                True,
+                selected_co_parameters1_index,
+                selected_co_parameters1_index,
+                ManipulationIntersection(
+                    "release",
+                    [intersection_motion[0]],
+                    self.move_group.get_active_joints(),
+                    placement,
+                    self.manipulated_object_mesh_path,
+                    convert_pose_stamped_to_matrix(self.env_pose),
+                    self.env_mesh_path,
+                ),
             )
         else:
-            return False, selected_co_parameters1_index, selected_co_parameters1_index, None
+            return (
+                False,
+                selected_co_parameters1_index,
+                selected_co_parameters1_index,
+                None,
+            )
 
     def prepare_sampling_func(self):
-        self.scene.add_mesh('env_obstacle', self.env_pose, self.env_mesh_path)
+        self.scene.add_mesh("env_obstacle", self.env_pose, self.env_mesh_path)
 
     def warp_sampling_func(self):
         self.scene.clear()
@@ -580,26 +771,35 @@ class Sampler:
 
 class ProblemVisualizer:
     def __init__(self, config, foliated_builder):
-        self.env_mesh_path = "package://task_planner/" + config.get('environment', 'env_mesh_path')
-        self.manipulated_object_mesh_path = "package://task_planner/" + config.get("environment",
-                                                                                   "manipulated_object_mesh_path")
-        self.env_pose = create_pose_stamped(config.get('environment', 'env_pose'))
+        self.env_mesh_path = "package://task_planner/" + config.get(
+            "environment", "env_mesh_path"
+        )
+        self.manipulated_object_mesh_path = "package://task_planner/" + config.get(
+            "environment", "manipulated_object_mesh_path"
+        )
+        self.env_pose = create_pose_stamped(config.get("environment", "env_pose"))
         self.feasible_placements = foliated_builder.feasible_placements
 
     def visualize_problem(self):
-        problem_publisher = rospy.Publisher('/problem_visualization_marker_array', MarkerArray, queue_size=5)
+        problem_publisher = rospy.Publisher(
+            "/problem_visualization_marker_array", MarkerArray, queue_size=5
+        )
         rospy.sleep(1)
 
         marker_array = MarkerArray()
 
         # visualize the obstacle
-        obstacle_marker = self.create_marker(self.env_pose.pose, self.env_mesh_path, "obstacle", 0)
+        obstacle_marker = self.create_marker(
+            self.env_pose.pose, self.env_mesh_path, "obstacle", 0
+        )
         marker_array.markers.append(obstacle_marker)
 
         # visualize feasible placements
         for i, placement in enumerate(self.feasible_placements):
             placement = msgify(geometry_msgs.msg.Pose, placement)
-            object_marker = self.create_marker(placement, self.manipulated_object_mesh_path, "placement", i + 1)
+            object_marker = self.create_marker(
+                placement, self.manipulated_object_mesh_path, "placement", i + 1
+            )
             marker_array.markers.append(object_marker)
 
         problem_publisher.publish(marker_array)
@@ -621,7 +821,6 @@ class ProblemVisualizer:
 
 
 class Pipeline:
-
     def __init__(self, package_name):
         self.package_name = package_name
         self.config = None
@@ -637,28 +836,40 @@ class Pipeline:
         self.config = Config(self.package_name)
         self.robot_scene = RobotScene(self.config)
         self.foliated_builder = FoliatedBuilder(self.config)
-        self.sampler = Sampler(self.config, self.robot_scene, self.foliated_builder.feasible_placements)
+        self.sampler = Sampler(
+            self.config, self.robot_scene, self.foliated_builder.feasible_placements
+        )
         self.problem_visualizer = ProblemVisualizer(self.config, self.foliated_builder)
         self._print_info(self.foliated_builder)
 
     @staticmethod
     def _print_info(foliated_builder):
-        print "Foliation Dictionary"
+        print("Foliation Dictionary")
         for key, foliation in foliated_builder.foliation_dict.iteritems():
-            print "{}: Foliation Name - {}".format(key, foliation.foliation_name)
-        print "--------------------"
-        print "Sample Task Queue"
+            print("{}: Foliation Name - {}".format(key, foliation.foliation_name))
+        print("--------------------")
+        print("Sample Task Queue")
         for task in foliated_builder.sample_task_queue:
             foliation, name = task
-            print "Foliation Name - {}, Target - {}".format(foliation.foliation_name, name)
+            print(
+                "Foliation Name - {}, Target - {}".format(
+                    foliation.foliation_name, name
+                )
+            )
 
     def _build_foliations(self):
         # TODO: check why can't just use dict
-        self.foliations = [self.foliated_builder.foliation_regrasp] + self.foliated_builder.foliation_placement_group
+        self.foliations = [
+            self.foliated_builder.foliation_regrasp
+        ] + self.foliated_builder.foliation_placement_group
 
     @staticmethod
     def _get_foliation_co_param_type(foliation):
-        return "grasp" if foliation.constraint_parameters.get("is_object_in_hand") else "placement"
+        return (
+            "grasp"
+            if foliation.constraint_parameters.get("is_object_in_hand")
+            else "placement"
+        )
 
     def _build_intersections(self):
         for task in self.foliated_builder.sample_task_queue:
@@ -670,30 +881,38 @@ class Pipeline:
 
             if (current_type, target_type) in [("grasp", "placement")]:
                 foliated_intersection = FoliatedIntersection(
-                    current_foliation, target_foliation,
+                    current_foliation,
+                    target_foliation,
                     self.sampler.sampling_func_placement_grasp,
                     self.sampler.prepare_sampling_func,
-                    self.sampler.warp_sampling_func
+                    self.sampler.warp_sampling_func,
                 )
             elif current_type == target_type == "grasp":
                 foliated_intersection = FoliatedIntersection(
-                    current_foliation, target_foliation,
+                    current_foliation,
+                    target_foliation,
                     self.sampler.sampling_func_placement_placement,
                     self.sampler.prepare_sampling_func,
-                    self.sampler.warp_sampling_func
+                    self.sampler.warp_sampling_func,
                 )
             else:
-                print current_type
-                print target_type
+                print(current_type)
+                print(target_type)
                 raise ValueError("Invalid intersection settings")
 
             self.foliated_intersections.append(foliated_intersection)
 
     def _generate_problem(self):
-        foliated_problem = FoliatedProblem(self.config.get("task_parameters", 'task_name'))
-        foliated_problem.set_foliation_n_foliated_intersection(self.foliations, self.foliated_intersections)
+        foliated_problem = FoliatedProblem(
+            self.config.get("task_parameters", "task_name")
+        )
+        foliated_problem.set_foliation_n_foliated_intersection(
+            self.foliations, self.foliated_intersections
+        )
         self.problem_visualizer.visualize_problem()
-        foliated_problem.sample_intersections(self.config.get('task_parameters', 'num_samples'))
+        foliated_problem.sample_intersections(
+            self.config.get("task_parameters", "num_samples")
+        )
 
         # set the start and goal candidates
         start_candidates = []
@@ -705,13 +924,17 @@ class Pipeline:
         foliated_problem.set_start_manifold_candidates(start_candidates)
         foliated_problem.set_goal_manifold_candidates(goal_candidates)
 
-        foliated_problem.save(self.config.package_path + self.config.get('task_parameters', 'save_path'))
+        foliated_problem.save(
+            self.config.package_path + self.config.get("task_parameters", "save_path")
+        )
 
-        FoliatedProblem.load(ManipulationFoliation, ManipulationIntersection,
-                             self.config.package_path + self.config.get('task_parameters', 'save_path'))
+        FoliatedProblem.load(
+            ManipulationFoliation,
+            ManipulationIntersection,
+            self.config.package_path + self.config.get("task_parameters", "save_path"),
+        )
 
     def main_pipeline(self):
-
         self._init()
         self._build_foliations()
         self._build_intersections()
