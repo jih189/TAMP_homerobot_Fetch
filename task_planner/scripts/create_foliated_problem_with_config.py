@@ -22,6 +22,7 @@ from jiaming_helper import (
     collision_check,
     convert_pose_stamped_to_matrix,
     create_rotation_matrix_from_euler,
+    make_mesh,
 )
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 from moveit_msgs.msg import MoveItErrorCodes
@@ -507,10 +508,25 @@ class Sampler:
         moveit_robot_state = self.robot.get_current_state()
         moveit_robot_state.joint_state.position = ik_res.solution.joint_state.position
 
+        # add the object as collision object into the scene.
+        object_pose_stamped = PoseStamped()
+        object_pose_stamped.header.frame_id = "base_link"
+        object_pose_stamped.pose = msgify(Pose, placement)
+
+        collision_object = make_mesh(
+            "object", object_pose_stamped, self.manipulated_object_mesh_path
+        )
+        self.scene.add_object(collision_object)
+        while "object" not in self.scene.get_known_object_names():
+            rospy.sleep(0.0001)
+
         self.move_group.set_start_state(moveit_robot_state)
         (planned_motion, fraction) = self.move_group.compute_cartesian_path(
             [msgify(geometry_msgs.msg.Pose, pre_grasp_pose_mat)], 0.01, 0.0
         )
+
+        # remove the object from the scene
+        self.scene.remove_world_object("object")
 
         if fraction < self.fraction:
             return False, None
